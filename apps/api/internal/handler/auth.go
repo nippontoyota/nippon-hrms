@@ -10,25 +10,20 @@ import (
 	"github.com/nippon-toyota/hrms/pkg/respond"
 )
 
-// AuthHandler groups auth-related HTTP handlers.
 type AuthHandler struct {
 	jwtSecret string
 	expiryMin int
 }
 
-// NewAuthHandler constructs an AuthHandler.
 func NewAuthHandler(jwtSecret string, expiryMin int) *AuthHandler {
 	return &AuthHandler{jwtSecret: jwtSecret, expiryMin: expiryMin}
 }
 
-// loginRequest is the expected JSON body for POST /auth/login.
 type loginRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
-// Login handles POST /api/v1/auth/login.
-// TODO: Replace stub with a real user lookup + bcrypt comparison.
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var req loginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -36,16 +31,14 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// ── STUB auth ── swap for DB lookup in production ──────────────
 	if req.Email == "" || req.Password == "" {
 		respond.BadRequest(w, "email and password are required")
 		return
 	}
-	// Placeholder user — replace with repository call.
-	userID   := "usr_admin_001"
+
+	userID := "usr_admin_001"
 	userName := "HR Admin"
-	role     := "admin"
-	// ────────────────────────────────────────────────────────────────
+	role := "admin"
 
 	claims := &appMiddleware.HRMSClaims{
 		UserID: userID,
@@ -74,13 +67,10 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// Refresh handles POST /api/v1/auth/refresh.
-// TODO: implement refresh-token rotation.
 func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 	respond.OK(w, map[string]string{"message": "refresh token endpoint — not yet implemented"})
 }
 
-// Me handles GET /api/v1/auth/me (requires auth middleware).
 func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	claims, ok := appMiddleware.ClaimsFromContext(r.Context())
 	if !ok {

@@ -1,4 +1,3 @@
-// Package logger provides a thin structured logging wrapper over the std log/slog package.
 package logger
 
 import (
@@ -16,14 +15,10 @@ func init() {
 	slog.SetDefault(defaultLogger)
 }
 
-// Info logs an informational message.
 func Info(msg string, args ...any) { slog.Info(msg, args...) }
 
-// Warn logs a warning message.
 func Warn(msg string, args ...any) { slog.Warn(msg, args...) }
 
-// Error logs an error message.
 func Error(msg string, args ...any) { slog.Error(msg, args...) }
 
-// Debug logs a debug message.
 func Debug(msg string, args ...any) { slog.Debug(msg, args...) }

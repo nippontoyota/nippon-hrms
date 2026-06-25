@@ -1,4 +1,3 @@
-// Command server is the HRMS API entrypoint.
 package main
 
 import (
@@ -19,32 +18,37 @@ import (
 )
 
 func main() {
-	// ── Config ────────────────────────────────────────────────────
+
 	cfg, err := config.Load()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "config: %v\n", err)
 		os.Exit(1)
 	}
 
-	// ── Supabase ──────────────────────────────────────────────────
+	// ── Database (Direct Postgres) ────────────────────────────────
+	ctx := context.Background()
+	pgPool, err := db.NewPostgresPool(ctx, cfg.DatabaseURL)
+	if err != nil {
+		logger.Error("postgres connection failed", "err", err)
+		logger.Warn("continuing without Postgres — check DATABASE_URL in .env")
+	} else {
+		defer pgPool.Close()
+	}
+
+	// ── Supabase (Storage API only) ───────────────────────────────
 	var supaClient *db.Client
 	if cfg.SupabaseURL != "" && cfg.SupabaseServiceRoleKey != "" {
 		supaClient, err = db.New(cfg.SupabaseURL, cfg.SupabaseServiceRoleKey)
 		if err != nil {
 			logger.Error("supabase init failed", "err", err)
-			logger.Warn("continuing without Supabase — add SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY to .env")
 		}
-	} else {
-		logger.Warn("supabase not configured — DB features disabled")
 	}
 
-	// ── DoubleTick ────────────────────────────────────────────────
 	dtClient := doubletick.NewClient(doubletick.Config{
 		APIKey:     cfg.DoubleTickAPIKey,
 		FromNumber: cfg.WABAPhoneNumberID,
 	})
 
-	// ── HTTP server ───────────────────────────────────────────────
 	srv := &http.Server{
 		Addr:         cfg.Addr(),
 		Handler:      router.New(cfg, supaClient, dtClient),
@@ -61,7 +65,6 @@ func main() {
 		}
 	}()
 
-	// ── Graceful shutdown ─────────────────────────────────────────
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit

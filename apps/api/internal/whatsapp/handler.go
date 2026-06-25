@@ -15,16 +15,11 @@ import (
 	"github.com/nippon-toyota/hrms/pkg/respond"
 )
 
-// Handler exposes the DoubleTick webhook over HTTP.
-// Wire it into Chi with: r.Post("/api/v1/whatsapp/webhook", h.Webhook)
 type Handler struct {
 	service       *Service
-	webhookSecret string // HMAC-SHA256 secret from DoubleTick dashboard
+	webhookSecret string
 }
 
-// NewHandler constructs a Handler.
-// webhookSecret may be empty during local development; signature checks are
-// skipped when no secret is configured, and a warning is logged on startup.
 func NewHandler(service *Service, webhookSecret string) *Handler {
 	if webhookSecret == "" {
 		slog.Warn("whatsapp: DOUBLETICK_WEBHOOK_SECRET is not set — signature verification disabled")
@@ -32,22 +27,14 @@ func NewHandler(service *Service, webhookSecret string) *Handler {
 	return &Handler{service: service, webhookSecret: webhookSecret}
 }
 
-// Webhook handles POST /api/v1/whatsapp/webhook.
-//
-// Flow:
-//  1. Read raw body (needed for HMAC verification before JSON decode)
-//  2. Verify HMAC-SHA256 signature when secret is configured
-//  3. Respond 200 immediately (DoubleTick expects a quick ACK)
-//  4. Process message asynchronously in a goroutine
 func (h *Handler) Webhook(w http.ResponseWriter, r *http.Request) {
-	raw, err := io.ReadAll(io.LimitReader(r.Body, 1<<20)) // 1 MB limit
+	raw, err := io.ReadAll(io.LimitReader(r.Body, 1<<20))
 	if err != nil {
 		slog.Error("whatsapp webhook: read body", "err", err)
 		respond.BadRequest(w, "could not read request body")
 		return
 	}
 
-	// Signature verification — only enforced when secret is set.
 	if h.webhookSecret != "" {
 		sig := r.Header.Get("X-Doubletick-Signature")
 		if !verifySignature(raw, h.webhookSecret, sig) {
@@ -60,10 +47,8 @@ func (h *Handler) Webhook(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Acknowledge immediately — DoubleTick will retry on non-2xx.
 	respond.OK(w, map[string]string{"status": "received"})
 
-	// Parse and process in background so the HTTP response is not delayed.
 	go func() {
 		var wh doubletick.Webhook
 		if err := json.Unmarshal(raw, &wh); err != nil {
@@ -78,10 +63,6 @@ func (h *Handler) Webhook(w http.ResponseWriter, r *http.Request) {
 	}()
 }
 
-// ─── HMAC helpers ─────────────────────────────────────────────────────────────
-
-// verifySignature checks that sig matches HMAC-SHA256(secret, body).
-// The comparison is constant-time to prevent timing attacks.
 func verifySignature(body []byte, secret, sig string) bool {
 	sig = strings.TrimPrefix(sig, "sha256=")
 	mac := hmac.New(sha256.New, []byte(secret))

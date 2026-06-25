@@ -1,4 +1,3 @@
-// Package middleware provides custom Chi middleware for the HRMS API.
 package middleware
 
 import (
@@ -10,23 +9,18 @@ import (
 	"github.com/nippon-toyota/hrms/pkg/respond"
 )
 
-// contextKey is an unexported type for context keys in this package.
 type contextKey string
 
 const (
-	// ClaimsKey is the context key for JWT claims.
 	ClaimsKey contextKey = "jwt_claims"
 )
 
-// HRMSClaims extends jwt.RegisteredClaims with user fields.
 type HRMSClaims struct {
 	UserID string `json:"user_id"`
 	Role   string `json:"role"`
 	jwt.RegisteredClaims
 }
 
-// RequireAuth validates the Bearer token from the Authorization header.
-// On success it stores HRMSClaims in the request context.
 func RequireAuth(secret string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -56,7 +50,6 @@ func RequireAuth(secret string) func(http.Handler) http.Handler {
 	}
 }
 
-// ClaimsFromContext extracts HRMSClaims from the context.
 func ClaimsFromContext(ctx context.Context) (*HRMSClaims, bool) {
 	claims, ok := ctx.Value(ClaimsKey).(*HRMSClaims)
 	return claims, ok

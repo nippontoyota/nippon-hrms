@@ -1,5 +1,3 @@
-// Package doubletick implements an HTTP client for the DoubleTick WhatsApp
-// Business API. It is intentionally free of business logic — callers own that.
 package doubletick
 
 import (
@@ -17,30 +15,23 @@ const (
 	defaultTimeout = 15 * time.Second
 )
 
-// Client is a DoubleTick API client.
-// Create one via NewClient and share it across the application.
 type Client struct {
 	baseURL    string
 	apiKey     string
-	fromNumber string // WABA sender phone number
+	fromNumber string
 	http       *http.Client
 }
 
-// Config holds the constructor parameters for Client.
 type Config struct {
-	// APIKey is the DoubleTick API key (goes in the Authorization header).
 	APIKey string
-	// FromNumber is the verified WABA phone number used as sender.
+
 	FromNumber string
-	// BaseURL overrides the production endpoint — useful for tests.
+
 	BaseURL string
-	// Timeout overrides the default HTTP timeout (15 s).
+
 	Timeout time.Duration
 }
 
-// NewClient constructs a DoubleTick Client from cfg.
-// APIKey and FromNumber may be empty during local development;
-// all send operations will return an error at call time.
 func NewClient(cfg Config) *Client {
 	base := cfg.BaseURL
 	if base == "" {
@@ -58,7 +49,6 @@ func NewClient(cfg Config) *Client {
 	}
 }
 
-// SendText sends a plain WhatsApp text message to the given phone number.
 func (c *Client) SendText(ctx context.Context, to, text string) (*Response, error) {
 	body := TextRequest{
 		Messages: []TextMessage{{
@@ -70,8 +60,6 @@ func (c *Client) SendText(ctx context.Context, to, text string) (*Response, erro
 	return c.do(ctx, http.MethodPost, "/whatsapp/message/text", body)
 }
 
-// SendTemplate sends a WhatsApp HSM template message.
-// Pass nil components when the template has no variables.
 func (c *Client) SendTemplate(
 	ctx context.Context,
 	to, templateName, language string,
@@ -91,9 +79,6 @@ func (c *Client) SendTemplate(
 	return c.do(ctx, http.MethodPost, "/whatsapp/message/template", body)
 }
 
-// ─── internal ────────────────────────────────────────────────────────────────
-
-// APIError represents a non-2xx response from the DoubleTick API.
 type APIError struct {
 	StatusCode int
 	Body       []byte
@@ -103,7 +88,6 @@ func (e *APIError) Error() string {
 	return fmt.Sprintf("doubletick: api error %d: %s", e.StatusCode, e.Body)
 }
 
-// do executes an authenticated JSON request and unmarshals the response.
 func (c *Client) do(ctx context.Context, method, path string, payload any) (*Response, error) {
 	b, err := json.Marshal(payload)
 	if err != nil {

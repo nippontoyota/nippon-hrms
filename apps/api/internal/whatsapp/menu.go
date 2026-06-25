@@ -1,50 +1,65 @@
-// Package whatsapp — menu.go is the single source of truth for all outbound
-// message copy. Edit text here; no message strings live elsewhere.
 package whatsapp
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/nippon-toyota/hrms/internal/doubletick"
+)
 
-// ─── Main Menu ────────────────────────────────────────────────────────────────
+const msgVerifyPromptID = `🔒 *Verification Required*
 
-const msgMainMenu = `👋 Welcome to *Nippon Toyota HR Assistant*!
+Your phone number is not registered. To link your device to your Nippon Toyota employee account, please reply with your *Employee ID*.
 
-Please select an option by replying with the number:
+Example: EMP001`
 
-1️⃣  Get Payslip
-2️⃣  Raise Maintenance Ticket
-3️⃣  Holiday Calendar
+const msgVerifyPromptDOB = `📅 Great! Now please reply with your *Date of Birth* (YYYY-MM-DD) to securely verify your identity.
+
+Example: 1990-05-24`
+
+const msgVerifyFailed = `❌ Verification failed. Please check your details and try again, or contact HR.`
+
+const msgVerifySuccess = `✅ Device verified successfully! Welcome to the HR Assistant.`
+
+func MainMenuTemplate() doubletick.TemplateContent {
+	return doubletick.TemplateContent{
+		TemplateName: "hrms_main_menu",
+		Language:     "en",
+
+		Components: []doubletick.TemplateComponent{},
+	}
+}
+
+const msgMainMenuFallback = `👋 Welcome to *Nippon Toyota HR Assistant*!
+
+Please select an option by replying:
+- *Payslip*
+- *Ticket*
+- *Holiday*
 
 ────────────────
-Reply *0* anytime to see this menu again.`
-
-// ─── Global ───────────────────────────────────────────────────────────────────
+Reply *0* anytime to return here.`
 
 const msgUnknownOption = `❓ Sorry, I didn't understand that.
 
 Reply *0* to see the main menu.`
 
-const msgSessionReset = `🔄 Your session has been reset.` + "\n\n" + msgMainMenu
+const msgSessionReset = `🔄 Your session has been reset.`
 
-// ─── Payslip Flow ─────────────────────────────────────────────────────────────
+const msgPayslipAwaitMonth = `💼 *Payslip Request*
 
-const msgPayslipAwaitID = `💼 *Payslip Request*
+Please enter the month and year you need the payslip for.
 
-Please enter your *Employee ID* to continue.
+Example: 05/2026 or June 2026`
 
-Example: EMP001`
+const msgPayslipNotFound = `❌ No payslip found for that period. Please check and try again, or reply *0* to go back.`
 
-const msgPayslipNotFound = `❌ Employee ID not found. Please check and try again, or reply *0* to go back.`
+const msgPayslipError = `⚠️ There was an issue generating your payslip. Please contact HR.`
 
-func msgPayslipReady(employeeID string) string {
-	// TODO: replace with actual payslip generation + document URL once
-	// payroll service and Supabase Storage are wired in.
+func msgPayslipReady(month, year string) string {
 	return fmt.Sprintf(
-		"✅ Payslip retrieved for *%s*.\n\n📄 Your payslip will be shared shortly.\n\nReply *0* to return to the main menu.",
-		employeeID,
+		"✅ Payslip retrieved for *%s %s*.\n\n📄 Downloading document...",
+		month, year,
 	)
 }
-
-// ─── Maintenance Ticket Flow ──────────────────────────────────────────────────
 
 const msgTicketAwaitTitle = `🔧 *Raise Maintenance Ticket*
 
@@ -71,8 +86,6 @@ func msgTicketCreated(ticketID string) string {
 }
 
 const msgTicketCancelled = `❌ Ticket cancelled. Reply *0* to return to the main menu.`
-
-// ─── Holiday Calendar ─────────────────────────────────────────────────────────
 
 const msgHolidayCalendar = `📅 *Nippon Toyota Holiday Calendar 2026*
 
