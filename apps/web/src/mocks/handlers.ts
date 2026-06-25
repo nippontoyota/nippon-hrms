@@ -367,5 +367,18 @@ export const handlers = [
 
   http.get('/api/admin/logs/leave', () => HttpResponse.json(leaveRequests)),
 
+  http.patch('/api/admin/logs/leave/:id', async ({ params, request }) => {
+    const body = (await request.json()) as { status: 'Approved' | 'Rejected' };
+    const leave = leaveRequests.find((l) => l.id === params.id);
+    if (!leave) return HttpResponse.json({ message: 'Not found' }, { status: 404 });
+    if (leave.status !== 'Pending') {
+      return HttpResponse.json({ message: 'Leave request already decided' }, { status: 400 });
+    }
+    leave.status = body.status;
+    leave.decidedAt = new Date().toISOString();
+    leave.approverName = 'HR Admin';
+    return HttpResponse.json(leave);
+  }),
+
   http.get('/api/admin/logs/feedback', () => HttpResponse.json(feedback)),
 ];

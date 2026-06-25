@@ -98,6 +98,18 @@ export function useLeaveLogs() {
   return useQuery({ queryKey: ['logs', 'leave'], queryFn: logsApi.leave });
 }
 
+export function useUpdateLeaveStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: 'Approved' | 'Rejected' }) =>
+      logsApi.updateLeaveStatus(id, status),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['logs', 'leave'] });
+      qc.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
 export function useFeedbackLogs() {
   return useQuery({ queryKey: ['logs', 'feedback'], queryFn: logsApi.feedback });
 }
