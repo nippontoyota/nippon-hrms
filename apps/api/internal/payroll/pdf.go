@@ -71,17 +71,17 @@ func GeneratePDF(record *Record) ([]byte, error) {
 
 		row.New(10).Add(
 			col.New(6).Add(text.New("Basic Salary", props.Text{Size: 10})),
-			col.New(6).Add(text.New(fmt.Sprintf("%.2f", record.BasicSalary), valProp)),
+			col.New(6).Add(text.New(fmt.Sprintf("%.2f", record.Basic), valProp)),
 		),
 
 		row.New(10).Add(
-			col.New(6).Add(text.New("Allowances", props.Text{Size: 10})),
-			col.New(6).Add(text.New(fmt.Sprintf("%.2f", record.Allowances), valProp)),
+			col.New(6).Add(text.New("Total Allowances (Approx)", props.Text{Size: 10})),
+			col.New(6).Add(text.New(fmt.Sprintf("%.2f", record.GrossSalWithoutIncentives-record.Basic), valProp)),
 		),
 
 		row.New(10).Add(
-			col.New(6).Add(text.New("Deductions", props.Text{Size: 10})),
-			col.New(6).Add(text.New(fmt.Sprintf("- %.2f", record.Deductions), props.Text{Size: 10, Align: align.Right, Color: &props.Color{Red: 200, Green: 0, Blue: 0}})),
+			col.New(6).Add(text.New("Total Deductions", props.Text{Size: 10})),
+			col.New(6).Add(text.New(fmt.Sprintf("- %.2f", record.TotalDeductions), props.Text{Size: 10, Align: align.Right, Color: &props.Color{Red: 200, Green: 0, Blue: 0}})),
 		),
 		row.New(5),
 	)
@@ -89,7 +89,7 @@ func GeneratePDF(record *Record) ([]byte, error) {
 	m.AddRows(
 		row.New(15).Add(
 			col.New(6).Add(text.New("Net Payable", props.Text{Style: fontstyle.Bold, Size: 12})),
-			col.New(6).Add(text.New(fmt.Sprintf("₹ %.2f", record.NetPay), props.Text{Style: fontstyle.Bold, Size: 12, Align: align.Right})),
+			col.New(6).Add(text.New(fmt.Sprintf("₹ %.2f", record.ActualFinalAmount), props.Text{Style: fontstyle.Bold, Size: 12, Align: align.Right})),
 		),
 	)
 
