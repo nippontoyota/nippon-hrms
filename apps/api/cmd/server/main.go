@@ -51,7 +51,7 @@ func main() {
 
 	srv := &http.Server{
 		Addr:         cfg.Addr(),
-		Handler:      router.New(cfg, supaClient, dtClient),
+		Handler:      router.New(cfg, pgPool, supaClient, dtClient),
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 30 * time.Second,
 		IdleTimeout:  60 * time.Second,

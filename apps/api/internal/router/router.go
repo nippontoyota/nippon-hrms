@@ -6,19 +6,21 @@ import (
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/nippon-toyota/hrms/internal/config"
 	"github.com/nippon-toyota/hrms/internal/db"
 	"github.com/nippon-toyota/hrms/internal/doubletick"
 	"github.com/nippon-toyota/hrms/internal/employee"
 	"github.com/nippon-toyota/hrms/internal/handler"
+	"github.com/nippon-toyota/hrms/internal/holiday"
 	appMiddleware "github.com/nippon-toyota/hrms/internal/middleware"
 	"github.com/nippon-toyota/hrms/internal/payroll"
 	"github.com/nippon-toyota/hrms/internal/whatsapp"
 	"github.com/nippon-toyota/hrms/pkg/respond"
 )
 
-func New(cfg *config.Config, supaClient *db.Client, dtClient *doubletick.Client) http.Handler {
+func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClient *doubletick.Client) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(chiMiddleware.RequestID)
@@ -36,17 +38,21 @@ func New(cfg *config.Config, supaClient *db.Client, dtClient *doubletick.Client)
 
 	_ = supaClient
 
-	empRepo := employee.NewStubRepository()
-	payrollRepo := payroll.NewStubRepository()
+	empRepo := employee.NewPostgresRepository(pgPool)
+	payrollRepo := payroll.NewPostgresRepository(pgPool)
+	holidayRepo := holiday.NewStubRepository()
+
+	payrollDispatcher := payroll.NewDispatcher(payrollRepo, dtClient)
 
 	sessionStore := whatsapp.NewInMemoryStore(0)
 	waSvc := whatsapp.NewService(dtClient, sessionStore, empRepo, payrollRepo)
 	waHandler := whatsapp.NewHandler(waSvc, cfg.DoubleTickWebhookSecret)
 
 	authH := handler.NewAuthHandler(cfg.JWTSecret, cfg.JWTExpiryMinutes)
-	employeeH := handler.NewEmployeeHandler()
+	employeeH := handler.NewEmployeeHandler(empRepo)
 	leaveH := handler.NewLeaveHandler()
-	payrollH := handler.NewPayrollHandler(payrollRepo)
+	payrollH := handler.NewPayrollHandler(payrollRepo, payrollDispatcher)
+	holidayH := handler.NewHolidayHandler(holidayRepo)
 
 	r.Get("/health", handler.HealthHandler)
 
@@ -69,6 +75,7 @@ func New(cfg *config.Config, supaClient *db.Client, dtClient *doubletick.Client)
 				r.Post("/", employeeH.Create)
 				r.Get("/{id}", employeeH.GetByID)
 				r.Patch("/{id}", employeeH.Update)
+				r.Post("/upload", employeeH.BulkUpload) // New Bulk Upload
 			})
 
 			r.Route("/leaves", func(r chi.Router) {
@@ -77,7 +84,14 @@ func New(cfg *config.Config, supaClient *db.Client, dtClient *doubletick.Client)
 				r.Patch("/{id}/status", leaveH.UpdateStatus)
 			})
 
-			r.Post("/payroll/upload", payrollH.BulkUpload)
+			r.Route("/payroll", func(r chi.Router) {
+				r.Post("/upload", payrollH.BulkUpload)
+				r.Post("/dispatch", payrollH.Dispatch) // New Dispatch
+			})
+
+			r.Route("/holidays", func(r chi.Router) {
+				r.Post("/upload", holidayH.BulkUpload) // New Bulk Upload
+			})
 
 			r.Get("/whatsapp/conversations", func(w http.ResponseWriter, r *http.Request) {
 				respond.OK(w, map[string]string{"message": "conversations endpoint — not yet implemented"})
