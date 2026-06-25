@@ -1,0 +1,38 @@
+# ─── Node / Frontend ──────────────────────────────────────────────
+node_modules/
+dist/
+.cache/
+.parcel-cache/
+*.local
+.env.local
+.env.*.local
+
+# Vite
+apps/web/dist/
+apps/web/.vite/
+
+# ─── Go / Backend ─────────────────────────────────────────────────
+apps/api/bin/
+apps/api/tmp/          # air live-reload
+*.exe
+*.test
+*.out
+vendor/
+
+# ─── Environment ──────────────────────────────────────────────────
+.env
+!.env.example
+
+# ─── OS ───────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ─── IDE ──────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ─── Logs ─────────────────────────────────────────────────────────
+*.log
+logs/
