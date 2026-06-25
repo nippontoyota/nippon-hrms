@@ -103,5 +103,7 @@ export const logsApi = {
   dispatch: (params?: { month?: number; year?: number; status?: string }) =>
     api.get<DispatchLogEntry[]>('/admin/logs/dispatch', { params }).then((r) => r.data),
   leave: () => api.get<LeaveRequest[]>('/admin/logs/leave').then((r) => r.data),
+  updateLeaveStatus: (id: string, status: 'Approved' | 'Rejected') =>
+    api.patch<LeaveRequest>(`/admin/logs/leave/${id}`, { status }).then((r) => r.data),
   feedback: () => api.get<FeedbackResponse[]>('/admin/logs/feedback').then((r) => r.data),
 };

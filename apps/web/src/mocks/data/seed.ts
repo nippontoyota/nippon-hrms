@@ -120,6 +120,19 @@ export const seedLeaveRequests: LeaveRequest[] = [
     appliedAt: '2026-06-15T11:00:00Z',
     decidedAt: '2026-06-16T09:00:00Z',
   },
+  {
+    id: 'leave-4',
+    employeeId: '7903',
+    employeeName: 'Sajan S',
+    leaveType: 'Casual Leave',
+    fromDate: '2026-06-28',
+    toDate: '2026-06-29',
+    reason: 'Personal errands',
+    status: 'Pending',
+    approverPhone: '9876543211',
+    approverName: 'Suresh Nair',
+    appliedAt: '2026-06-24T08:00:00Z',
+  },
 ];
 
 export const seedFeedback: FeedbackResponse[] = [
