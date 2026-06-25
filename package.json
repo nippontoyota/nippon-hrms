@@ -1,0 +1,11 @@
+{
+  "name": "payslip-portal",
+  "private": true,
+  "description": "Nippon Toyota Payslip Portal monorepo",
+  "scripts": {
+    "dev": "npm run dev --prefix apps/web",
+    "build": "npm run build --prefix apps/web",
+    "preview": "npm run preview --prefix apps/web",
+    "install:web": "npm install --prefix apps/web"
+  }
+}

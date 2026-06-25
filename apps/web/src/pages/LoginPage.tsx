@@ -1,128 +1,69 @@
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useMutation } from '@tanstack/react-query';
-import { Building2, MessageSquare, Shield, Zap } from 'lucide-react';
-import api from '@/lib/axios';
+import toast from 'react-hot-toast';
+import { authApi } from '@/api/endpoints';
 import { useAuthStore } from '@/stores/authStore';
 
-const schema = z.object({
-  email: z.string().email('Enter a valid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-});
-type FormValues = z.infer<typeof schema>;
-
-const features = [
-  { icon: MessageSquare, label: 'WhatsApp Employee Self-Service' },
-  { icon: Shield,        label: 'Role-Based Access Control'      },
-  { icon: Zap,          label: 'Real-Time HR Workflows'          },
-];
-
 export default function LoginPage() {
-  const navigate   = useNavigate();
+  const [email, setEmail] = useState('admin@nippon.local');
+  const [password, setPassword] = useState('admin123');
+  const [loading, setLoading] = useState(false);
   const { setAuth } = useAuthStore();
+  const navigate = useNavigate();
 
-  const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
-    resolver: zodResolver(schema),
-  });
-
-  const mutation = useMutation({
-    mutationFn: (data: FormValues) =>
-      api.post<{ user: Parameters<typeof setAuth>[0]; access_token: string }>(
-        '/auth/login', data
-      ),
-    onSuccess: ({ data }) => {
-      setAuth(data.user, data.access_token);
-      navigate('/dashboard');
-    },
-  });
-
-  const onSubmit = (values: FormValues) => mutation.mutate(values);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const { token, user } = await authApi.login(email, password);
+      setAuth(user, token);
+      toast.success(`Welcome, ${user.name}`);
+      navigate('/admin');
+    } catch {
+      toast.error('Invalid credentials');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="login-page">
-      {/* Brand panel */}
-      <div className="login-brand fade-up">
-        <div className="login-brand-logo">
-          <Building2 size={24} />
+    <div className="min-h-screen bg-background flex items-center justify-center p-6">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <img src="/nippon-logo.png" alt="Nippon Toyota" className="h-10 mx-auto mb-4 object-contain" />
+          <h1 className="text-2xl font-headline font-bold uppercase tracking-tighter text-on-surface">Nippon HR Connect</h1>
+          <p className="text-sm text-on-surface-variant mt-1">Admin Portal</p>
         </div>
-        <h1>
-          HR Platform<br />
-          by <span>Nippon Toyota</span>
-        </h1>
-        <p>
-          A production-grade internal HR operations platform.
-          Manage employees, payroll, leaves, and WhatsApp self-service — all in one place.
+
+        <form onSubmit={handleSubmit} className="card space-y-4">
+          <div>
+            <label className="label">Email</label>
+            <input
+              type="email"
+              className="input"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <label className="label">Password</label>
+            <input
+              type="password"
+              className="input"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+          <button type="submit" className="btn-primary w-full" disabled={loading}>
+            {loading ? 'Signing in…' : 'Sign in'}
+          </button>
+        </form>
+
+        <p className="text-xs text-center text-on-surface-variant mt-6">
+          Demo: admin@nippon.local / admin123 · hr@nippon.local / hr123
         </p>
-        <div className="login-brand-features">
-          {features.map((f) => (
-            <div key={f.label} className="feature-pill">
-              <span className="dot" />
-              <f.icon size={14} />
-              {f.label}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Form panel */}
-      <div className="login-form-panel">
-        <div className="login-form-box fade-up">
-          <h2>Welcome back</h2>
-          <p>Sign in to your HR admin account</p>
-
-          <form className="login-form" onSubmit={handleSubmit(onSubmit)} id="login-form">
-            <div className="form-group">
-              <label className="form-label" htmlFor="login-email">Email address</label>
-              <input
-                id="login-email"
-                type="email"
-                className="form-input"
-                placeholder="admin@nippontoyota.com"
-                autoComplete="email"
-                {...register('email')}
-              />
-              {errors.email && <span className="form-error">{errors.email.message}</span>}
-            </div>
-
-            <div className="form-group">
-              <label className="form-label" htmlFor="login-password">Password</label>
-              <input
-                id="login-password"
-                type="password"
-                className="form-input"
-                placeholder="••••••••"
-                autoComplete="current-password"
-                {...register('password')}
-              />
-              {errors.password && <span className="form-error">{errors.password.message}</span>}
-            </div>
-
-            {mutation.isError && (
-              <p className="form-error" style={{ textAlign: 'center' }}>
-                Invalid credentials. Please try again.
-              </p>
-            )}
-
-            <button
-              id="login-submit"
-              type="submit"
-              className="btn btn-primary btn-lg w-full"
-              disabled={mutation.isPending}
-            >
-              {mutation.isPending ? (
-                <><span className="spinner" /> Signing in…</>
-              ) : (
-                'Sign in'
-              )}
-            </button>
-          </form>
-
-          <p className="text-sm text-muted mt-4" style={{ textAlign: 'center' }}>
-            Nippon Toyota internal platform — authorised users only
-          </p>
-        </div>
       </div>
     </div>
   );
