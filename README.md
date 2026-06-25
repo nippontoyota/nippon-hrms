@@ -1,44 +1,44 @@
-# Nippon Toyota HRMS
+# Nippon Toyota Payslip Portal
 
-> Production-grade internal HR operations platform for Nippon Toyota.  
-> WhatsApp Business (via DoubleTick) is the primary employee self-service interface.
+> HR admin for employees, monthly payslips, and bulk WhatsApp delivery.
 
 ---
 
 ## Monorepo Structure
 
 ```
-nippon-hrms/
+PayslipPortal/
 ├── apps/
-│   ├── web/        # Frontend — React 18 · Vite 5 · TypeScript
-│   └── api/        # Backend  — Go 1.22+ · Chi v5
-├── docs/           # Architecture, API specs, ADRs
-└── README.md
+│   ├── web/        # Frontend — React · Vite · Tailwind (Payslip Portal UI)
+│   └── api/        # Backend  — Go (separate dev; not required for frontend mocks)
+├── docs/
+└── package.json    # Root scripts → apps/web
 ```
 
 ---
 
-## Quick Start
+## Quick Start (frontend)
 
-### Prerequisites
-
-| Tool | Version |
-|------|---------|
-| Node.js | ≥ 20 |
-| pnpm / npm | latest |
-| Go | ≥ 1.22 |
-| PostgreSQL | ≥ 15 |
-| Air (Go live-reload) | latest |
-
-### Frontend
+From the repo root:
 
 ```bash
-cd apps/web
 npm install
 npm run dev          # http://localhost:5173
 ```
 
-### Backend
+Or from `apps/web` directly:
+
+```bash
+cd apps/web
+npm install
+npm run dev
+```
+
+**Demo login:** `admin@nippon.local` / `admin123`
+
+See [`apps/web/README.md`](apps/web/README.md) for routes, MSW mocks, and API notes.
+
+---
 
 ```bash
 cd apps/api
