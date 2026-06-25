@@ -84,6 +84,18 @@ func (s *Service) HandleWebhook(ctx context.Context, wh *doubletick.Webhook) err
 	case StateTicketAwaitConfirm:
 		err = s.handleTicketConfirm(ctx, sess, from, input)
 
+	case StateLeaveAwaitStart:
+		err = s.handleLeaveStart(ctx, sess, from, input)
+	case StateLeaveAwaitEnd:
+		err = s.handleLeaveEnd(ctx, sess, from, input)
+	case StateLeaveAwaitReason:
+		err = s.handleLeaveReason(ctx, sess, from, input)
+	case StateLeaveAwaitConfirm:
+		err = s.handleLeaveConfirm(ctx, sess, from, input)
+
+	case StateFeedbackAwaitText:
+		err = s.handleFeedback(ctx, sess, from, input)
+
 	default:
 		sess.reset()
 		err = s.sendMenuTemplate(ctx, from)
@@ -133,15 +145,30 @@ func (s *Service) handleMainMenu(ctx context.Context, sess *Session, from, input
 		s.sessions.Set(from, sess)
 		return s.sendText(ctx, from, msgPayslipAwaitMonth)
 	}
-	if strings.Contains(in, "ticket") || in == "2" {
-		sess.State = StateTicketAwaitTitle
+	if strings.Contains(in, "leave") || in == "2" {
+		sess.State = StateLeaveAwaitStart
 		s.sessions.Set(from, sess)
-		return s.sendText(ctx, from, msgTicketAwaitTitle)
+		return s.sendText(ctx, from, msgLeaveAwaitStart)
 	}
-	if strings.Contains(in, "holiday") || in == "3" {
+	if strings.Contains(in, "attendance") || in == "3" {
+		sess.State = StateIdle
+		s.sessions.Set(from, sess)
+		return s.sendText(ctx, from, msgAttendanceSummary)
+	}
+	if strings.Contains(in, "holiday") || in == "4" {
 		sess.State = StateIdle
 		s.sessions.Set(from, sess)
 		return s.sendText(ctx, from, msgHolidayCalendar)
+	}
+	if strings.Contains(in, "incentive") || in == "5" {
+		sess.State = StateIdle
+		s.sessions.Set(from, sess)
+		return s.sendText(ctx, from, msgIncentiveSummary)
+	}
+	if strings.Contains(in, "feedback") || in == "6" {
+		sess.State = StateFeedbackAwaitText
+		s.sessions.Set(from, sess)
+		return s.sendText(ctx, from, msgFeedbackAwaitText)
 	}
 
 	sess.State = StateMainMenu
@@ -245,4 +272,64 @@ func (s *Service) sendMenuTemplate(ctx context.Context, to string) error {
 	tpl := MainMenuTemplate()
 	_, err := s.dt.SendTemplate(ctx, to, tpl.TemplateName, tpl.Language, tpl.Components)
 	return err
+}
+
+// ─── Phase 1 Additions ────────────────────────────────────────────────────────
+
+func (s *Service) handleLeaveStart(ctx context.Context, sess *Session, from, input string) error {
+	if input == "" {
+		return s.sendText(ctx, from, msgLeaveAwaitStart)
+	}
+	sess.Leave.StartDate = input
+	sess.State = StateLeaveAwaitEnd
+	s.sessions.Set(from, sess)
+	return s.sendText(ctx, from, msgLeaveAwaitEnd)
+}
+
+func (s *Service) handleLeaveEnd(ctx context.Context, sess *Session, from, input string) error {
+	if input == "" {
+		return s.sendText(ctx, from, msgLeaveAwaitEnd)
+	}
+	sess.Leave.EndDate = input
+	sess.State = StateLeaveAwaitReason
+	s.sessions.Set(from, sess)
+	return s.sendText(ctx, from, msgLeaveAwaitReason)
+}
+
+func (s *Service) handleLeaveReason(ctx context.Context, sess *Session, from, input string) error {
+	if input == "" {
+		return s.sendText(ctx, from, msgLeaveAwaitReason)
+	}
+	sess.Leave.Reason = input
+	sess.State = StateLeaveAwaitConfirm
+	s.sessions.Set(from, sess)
+	return s.sendText(ctx, from, msgLeaveConfirmPrompt(sess.Leave.StartDate, sess.Leave.EndDate, sess.Leave.Reason))
+}
+
+func (s *Service) handleLeaveConfirm(ctx context.Context, sess *Session, from, input string) error {
+	switch strings.ToLower(input) {
+	case "yes", "y", "submit", "confirm":
+		// In a real app, we'd save this to leave.Repository here.
+		sess.reset()
+		s.sessions.Set(from, sess)
+		return s.sendText(ctx, from, msgLeaveCreated)
+
+	case "no", "n", "cancel":
+		sess.reset()
+		s.sessions.Set(from, sess)
+		return s.sendText(ctx, from, msgLeaveCancelled)
+
+	default:
+		return s.sendText(ctx, from, msgLeaveConfirmPrompt(sess.Leave.StartDate, sess.Leave.EndDate, sess.Leave.Reason))
+	}
+}
+
+func (s *Service) handleFeedback(ctx context.Context, sess *Session, from, input string) error {
+	if input == "" {
+		return s.sendText(ctx, from, msgFeedbackAwaitText)
+	}
+	// Save to feedback.Repository
+	sess.reset()
+	s.sessions.Set(from, sess)
+	return s.sendText(ctx, from, msgFeedbackSubmitted)
 }
