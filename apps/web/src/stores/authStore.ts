@@ -1,12 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: 'admin' | 'hr' | 'manager';
-}
+import type { User, UserRole } from '@/api/types';
 
 interface AuthState {
   user: User | null;
@@ -35,8 +29,10 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: () => !!get().accessToken,
     }),
     {
-      name: 'nippon-hrms-auth',
+      name: 'payslip-portal-auth',
       partialize: (state) => ({ user: state.user, accessToken: state.accessToken }),
-    }
-  )
+    },
+  ),
 );
+
+export type { UserRole };
