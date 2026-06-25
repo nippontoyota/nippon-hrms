@@ -1,117 +1,89 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import toast from 'react-hot-toast';
 import { useQueryClient } from '@tanstack/react-query';
+import BulkUploadWizard from '@/components/BulkUploadWizard';
 import { employeesApi, useEmployees } from '@/api/hooks';
-
-function downloadBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
+import { downloadBlob, employeeStatusBadge } from '@/lib/format';
 
 export default function EmployeesPage() {
   const { data: employees, isLoading } = useEmployees();
   const [search, setSearch] = useState('');
-  const fileRef = useRef<HTMLInputElement>(null);
   const qc = useQueryClient();
 
   const filtered = (employees ?? []).filter(
     (e) =>
       e.name.toLowerCase().includes(search.toLowerCase()) ||
-      e.employeeCode.toLowerCase().includes(search.toLowerCase()) ||
-      e.department.toLowerCase().includes(search.toLowerCase()),
+      e.employeeId.toLowerCase().includes(search.toLowerCase()) ||
+      e.branch.toLowerCase().includes(search.toLowerCase()),
   );
-
-  const handleImport = async (file: File) => {
-    try {
-      const result = await employeesApi.import(file);
-      toast.success(`Imported ${result.successCount} employees`);
-      if (result.errorCount > 0) toast.error(`${result.errorCount} rows failed`);
-      qc.invalidateQueries({ queryKey: ['employees'] });
-      qc.invalidateQueries({ queryKey: ['dashboard'] });
-    } catch {
-      toast.error('Import failed');
-    }
-  };
-
-  const handleTemplate = async () => {
-    const blob = await employeesApi.downloadTemplate();
-    downloadBlob(blob, 'employee_template.csv');
-  };
 
   return (
     <div className="space-y-6">
-      <div className="page-header">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="page-title">Employees</h1>
-          <p className="page-subtitle">Manage employee master data and WhatsApp numbers</p>
+          <h1 className="text-3xl font-headline font-bold tracking-tighter text-on-surface uppercase">Employees</h1>
+          <p className="text-sm text-on-surface-variant mt-1">{filtered.length} employees</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button type="button" className="btn-secondary btn-sm" onClick={handleTemplate}>
+          <button
+            type="button"
+            className="btn-secondary btn-sm"
+            onClick={async () => downloadBlob(await employeesApi.downloadTemplate(), 'employee_template.xlsx')}
+          >
             Download template
-          </button>
-          <button type="button" className="btn-secondary btn-sm" onClick={() => fileRef.current?.click()}>
-            Import Excel
           </button>
           <Link to="/admin/employees/new" className="btn-primary btn-sm">Add employee</Link>
         </div>
       </div>
 
-      <input
-        ref={fileRef}
-        type="file"
-        accept=".xlsx,.xls,.csv"
-        className="hidden"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) handleImport(file);
-          e.target.value = '';
+      <BulkUploadWizard
+        title="Bulk upload employees"
+        onPreview={(file) => employeesApi.previewBulkUpload(file)}
+        onCommit={(file) => employeesApi.commitBulkUpload(file)}
+        onComplete={() => {
+          qc.invalidateQueries({ queryKey: ['employees'] });
+          qc.invalidateQueries({ queryKey: ['dashboard'] });
         }}
+        previewColumns={['EMP ID', 'Name', 'Department', 'Status']}
       />
 
-      <div className="card">
-        <input
-          className="input max-w-md mb-4"
-          placeholder="Search by name, code, or department..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      <input
+        className="input max-w-sm"
+        placeholder="Search by name, ID, branch…"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+      />
 
+      <div className="card !p-0 overflow-hidden">
         {isLoading ? (
-          <p className="text-on-surface-variant">Loading...</p>
+          <p className="p-6 text-on-surface-variant">Loading…</p>
         ) : (
-          <div className="table-wrapper">
+          <div className="overflow-x-auto">
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Code</th>
+                  <th>Emp ID</th>
                   <th>Name</th>
+                  <th>Branch</th>
                   <th>Department</th>
-                  <th>WhatsApp</th>
+                  <th>Mobile</th>
                   <th>Status</th>
+                  <th>Reporting Manager</th>
                   <th></th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((emp) => (
-                  <tr key={emp.id}>
-                    <td className="font-semibold">{emp.employeeCode}</td>
-                    <td>{emp.name}</td>
-                    <td>{emp.department}</td>
-                    <td className="font-mono text-sm">{emp.whatsappPhone}</td>
+                {filtered.map((e) => (
+                  <tr key={e.id}>
+                    <td className="font-semibold">{e.employeeId}</td>
+                    <td>{e.name}</td>
+                    <td>{e.branch}</td>
+                    <td>{e.department}</td>
+                    <td>{e.mobileNo}</td>
+                    <td><span className={`badge ${employeeStatusBadge(e.status)}`}>{e.status}</span></td>
+                    <td>{e.reportingManagerName || '—'}</td>
                     <td>
-                      <span className={`badge ${emp.active ? 'badge-success' : 'badge-muted'}`}>
-                        {emp.active ? 'Active' : 'Inactive'}
-                      </span>
-                    </td>
-                    <td>
-                      <Link to={`/admin/employees/${emp.id}/edit`} className="text-primary text-sm font-semibold">
-                        Edit
-                      </Link>
+                      <Link to={`/admin/employees/${e.id}/edit`} className="text-primary text-sm font-semibold">Edit</Link>
                     </td>
                   </tr>
                 ))}

@@ -7,13 +7,14 @@ import LoginPage from '@/pages/LoginPage';
 import DashboardPage from '@/pages/admin/DashboardPage';
 import EmployeesPage from '@/pages/admin/EmployeesPage';
 import EmployeeFormPage from '@/pages/admin/EmployeeFormPage';
-import PayslipsPage from '@/pages/admin/PayslipsPage';
-import PayslipPeriodPage from '@/pages/admin/PayslipPeriodPage';
-import SendPage from '@/pages/admin/SendPage';
-import SendJobPage from '@/pages/admin/SendJobPage';
+import SalaryPage from '@/pages/admin/SalaryPage';
+import SalaryPeriodPage from '@/pages/admin/SalaryPeriodPage';
+import DispatchJobPage from '@/pages/admin/DispatchJobPage';
+import AttendancePage from '@/pages/admin/AttendancePage';
 import HolidaysPage from '@/pages/admin/HolidaysPage';
-import TicketsPage from '@/pages/admin/TicketsPage';
-import AuditPage from '@/pages/admin/AuditPage';
+import DispatchLogPage from '@/pages/admin/DispatchLogPage';
+import LeaveLogPage from '@/pages/admin/LeaveLogPage';
+import FeedbackLogPage from '@/pages/admin/FeedbackLogPage';
 
 export default function App() {
   return (
@@ -27,13 +28,21 @@ export default function App() {
             <Route path="employees" element={<EmployeesPage />} />
             <Route path="employees/new" element={<EmployeeFormPage />} />
             <Route path="employees/:id/edit" element={<EmployeeFormPage />} />
-            <Route path="payslips" element={<PayslipsPage />} />
-            <Route path="payslips/:periodId" element={<PayslipPeriodPage />} />
-            <Route path="send" element={<SendPage />} />
-            <Route path="send/jobs/:jobId" element={<SendJobPage />} />
+            <Route path="salary" element={<SalaryPage />} />
+            <Route path="salary/:periodId" element={<SalaryPeriodPage />} />
+            <Route path="salary/dispatch/:jobId" element={<DispatchJobPage />} />
+            <Route path="attendance" element={<AttendancePage />} />
             <Route path="holidays" element={<HolidaysPage />} />
-            <Route path="tickets" element={<TicketsPage />} />
-            <Route path="audit" element={<AuditPage />} />
+            <Route path="logs/dispatch" element={<DispatchLogPage />} />
+            <Route path="logs/leave" element={<LeaveLogPage />} />
+            <Route path="logs/feedback" element={<FeedbackLogPage />} />
+            {/* Legacy redirects */}
+            <Route path="payslips" element={<Navigate to="/admin/salary" replace />} />
+            <Route path="payslips/*" element={<Navigate to="/admin/salary" replace />} />
+            <Route path="send" element={<Navigate to="/admin/salary" replace />} />
+            <Route path="send/*" element={<Navigate to="/admin/salary" replace />} />
+            <Route path="audit" element={<Navigate to="/admin/logs/dispatch" replace />} />
+            <Route path="tickets" element={<Navigate to="/admin" replace />} />
           </Route>
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>

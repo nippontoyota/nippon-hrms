@@ -1,14 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  auditApi,
+  attendanceApi,
   dashboardApi,
   employeesApi,
   holidaysApi,
-  payslipsApi,
-  sendJobsApi,
-  ticketsApi,
+  logsApi,
+  salaryApi,
 } from './endpoints';
-import type { EmployeeInput, TicketStatus } from './types';
+import type { EmployeeInput } from './types';
 
 export function useDashboard() {
   return useQuery({ queryKey: ['dashboard'], queryFn: dashboardApi.get });
@@ -33,7 +32,6 @@ export function useCreateEmployee() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['employees'] });
       qc.invalidateQueries({ queryKey: ['dashboard'] });
-      qc.invalidateQueries({ queryKey: ['audit'] });
     },
   });
 }
@@ -45,35 +43,34 @@ export function useUpdateEmployee(id: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['employees'] });
       qc.invalidateQueries({ queryKey: ['employees', id] });
-      qc.invalidateQueries({ queryKey: ['audit'] });
     },
   });
 }
 
-export function usePayslipPeriods() {
-  return useQuery({ queryKey: ['payslip-periods'], queryFn: payslipsApi.listPeriods });
+export function useSalaryPeriods() {
+  return useQuery({ queryKey: ['salary-periods'], queryFn: salaryApi.listPeriods });
 }
 
-export function usePayslipPeriod(id: string | undefined) {
+export function useSalaryPeriod(id: string | undefined) {
   return useQuery({
-    queryKey: ['payslip-periods', id],
-    queryFn: () => payslipsApi.getPeriod(id!),
+    queryKey: ['salary-periods', id],
+    queryFn: () => salaryApi.getPeriod(id!),
     enabled: !!id,
   });
 }
 
-export function usePayslipRecords(periodId: string | undefined) {
+export function useSalaryRecords(periodId: string | undefined) {
   return useQuery({
-    queryKey: ['payslip-records', periodId],
-    queryFn: () => payslipsApi.getRecords(periodId!),
+    queryKey: ['salary-records', periodId],
+    queryFn: () => salaryApi.getRecords(periodId!),
     enabled: !!periodId,
   });
 }
 
-export function useSendJob(jobId: string | undefined) {
+export function useDispatchJob(jobId: string | undefined) {
   return useQuery({
-    queryKey: ['send-jobs', jobId],
-    queryFn: () => sendJobsApi.get(jobId!),
+    queryKey: ['dispatch-jobs', jobId],
+    queryFn: () => salaryApi.getDispatchJob(jobId!),
     enabled: !!jobId,
     refetchInterval: (query) => {
       const status = query.state.data?.status;
@@ -82,29 +79,27 @@ export function useSendJob(jobId: string | undefined) {
   });
 }
 
+export function useAttendancePeriods() {
+  return useQuery({ queryKey: ['attendance-periods'], queryFn: attendanceApi.listPeriods });
+}
+
 export function useHolidays() {
   return useQuery({ queryKey: ['holidays'], queryFn: holidaysApi.list });
 }
 
-export function useTickets() {
-  return useQuery({ queryKey: ['tickets'], queryFn: ticketsApi.list });
-}
-
-export function useAudit() {
-  return useQuery({ queryKey: ['audit'], queryFn: auditApi.list });
-}
-
-export function useUpdateTicketStatus() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, status }: { id: string; status: TicketStatus }) =>
-      ticketsApi.updateStatus(id, status),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['tickets'] });
-      qc.invalidateQueries({ queryKey: ['dashboard'] });
-      qc.invalidateQueries({ queryKey: ['audit'] });
-    },
+export function useDispatchLogs(params?: { month?: number; year?: number; status?: string }) {
+  return useQuery({
+    queryKey: ['logs', 'dispatch', params],
+    queryFn: () => logsApi.dispatch(params),
   });
 }
 
-export { payslipsApi, employeesApi, sendJobsApi, holidaysApi };
+export function useLeaveLogs() {
+  return useQuery({ queryKey: ['logs', 'leave'], queryFn: logsApi.leave });
+}
+
+export function useFeedbackLogs() {
+  return useQuery({ queryKey: ['logs', 'feedback'], queryFn: logsApi.feedback });
+}
+
+export { employeesApi, salaryApi, holidaysApi, attendanceApi, logsApi };

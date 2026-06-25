@@ -1,4 +1,4 @@
-export type UserRole = 'ADMIN' | 'HR';
+export type UserRole = 'SUPER_ADMIN' | 'HR_ADMIN';
 
 export interface User {
   id: string;
@@ -12,111 +12,202 @@ export interface LoginResponse {
   user: User;
 }
 
+export type EmployeeStatus = 'Active' | 'Inactive';
+
+export interface BankDetails {
+  bank: string;
+  accountNo: string;
+  bankBranch: string;
+  ifscCode: string;
+  zone?: string;
+}
+
 export interface Employee {
   id: string;
-  employeeCode: string;
+  employeeId: string;
   name: string;
   department: string;
+  mobileNo: string;
+  level: string;
+  doj: string;
+  tenureYears?: string;
+  branch: string;
   designation: string;
-  whatsappPhone: string;
-  bankAccount?: string;
-  bankIfsc?: string;
-  active: boolean;
+  status: EmployeeStatus;
+  reportingManagerName: string;
+  reportingManagerPhone: string;
+  ctcStructure?: Record<string, number | string | null>;
+  bankDetails?: BankDetails;
   createdAt: string;
 }
 
 export interface EmployeeInput {
-  employeeCode: string;
+  employeeId: string;
   name: string;
   department: string;
+  mobileNo: string;
+  level: string;
+  doj: string;
+  branch: string;
   designation: string;
-  whatsappPhone: string;
-  bankAccount?: string;
-  bankIfsc?: string;
-  active: boolean;
+  status: EmployeeStatus;
+  reportingManagerName: string;
+  reportingManagerPhone: string;
 }
 
-export type PeriodStatus = 'DRAFT' | 'FINALIZED' | 'SENT';
+export type PeriodStatus = 'DRAFT' | 'READY' | 'SENT';
 
-export interface PayslipPeriod {
+export interface SalaryPeriod {
   id: string;
   year: number;
   month: number;
   status: PeriodStatus;
   recordCount: number;
-  finalizedAt?: string;
+  unmatchedCount: number;
+  uploadedAt?: string;
 }
 
-export interface PayslipRecord {
+export interface SalaryRecord {
   id: string;
   periodId: string;
   employeeId: string;
-  employeeCode: string;
   employeeName: string;
-  earnings: Record<string, number>;
-  deductions: Record<string, number>;
-  grossPay: number;
+  data: Record<string, unknown>;
   netPay: number;
+  matched: boolean;
 }
 
-export type SendJobItemStatus = 'PENDING' | 'SENT' | 'FAILED';
-export type SendJobStatus = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED';
+export type DispatchItemStatus = 'PENDING' | 'SENT' | 'FAILED' | 'SKIPPED';
+export type DispatchJobStatus = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED';
 
-export interface SendJobItem {
+export interface DispatchJobItem {
   id: string;
-  employeeCode: string;
+  employeeId: string;
   employeeName: string;
-  status: SendJobItemStatus;
-  error?: string;
+  status: DispatchItemStatus;
+  errorReason?: string;
 }
 
-export interface SendJob {
+export interface DispatchJob {
   id: string;
   periodId: string;
-  status: SendJobStatus;
+  year: number;
+  month: number;
+  status: DispatchJobStatus;
   total: number;
   sent: number;
   failed: number;
-  items: SendJobItem[];
+  skipped: number;
+  items: DispatchJobItem[];
   createdAt: string;
 }
 
-export interface Holiday {
+export interface HolidayFile {
   id: string;
-  name: string;
-  date: string;
-  description?: string;
+  year: number;
+  fileName: string;
+  fileUrl: string;
+  uploadedAt: string;
 }
 
-export type TicketStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED';
+export interface AttendancePeriod {
+  id: string;
+  year: number;
+  month: number;
+  recordCount: number;
+  uploadedAt: string;
+}
 
-export interface MaintenanceTicket {
+export interface AttendanceRecord {
+  id: string;
+  periodId: string;
+  employeeId: string;
+  employeeName: string;
+  presentDays: number;
+  absentDays: number;
+  leaveDays: number;
+  lateMarks: number;
+  weeklyOffs: number;
+}
+
+export type LeaveStatus = 'Pending' | 'Approved' | 'Rejected';
+
+export interface LeaveRequest {
   id: string;
   employeeId: string;
   employeeName: string;
-  description: string;
-  status: TicketStatus;
-  createdAt: string;
+  leaveType: string;
+  fromDate: string;
+  toDate: string;
+  reason: string;
+  status: LeaveStatus;
+  approverPhone: string;
+  approverName?: string;
+  appliedAt: string;
+  decidedAt?: string;
 }
 
-export interface AuditEntry {
+export interface FeedbackResponse {
   id: string;
-  timestamp: string;
-  actor: string;
-  action: string;
-  entity: string;
-  details: string;
+  employeeId: string;
+  employeeName: string;
+  rating: number;
+  comment?: string;
+  submittedAt: string;
+}
+
+export interface DispatchLogEntry {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  month: number;
+  year: number;
+  status: 'Sent' | 'Failed' | 'Skipped';
+  errorReason?: string;
+  whatsappMessageId?: string;
+  sentAt: string;
 }
 
 export interface DashboardStats {
   employeeCount: number;
-  openTickets: number;
-  pendingSendJobs: number;
-  latestPeriod?: PayslipPeriod;
+  pendingLeaveRequests: number;
+  pendingDispatchJobs: number;
+  attendancePeriods: number;
+  latestPeriod?: SalaryPeriod;
+  recentDispatchJobs?: DispatchJobSummary[];
+}
+
+export interface ImportPreviewRow {
+  row: number;
+  data: Record<string, unknown>;
+  errors: string[];
+  warnings: string[];
+}
+
+export interface ImportPreviewResult {
+  rows: ImportPreviewRow[];
+  successCount: number;
+  errorCount: number;
+  warningCount: number;
 }
 
 export interface ImportResult {
   successCount: number;
   errorCount: number;
+  periodId?: string;
+  year?: number;
+  month?: number;
   errors?: { row: number; message: string }[];
+}
+
+export interface DispatchJobSummary {
+  id: string;
+  periodId: string;
+  periodLabel: string;
+  status: DispatchJobStatus;
+  total: number;
+  sent: number;
+  failed: number;
+  skipped: number;
+  createdAt: string;
 }

@@ -1,6 +1,6 @@
-# Payslip Portal — Frontend
+# Nippon HR Connect — Admin Portal
 
-HR admin UI for Nippon Toyota Payslip Portal. Built with React 19, Vite, Tailwind CSS, TanStack Query, and MSW mocks.
+HR admin UI for Nippon HR Connect (Phase 1). Built with React 19, Vite, Tailwind CSS, TanStack Query, and MSW mocks.
 
 ## Quick start
 
@@ -16,39 +16,47 @@ Open http://localhost:5173
 
 | Email | Password | Role |
 |-------|----------|------|
-| `admin@nippon.local` | `admin123` | ADMIN |
-| `hr@nippon.local` | `hr123` | HR |
+| `admin@nippon.local` | `admin123` | Super Admin |
+| `hr@nippon.local` | `hr123` | HR Admin |
 
 ## Mock API (development)
 
-In dev mode, [MSW](https://mswjs.io/) intercepts all `/api/*` requests with realistic seed data. No backend required.
+In dev mode, [MSW](https://mswjs.io/) intercepts all `/api/admin/*` requests. Seed data is derived from HR Excel templates in `public/templates/`.
 
 To connect to the real Go API later:
 
 1. Run the backend on `http://localhost:4000`
-2. Disable MSW in `src/main.tsx` (or add `VITE_USE_MOCK=false`)
+2. Disable MSW in `src/main.tsx`
 3. Vite proxy rewrites `/api` → backend root
+
+## Excel templates
+
+| File | Purpose |
+|------|---------|
+| `public/templates/employee_template.xlsx` | Employee master (identity + CTC + bank + reporting manager) |
+| `public/templates/salary_template.xlsx` | Monthly salary / payslip input |
+
+Regenerate JSON seed from templates (requires `npm install xlsx`):
+
+```bash
+node scripts/parse-hr-excel.mjs
+```
 
 ## Pages
 
 | Route | Description |
 |-------|-------------|
 | `/login` | Admin sign-in |
-| `/admin` | Dashboard KPIs + recent activity |
-| `/admin/employees` | Employee list, Excel import |
-| `/admin/employees/new` | Create employee |
-| `/admin/employees/:id/edit` | Edit employee |
-| `/admin/payslips` | Pay periods + import |
-| `/admin/payslips/:periodId` | Period detail, finalize, PDF preview |
-| `/admin/send` | Start bulk WhatsApp send |
-| `/admin/send/jobs/:jobId` | Send job progress (3s polling) |
-| `/admin/holidays` | Holiday calendar CRUD |
-| `/admin/tickets` | Maintenance tickets |
-| `/admin/audit` | Audit log |
-
-## Design
-
-Light-mode **Kinetic Precision** styling inspired by nipponstock: Space Grotesk / Manrope / Inter typography, electric blue CTAs, Material Symbols icons.
+| `/admin` | Dashboard KPIs |
+| `/admin/employees` | Employee list + bulk upload preview |
+| `/admin/salary` | Payroll upload + period list |
+| `/admin/salary/:periodId` | Period detail, PDF preview, Generate & Send |
+| `/admin/salary/dispatch/:jobId` | Dispatch progress (3s polling) |
+| `/admin/attendance` | Attendance upload |
+| `/admin/holidays` | Holiday calendar file per year |
+| `/admin/logs/dispatch` | Payslip dispatch log |
+| `/admin/logs/leave` | Leave requests |
+| `/admin/logs/feedback` | Employee feedback |
 
 ## Scripts
 
