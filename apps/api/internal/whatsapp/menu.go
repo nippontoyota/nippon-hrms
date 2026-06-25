@@ -101,3 +101,52 @@ const msgHolidayCalendar = `📅 *Nippon Toyota Holiday Calendar 2026*
 For the full list, please contact HR or visit the intranet portal.
 
 Reply *0* to return to the main menu.`
+
+// ─── Phase 1 Additions ────────────────────────────────────────────────────────
+
+// Leave Messages
+const msgLeaveAwaitStart = `🏖️ *Leave Application*
+
+Please enter the *Start Date* for your leave (YYYY-MM-DD).
+Example: 2026-07-01`
+
+const msgLeaveAwaitEnd = `🗓️ Got it. Now enter the *End Date* (YYYY-MM-DD).
+Example: 2026-07-05`
+
+const msgLeaveAwaitReason = `📝 Please provide a brief *reason* for your leave.`
+
+func msgLeaveConfirmPrompt(start, end, reason string) string {
+	return fmt.Sprintf(
+		"Please confirm your leave details:\n\n*Start:* %s\n*End:* %s\n*Reason:* %s\n\nReply *yes* to submit or *no* to cancel.",
+		start, end, reason,
+	)
+}
+
+const msgLeaveCreated = `✅ Your leave application has been submitted and is pending manager approval. Reply *0* to return to the main menu.`
+const msgLeaveCancelled = `❌ Leave application cancelled. Reply *0* to return to the main menu.`
+
+// Attendance
+const msgAttendanceSummary = `📊 *Attendance Summary (Current Month)*
+
+✅ Days Present: 22
+❌ Days Absent: 1
+⚠️ Late Arrivals: 0
+
+────────────────
+Reply *0* to return to the main menu.`
+
+// Incentive
+const msgIncentiveSummary = `💰 *Incentive Statement*
+
+Your incentive for the previous quarter has been processed.
+Total Incentive: ₹15,000
+
+If you need a detailed breakdown, please contact HR.
+Reply *0* to return to the main menu.`
+
+// Feedback
+const msgFeedbackAwaitText = `🗣️ *Employee Feedback*
+
+We value your input! Please type your feedback, suggestion, or concern below. This will be sent directly to the HR team.`
+
+const msgFeedbackSubmitted = `✅ Thank you! Your feedback has been securely submitted to HR. Reply *0* to return to the main menu.`
