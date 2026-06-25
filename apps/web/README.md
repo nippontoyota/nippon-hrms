@@ -1,32 +1,60 @@
-# React + TypeScript + Vite
+# Payslip Portal — Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+HR admin UI for Nippon Toyota Payslip Portal. Built with React 19, Vite, Tailwind CSS, TanStack Query, and MSW mocks.
 
-Currently, two official plugins are available:
+## Quick start
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+cd apps/web
+npm install
+npm run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Open http://localhost:5173
+
+## Demo login
+
+| Email | Password | Role |
+|-------|----------|------|
+| `admin@nippon.local` | `admin123` | ADMIN |
+| `hr@nippon.local` | `hr123` | HR |
+
+## Mock API (development)
+
+In dev mode, [MSW](https://mswjs.io/) intercepts all `/api/*` requests with realistic seed data. No backend required.
+
+To connect to the real Go API later:
+
+1. Run the backend on `http://localhost:4000`
+2. Disable MSW in `src/main.tsx` (or add `VITE_USE_MOCK=false`)
+3. Vite proxy rewrites `/api` → backend root
+
+## Pages
+
+| Route | Description |
+|-------|-------------|
+| `/login` | Admin sign-in |
+| `/admin` | Dashboard KPIs + recent activity |
+| `/admin/employees` | Employee list, Excel import |
+| `/admin/employees/new` | Create employee |
+| `/admin/employees/:id/edit` | Edit employee |
+| `/admin/payslips` | Pay periods + import |
+| `/admin/payslips/:periodId` | Period detail, finalize, PDF preview |
+| `/admin/send` | Start bulk WhatsApp send |
+| `/admin/send/jobs/:jobId` | Send job progress (3s polling) |
+| `/admin/holidays` | Holiday calendar CRUD |
+| `/admin/tickets` | Maintenance tickets |
+| `/admin/audit` | Audit log |
+
+## Design
+
+Light-mode **Kinetic Precision** styling inspired by nipponstock: Space Grotesk / Manrope / Inter typography, electric blue CTAs, Material Symbols icons.
+
+## Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Dev server with MSW mocks |
+| `npm run build` | Production build |
+| `npm run preview` | Preview production build |
+| `npm run lint` | Oxlint |
