@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# TypeScript build artifacts
+*.tsbuildinfo
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -22,3 +25,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Env files
+.env.local
+.env.*.local
