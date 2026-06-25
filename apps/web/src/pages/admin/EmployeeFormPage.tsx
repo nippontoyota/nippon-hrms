@@ -6,14 +6,17 @@ import { useCreateEmployee, useEmployee, useUpdateEmployee } from '@/api/hooks';
 import type { EmployeeInput } from '@/api/types';
 
 const defaultValues: EmployeeInput = {
-  employeeCode: '',
+  employeeId: '',
   name: '',
   department: '',
+  mobileNo: '',
+  level: '',
+  doj: '',
+  branch: '',
   designation: '',
-  whatsappPhone: '',
-  bankAccount: '',
-  bankIfsc: '',
-  active: true,
+  status: 'Active',
+  reportingManagerName: '',
+  reportingManagerPhone: '',
 };
 
 export default function EmployeeFormPage() {
@@ -31,14 +34,17 @@ export default function EmployeeFormPage() {
   useEffect(() => {
     if (employee) {
       reset({
-        employeeCode: employee.employeeCode,
+        employeeId: employee.employeeId,
         name: employee.name,
         department: employee.department,
+        mobileNo: employee.mobileNo,
+        level: employee.level,
+        doj: employee.doj,
+        branch: employee.branch,
         designation: employee.designation,
-        whatsappPhone: employee.whatsappPhone,
-        bankAccount: employee.bankAccount ?? '',
-        bankIfsc: employee.bankIfsc ?? '',
-        active: employee.active,
+        status: employee.status,
+        reportingManagerName: employee.reportingManagerName,
+        reportingManagerPhone: employee.reportingManagerPhone,
       });
     }
   }, [employee, reset]);
@@ -58,57 +64,93 @@ export default function EmployeeFormPage() {
     }
   };
 
-  if (isEdit && isLoading) return <p className="text-on-surface-variant">Loading...</p>;
+  if (isEdit && isLoading) return <p className="text-on-surface-variant">Loading…</p>;
 
   return (
-    <div className="space-y-6 max-w-2xl">
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">{isEdit ? 'Edit employee' : 'Add employee'}</h1>
-          <p className="page-subtitle">Employee master data for payslip and WhatsApp delivery</p>
-        </div>
+    <div className="space-y-6 max-w-3xl">
+      <div>
+        <h1 className="text-3xl font-headline font-bold tracking-tighter text-on-surface uppercase">
+          {isEdit ? 'Edit Employee' : 'Add Employee'}
+        </h1>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="card space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="label">Employee code</label>
-            <input className="input" {...register('employeeCode', { required: true })} />
-          </div>
-          <div>
-            <label className="label">Full name</label>
-            <input className="input" {...register('name', { required: true })} />
-          </div>
-          <div>
-            <label className="label">Department</label>
-            <input className="input" {...register('department', { required: true })} />
-          </div>
-          <div>
-            <label className="label">Designation</label>
-            <input className="input" {...register('designation', { required: true })} />
-          </div>
-          <div className="md:col-span-2">
-            <label className="label">WhatsApp phone (E.164)</label>
-            <input className="input" placeholder="+919876543210" {...register('whatsappPhone', { required: true })} />
-          </div>
-          <div>
-            <label className="label">Bank account</label>
-            <input className="input" {...register('bankAccount')} />
-          </div>
-          <div>
-            <label className="label">IFSC</label>
-            <input className="input" {...register('bankIfsc')} />
+      <form onSubmit={handleSubmit(onSubmit)} className="card space-y-6">
+        <div>
+          <p className="text-[10px] font-label uppercase tracking-widest text-primary mb-3">Identity</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="label">EMP ID</label>
+              <input className="input" {...register('employeeId', { required: true })} disabled={isEdit} />
+            </div>
+            <div>
+              <label className="label">Full name</label>
+              <input className="input" {...register('name', { required: true })} />
+            </div>
+            <div>
+              <label className="label">Department</label>
+              <input className="input" {...register('department', { required: true })} />
+            </div>
+            <div>
+              <label className="label">Branch</label>
+              <input className="input" {...register('branch', { required: true })} />
+            </div>
+            <div>
+              <label className="label">Designation</label>
+              <input className="input" {...register('designation', { required: true })} />
+            </div>
+            <div>
+              <label className="label">Level</label>
+              <input className="input" {...register('level')} />
+            </div>
+            <div>
+              <label className="label">DOJ</label>
+              <input type="date" className="input" {...register('doj', { required: true })} />
+            </div>
+            <div>
+              <label className="label">Mobile Number</label>
+              <input className="input" {...register('mobileNo', { required: true })} />
+            </div>
+            <div>
+              <label className="label">Status</label>
+              <select className="input" {...register('status')}>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </div>
           </div>
         </div>
 
-        <label className="flex items-center gap-2 text-sm font-body">
-          <input type="checkbox" className="rounded" {...register('active')} />
-          Active employee
-        </label>
+        <div>
+          <p className="text-[10px] font-label uppercase tracking-widest text-primary mb-3">Reporting Manager</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="label">Manager name</label>
+              <input className="input" {...register('reportingManagerName')} />
+            </div>
+            <div>
+              <label className="label">Manager mobile</label>
+              <input className="input" {...register('reportingManagerPhone')} />
+            </div>
+          </div>
+        </div>
 
-        <div className="flex gap-3 pt-2">
+        {isEdit && employee?.ctcStructure && (
+          <div>
+            <p className="text-[10px] font-label uppercase tracking-widest text-primary mb-3">CTC Structure (from upload)</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+              {Object.entries(employee.ctcStructure).map(([k, v]) => (
+                <div key={k} className="bg-surface-container rounded-lg p-2">
+                  <p className="text-[10px] text-on-surface-variant uppercase">{k}</p>
+                  <p className="font-semibold">{v ?? '—'}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="flex gap-3">
           <button type="submit" className="btn-primary" disabled={isSubmitting}>
-            {isEdit ? 'Save changes' : 'Create employee'}
+            {isSubmitting ? 'Saving…' : 'Save'}
           </button>
           <button type="button" className="btn-secondary" onClick={() => navigate('/admin/employees')}>
             Cancel

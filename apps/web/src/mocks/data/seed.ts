@@ -1,186 +1,168 @@
 import type {
-  AuditEntry,
+  AttendancePeriod,
+  AttendanceRecord,
+  DispatchJob,
+  DispatchLogEntry,
   Employee,
-  Holiday,
-  MaintenanceTicket,
-  PayslipPeriod,
-  PayslipRecord,
-  SendJob,
+  FeedbackResponse,
+  HolidayFile,
+  LeaveRequest,
+  SalaryPeriod,
+  SalaryRecord,
 } from '@/api/types';
+import employeeSeed from './employee-seed.json';
+import salarySeed from './salary-seed.json';
 
-export const seedEmployees: Employee[] = [
-  {
-    id: 'emp-1',
-    employeeCode: 'NT001',
-    name: 'Arjun Sharma',
-    department: 'Sales',
-    designation: 'Executive',
-    whatsappPhone: '+919876543210',
-    bankAccount: '1234567890',
-    bankIfsc: 'HDFC0001234',
-    active: true,
-    createdAt: '2025-01-15T10:00:00Z',
-  },
-  {
-    id: 'emp-2',
-    employeeCode: 'NT002',
-    name: 'Priya Mehta',
-    department: 'Service',
-    designation: 'Advisor',
-    whatsappPhone: '+919876543211',
-    bankAccount: '0987654321',
-    bankIfsc: 'ICIC0005678',
-    active: true,
-    createdAt: '2025-02-01T10:00:00Z',
-  },
-  {
-    id: 'emp-3',
-    employeeCode: 'NT003',
-    name: 'Ravi Kumar',
-    department: 'Finance',
-    designation: 'Accountant',
-    whatsappPhone: '+919876543212',
-    active: true,
-    createdAt: '2025-03-10T10:00:00Z',
-  },
-];
+export const seedEmployees = employeeSeed as Employee[];
 
-export const seedPeriods: PayslipPeriod[] = [
+const now = new Date();
+export const seedPeriods: SalaryPeriod[] = [
   {
     id: 'period-1',
+    year: now.getFullYear(),
+    month: now.getMonth() + 1,
+    status: 'READY',
+    recordCount: salarySeed.length,
+    unmatchedCount: 0,
+    uploadedAt: '2026-06-01T09:00:00Z',
+  },
+];
+
+export const seedRecords: SalaryRecord[] = (salarySeed as { id: string; employeeId: string; employeeName: string; data: Record<string, unknown>; netPay: number }[]).map(
+  (row, i) => ({
+    id: row.id || `sal-rec-${i + 1}`,
+    periodId: 'period-1',
+    employeeId: row.employeeId,
+    employeeName: row.employeeName,
+    data: row.data,
+    netPay: Number(row.netPay) || 0,
+    matched: seedEmployees.some((e) => e.employeeId === row.employeeId),
+  }),
+);
+
+export const seedHolidays: HolidayFile[] = [
+  {
+    id: 'hol-1',
     year: 2026,
-    month: 5,
-    status: 'FINALIZED',
-    recordCount: 3,
-    finalizedAt: '2026-06-01T09:00:00Z',
-  },
-  {
-    id: 'period-2',
-    year: 2026,
-    month: 6,
-    status: 'DRAFT',
-    recordCount: 3,
+    fileName: 'Nippon_Toyota_Holiday_Calendar_2026.pdf',
+    fileUrl: '/templates/holiday_sample.pdf',
+    uploadedAt: '2026-01-10T10:00:00Z',
   },
 ];
 
-export const seedRecords: PayslipRecord[] = [
+export const seedAttendancePeriods: AttendancePeriod[] = [
   {
-    id: 'rec-1',
+    id: 'att-period-1',
+    year: now.getFullYear(),
+    month: now.getMonth() + 1,
+    recordCount: 16,
+    uploadedAt: '2026-06-05T09:00:00Z',
+  },
+];
+
+export const seedAttendanceRecords: AttendanceRecord[] = seedEmployees.map((emp, i) => {
+  const sal = seedRecords.find((r) => r.employeeId === emp.employeeId);
+  const leaves = Number(sal?.data?.Leaves ?? 0);
+  const absents = Number(sal?.data?.ABSENTS ?? 0);
+  const days = Number(sal?.data?.Days ?? 31);
+  return {
+    id: `att-${i + 1}`,
+    periodId: 'att-period-1',
+    employeeId: emp.employeeId,
+    employeeName: emp.name,
+    presentDays: days - leaves - absents,
+    absentDays: absents,
+    leaveDays: leaves,
+    lateMarks: i % 3,
+    weeklyOffs: 4,
+  };
+});
+
+export const seedLeaveRequests: LeaveRequest[] = [
+  {
+    id: 'leave-1',
+    employeeId: '4599',
+    employeeName: 'Mony K A',
+    leaveType: 'Casual Leave',
+    fromDate: '2026-06-10',
+    toDate: '2026-06-11',
+    reason: 'Personal work',
+    status: 'Approved',
+    approverPhone: '9876543210',
+    approverName: 'Rajesh Kumar',
+    appliedAt: '2026-06-08T10:00:00Z',
+    decidedAt: '2026-06-08T14:30:00Z',
+  },
+  {
+    id: 'leave-2',
+    employeeId: '7903',
+    employeeName: 'Sajan S',
+    leaveType: 'Sick Leave',
+    fromDate: '2026-06-20',
+    toDate: '2026-06-20',
+    reason: 'Fever',
+    status: 'Pending',
+    approverPhone: '9876543211',
+    approverName: 'Suresh Nair',
+    appliedAt: '2026-06-19T09:00:00Z',
+  },
+  {
+    id: 'leave-3',
+    employeeId: '415',
+    employeeName: 'Kishor Krishnan',
+    leaveType: 'Earned Leave',
+    fromDate: '2026-07-01',
+    toDate: '2026-07-05',
+    reason: 'Family function',
+    status: 'Rejected',
+    approverPhone: '9876543212',
+    approverName: 'Anil Thomas',
+    appliedAt: '2026-06-15T11:00:00Z',
+    decidedAt: '2026-06-16T09:00:00Z',
+  },
+];
+
+export const seedFeedback: FeedbackResponse[] = [
+  { id: 'fb-1', employeeId: '4599', employeeName: 'Mony K A', rating: 4, comment: 'Good support from HR', submittedAt: '2026-06-01T12:00:00Z' },
+  { id: 'fb-2', employeeId: '7903', employeeName: 'Sajan S', rating: 5, submittedAt: '2026-06-02T10:00:00Z' },
+  { id: 'fb-3', employeeId: '415', employeeName: 'Kishor Krishnan', rating: 3, comment: 'Payslip delivery was delayed', submittedAt: '2026-06-03T15:00:00Z' },
+];
+
+export const seedDispatchLogs: DispatchLogEntry[] = [
+  {
+    id: 'dl-1',
+    employeeId: '4599',
+    employeeName: 'Mony K A',
+    month: now.getMonth() + 1,
+    year: now.getFullYear(),
+    status: 'Sent',
+    whatsappMessageId: 'wamid-001',
+    sentAt: '2026-06-02T10:05:00Z',
+  },
+  {
+    id: 'dl-2',
+    employeeId: '7903',
+    employeeName: 'Sajan S',
+    month: now.getMonth() + 1,
+    year: now.getFullYear(),
+    status: 'Sent',
+    whatsappMessageId: 'wamid-002',
+    sentAt: '2026-06-02T10:06:00Z',
+  },
+];
+
+export const seedDispatchJobs: DispatchJob[] = [
+  {
+    id: 'job-seed-1',
     periodId: 'period-1',
-    employeeId: 'emp-1',
-    employeeCode: 'NT001',
-    employeeName: 'Arjun Sharma',
-    earnings: { basic: 25000, hra: 10000, special: 5000 },
-    deductions: { pf: 3000, esi: 500, pt: 200 },
-    grossPay: 40000,
-    netPay: 36300,
-  },
-  {
-    id: 'rec-2',
-    periodId: 'period-1',
-    employeeId: 'emp-2',
-    employeeCode: 'NT002',
-    employeeName: 'Priya Mehta',
-    earnings: { basic: 22000, hra: 8800, special: 4200 },
-    deductions: { pf: 2640, esi: 440, pt: 200 },
-    grossPay: 35000,
-    netPay: 31720,
-  },
-  {
-    id: 'rec-3',
-    periodId: 'period-1',
-    employeeId: 'emp-3',
-    employeeCode: 'NT003',
-    employeeName: 'Ravi Kumar',
-    earnings: { basic: 30000, hra: 12000, special: 6000 },
-    deductions: { pf: 3600, esi: 600, pt: 200, tds: 1500 },
-    grossPay: 48000,
-    netPay: 42100,
-  },
-  {
-    id: 'rec-4',
-    periodId: 'period-2',
-    employeeId: 'emp-1',
-    employeeCode: 'NT001',
-    employeeName: 'Arjun Sharma',
-    earnings: { basic: 25000, hra: 10000, special: 5000 },
-    deductions: { pf: 3000, esi: 500, pt: 200 },
-    grossPay: 40000,
-    netPay: 36300,
-  },
-  {
-    id: 'rec-5',
-    periodId: 'period-2',
-    employeeId: 'emp-2',
-    employeeCode: 'NT002',
-    employeeName: 'Priya Mehta',
-    earnings: { basic: 22000, hra: 8800, special: 4200 },
-    deductions: { pf: 2640, esi: 440, pt: 200 },
-    grossPay: 35000,
-    netPay: 31720,
-  },
-  {
-    id: 'rec-6',
-    periodId: 'period-2',
-    employeeId: 'emp-3',
-    employeeCode: 'NT003',
-    employeeName: 'Ravi Kumar',
-    earnings: { basic: 30000, hra: 12000, special: 6000 },
-    deductions: { pf: 3600, esi: 600, pt: 200, tds: 1500 },
-    grossPay: 48000,
-    netPay: 42100,
+    year: now.getFullYear(),
+    month: now.getMonth() + 1,
+    status: 'COMPLETED',
+    total: 16,
+    sent: 14,
+    failed: 0,
+    skipped: 2,
+    items: [],
+    createdAt: '2026-06-02T10:00:00Z',
   },
 ];
-
-export const seedHolidays: Holiday[] = [
-  { id: 'hol-1', name: 'Republic Day', date: '2026-01-26', description: 'National holiday' },
-  { id: 'hol-2', name: 'Independence Day', date: '2026-08-15' },
-];
-
-export const seedTickets: MaintenanceTicket[] = [
-  {
-    id: 'tkt-1',
-    employeeId: 'emp-1',
-    employeeName: 'Arjun Sharma',
-    description: 'AC not working in showroom',
-    status: 'OPEN',
-    createdAt: '2026-06-20T14:30:00Z',
-  },
-  {
-    id: 'tkt-2',
-    employeeId: 'emp-2',
-    employeeName: 'Priya Mehta',
-    description: 'Printer jam in service bay',
-    status: 'IN_PROGRESS',
-    createdAt: '2026-06-22T09:15:00Z',
-  },
-];
-
-export const seedAudit: AuditEntry[] = [
-  {
-    id: 'aud-1',
-    timestamp: '2026-06-24T10:00:00Z',
-    actor: 'HR Admin',
-    action: 'FINALIZE_PERIOD',
-    entity: 'period-1',
-    details: 'Finalized payslip period May 2026',
-  },
-  {
-    id: 'aud-2',
-    timestamp: '2026-06-23T15:30:00Z',
-    actor: 'HR Admin',
-    action: 'IMPORT_PAYSLIPS',
-    entity: 'period-2',
-    details: 'Imported 3 payslip records for June 2026',
-  },
-  {
-    id: 'aud-3',
-    timestamp: '2026-06-22T11:00:00Z',
-    actor: 'HR Admin',
-    action: 'CREATE_EMPLOYEE',
-    entity: 'emp-3',
-    details: 'Added employee Ravi Kumar (NT003)',
-  },
-];
-
-export const seedSendJobs: SendJob[] = [];
