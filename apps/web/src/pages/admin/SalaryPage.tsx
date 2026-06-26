@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { WarningCircle, PaperPlaneTilt, Spinner, CaretLeft, CaretRight, FilePdf, Eye, X, CheckCircle } from '@phosphor-icons/react';
+import { WarningCircle, PaperPlaneTilt, Spinner, CaretLeft, CaretRight, FilePdf, Eye, X, CheckCircle, WhatsappLogo } from '@phosphor-icons/react';
 import { salaryApi } from '@/api/endpoints';
 import { usePayrollRecords } from '@/api/hooks';
 import { useQueryClient } from '@tanstack/react-query';
@@ -267,8 +267,8 @@ export default function SalaryPage() {
               disabled={loading || (errors && errors.length > 0) || dispatching || recordsLoading || !records || records.length === 0}
               className="bg-green-700 hover:bg-green-800 text-white font-bold uppercase tracking-wider !px-6 !py-3 flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed shadow-md transition-colors text-sm rounded-md"
             >
-              <PaperPlaneTilt size={18} weight="bold" />
-              {dispatching ? 'Triggering System...' : `Trigger Dispatch for ${MONTHS[month - 1]} ${year}`}
+              <WhatsappLogo size={18} weight="fill" />
+              {dispatching ? 'Dispatching via WhatsApp...' : `Dispatch Payslips - ${MONTHS[month - 1]} ${year}`}
             </button>
           )}
         </div>
