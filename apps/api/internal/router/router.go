@@ -62,12 +62,19 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 				r.Post("/", employeeH.Create)
 				r.Get("/{id}", employeeH.GetByID)
 				r.Patch("/{id}", employeeH.Update)
+				r.Delete("/{id}", employeeH.Delete)
 				r.Post("/upload", employeeH.BulkUpload) // New Bulk Upload
 			})
 
 			r.Route("/payroll", func(r chi.Router) {
+				r.Get("/list", payrollH.List)
 				r.Post("/upload", payrollH.BulkUpload)
-				r.Post("/dispatch", payrollH.Dispatch) // New Dispatch
+				r.Post("/upload-preview", payrollH.BulkPreview)
+				r.Get("/preview", payrollH.PreviewPDF) // On-demand PDF preview
+				r.Post("/validate", payrollH.Validate)
+				r.Post("/dispatch", payrollH.Dispatch)
+				r.Post("/send", payrollH.SendPayslip) // Single employee send
+				r.Delete("/{id}", payrollH.Delete)
 			})
 		})
 	})
