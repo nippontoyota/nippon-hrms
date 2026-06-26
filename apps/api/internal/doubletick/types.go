@@ -28,6 +28,25 @@ type ComponentParameter struct {
 	Text string `json:"text,omitempty"`
 }
 
+// DocumentRequest is the body for POST /whatsapp/message/document (flat schema per the DoubleTick API).
+type DocumentRequest struct {
+	From    string          `json:"from"`
+	To      string          `json:"to"`
+	Content DocumentContent `json:"content"`
+}
+
+type DocumentContent struct {
+	MediaURL string `json:"mediaUrl"`
+	Caption  string `json:"caption,omitempty"`
+	Filename string `json:"filename,omitempty"`
+}
+
+// UploadMediaResponse is the response from POST /media/upload.
+type UploadMediaResponse struct {
+	MediaURL  string `json:"mediaUrl"`
+	ExpiresIn int    `json:"expiresIn"`
+}
+
 type TextRequest struct {
 	Messages []TextMessage `json:"messages"`
 }
