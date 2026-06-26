@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -20,8 +21,17 @@ func NewEmployeeHandler(repo employee.Repository) *EmployeeHandler {
 	return &EmployeeHandler{repo: repo}
 }
 
-// BulkUpload handles POST /api/v1/employees/upload.
 func (h *EmployeeHandler) BulkUpload(w http.ResponseWriter, r *http.Request) {
+	defer func() {
+		if rec := recover(); rec != nil {
+			logger.Error("panic in BulkUpload", "panic", rec)
+			respond.JSON(w, http.StatusInternalServerError, respond.Envelope{
+				Success: false,
+				Error:   &respond.APIError{Code: "PANIC", Message: fmt.Sprintf("Server panic: %v", rec)},
+			})
+		}
+	}()
+
 	if err := r.ParseMultipartForm(10 << 20); err != nil {
 		respond.BadRequest(w, "failed to parse multipart form")
 		return
@@ -120,4 +130,21 @@ func (h *EmployeeHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	respond.OK(w, emp)
+}
+
+// Delete handles DELETE /api/v1/employees/{id}.
+func (h *EmployeeHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		respond.BadRequest(w, "employee ID required")
+		return
+	}
+
+	if err := h.repo.Delete(r.Context(), id); err != nil {
+		logger.Error("failed to delete employee", "err", err)
+		respond.InternalError(w)
+		return
+	}
+
+	respond.NoContent(w)
 }
