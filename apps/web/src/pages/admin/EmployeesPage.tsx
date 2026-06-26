@@ -406,7 +406,7 @@ export default function EmployeesPage() {
                           <>
                             <div className="relative group/btn inline-flex items-center justify-center">
                               <button
-                                className="text-slate-400 hover:text-green-600 inline-flex cursor-pointer transition-colors"
+                                className="text-green-600 hover:text-green-700 inline-flex cursor-pointer transition-colors"
                                 onClick={() => setPayslipTarget({ id: e.id, employeeId: e.employeeId, name: e.name, mobileNo: e.mobileNo })}
                                 disabled={!!editingId}
                               >
@@ -418,7 +418,7 @@ export default function EmployeesPage() {
                             <div className="relative group/btn inline-flex items-center justify-center ml-2">
                               <button 
                                 onClick={() => startEdit(e)} 
-                                className="text-slate-400 hover:text-slate-600 inline-flex cursor-pointer"
+                                className="text-blue-600 hover:text-blue-800 inline-flex cursor-pointer transition-colors"
                                 disabled={!!editingId}
                               >
                                 <PencilSimple size={16} weight="duotone" className={editingId ? 'opacity-30' : ''} />
@@ -428,7 +428,7 @@ export default function EmployeesPage() {
 
                             <div className="relative group/btn inline-flex items-center justify-center ml-2">
                               <button
-                                className="text-slate-400 hover:text-red-600 inline-flex cursor-pointer"
+                                className="text-red-500 hover:text-red-700 inline-flex cursor-pointer transition-colors"
                                 disabled={!!editingId}
                                 onClick={() => {
                                     openConfirm(
