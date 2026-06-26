@@ -29,11 +29,10 @@ func main() {
 	ctx := context.Background()
 	pgPool, err := db.NewPostgresPool(ctx, cfg.DatabaseURL)
 	if err != nil {
-		logger.Error("postgres connection failed", "err", err)
-		logger.Warn("continuing without Postgres — check DATABASE_URL in .env")
-	} else {
-		defer pgPool.Close()
+		logger.Error("postgres connection failed. Ensure DATABASE_URL is correct and you have an active internet connection.", "err", err)
+		os.Exit(1)
 	}
+	defer pgPool.Close()
 
 	// ── Supabase (Storage API only) ───────────────────────────────
 	var supaClient *db.Client
