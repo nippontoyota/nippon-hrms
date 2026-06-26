@@ -13,11 +13,9 @@ import (
 	"github.com/nippon-toyota/hrms/internal/doubletick"
 	"github.com/nippon-toyota/hrms/internal/employee"
 	"github.com/nippon-toyota/hrms/internal/handler"
-	"github.com/nippon-toyota/hrms/internal/holiday"
 	appMiddleware "github.com/nippon-toyota/hrms/internal/middleware"
 	"github.com/nippon-toyota/hrms/internal/payroll"
 	"github.com/nippon-toyota/hrms/internal/whatsapp"
-	"github.com/nippon-toyota/hrms/pkg/respond"
 )
 
 func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClient *doubletick.Client) http.Handler {
@@ -40,7 +38,6 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 
 	empRepo := employee.NewPostgresRepository(pgPool)
 	payrollRepo := payroll.NewPostgresRepository(pgPool)
-	holidayRepo := holiday.NewStubRepository()
 
 	payrollDispatcher := payroll.NewDispatcher(payrollRepo, dtClient)
 
@@ -48,27 +45,17 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 	waSvc := whatsapp.NewService(dtClient, sessionStore, empRepo, payrollRepo)
 	waHandler := whatsapp.NewHandler(waSvc, cfg.DoubleTickWebhookSecret)
 
-	authH := handler.NewAuthHandler(cfg.JWTSecret, cfg.JWTExpiryMinutes)
 	employeeH := handler.NewEmployeeHandler(empRepo)
-	leaveH := handler.NewLeaveHandler()
 	payrollH := handler.NewPayrollHandler(payrollRepo, payrollDispatcher)
-	holidayH := handler.NewHolidayHandler(holidayRepo)
 
 	r.Get("/health", handler.HealthHandler)
 
 	r.Route("/api/v1", func(r chi.Router) {
 
-		r.Route("/auth", func(r chi.Router) {
-			r.Post("/login", authH.Login)
-			r.Post("/refresh", authH.Refresh)
-		})
-
 		r.Post("/whatsapp/webhook", waHandler.Webhook)
 
 		r.Group(func(r chi.Router) {
-			r.Use(appMiddleware.RequireAuth(cfg.JWTSecret))
-
-			r.Get("/auth/me", authH.Me)
+			r.Use(appMiddleware.RequireAuth(cfg.SupabaseURL, cfg.SupabaseAnonKey))
 
 			r.Route("/employees", func(r chi.Router) {
 				r.Get("/", employeeH.List)
@@ -78,23 +65,9 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 				r.Post("/upload", employeeH.BulkUpload) // New Bulk Upload
 			})
 
-			r.Route("/leaves", func(r chi.Router) {
-				r.Get("/", leaveH.List)
-				r.Post("/", leaveH.Create)
-				r.Patch("/{id}/status", leaveH.UpdateStatus)
-			})
-
 			r.Route("/payroll", func(r chi.Router) {
 				r.Post("/upload", payrollH.BulkUpload)
 				r.Post("/dispatch", payrollH.Dispatch) // New Dispatch
-			})
-
-			r.Route("/holidays", func(r chi.Router) {
-				r.Post("/upload", holidayH.BulkUpload) // New Bulk Upload
-			})
-
-			r.Get("/whatsapp/conversations", func(w http.ResponseWriter, r *http.Request) {
-				respond.OK(w, map[string]string{"message": "conversations endpoint — not yet implemented"})
 			})
 		})
 	})
