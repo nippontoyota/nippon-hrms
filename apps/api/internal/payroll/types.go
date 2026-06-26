@@ -66,5 +66,7 @@ type UploadResponse struct {
 type Repository interface {
 	GetPayslip(ctx context.Context, employeeID string, month, year int) (*Record, error)
 
+	ListByPeriod(ctx context.Context, month, year int) ([]Record, error)
+
 	BulkInsert(ctx context.Context, records []Record) error
 }

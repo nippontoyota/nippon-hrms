@@ -9,9 +9,6 @@ const (
 
 	StateMainMenu
 
-	StateVerifyID
-	StateVerifyDOB
-
 	StatePayslipAwaitMonth
 
 	StateTicketAwaitTitle

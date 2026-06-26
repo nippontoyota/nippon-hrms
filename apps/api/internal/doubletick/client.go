@@ -6,7 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
+	"net/textproto"
 	"time"
 )
 
@@ -77,6 +79,71 @@ func (c *Client) SendTemplate(
 		}},
 	}
 	return c.do(ctx, http.MethodPost, "/whatsapp/message/template", body)
+}
+
+// SendDocument sends a WhatsApp document message pointing at a hosted media URL.
+func (c *Client) SendDocument(ctx context.Context, to, mediaURL, filename, caption string) (*Response, error) {
+	body := DocumentRequest{
+		From: c.fromNumber,
+		To:   to,
+		Content: DocumentContent{
+			MediaURL: mediaURL,
+			Filename: filename,
+			Caption:  caption,
+		},
+	}
+	return c.do(ctx, http.MethodPost, "/whatsapp/message/document", body)
+}
+
+// UploadMedia uploads a file to DoubleTick and returns a hosted media URL usable in a document message.
+func (c *Client) UploadMedia(ctx context.Context, data []byte, filename, contentType string) (string, error) {
+	var buf bytes.Buffer
+	w := multipart.NewWriter(&buf)
+
+	h := make(textproto.MIMEHeader)
+	h.Set("Content-Disposition", fmt.Sprintf(`form-data; name="file"; filename=%q`, filename))
+	if contentType != "" {
+		h.Set("Content-Type", contentType)
+	}
+
+	part, err := w.CreatePart(h)
+	if err != nil {
+		return "", fmt.Errorf("doubletick: create form part: %w", err)
+	}
+	if _, err := part.Write(data); err != nil {
+		return "", fmt.Errorf("doubletick: write file part: %w", err)
+	}
+	if err := w.Close(); err != nil {
+		return "", fmt.Errorf("doubletick: close multipart writer: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/media/upload", &buf)
+	if err != nil {
+		return "", fmt.Errorf("doubletick: build upload request: %w", err)
+	}
+	req.Header.Set("Content-Type", w.FormDataContentType())
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Authorization", c.apiKey)
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("doubletick: upload http: %w", err)
+	}
+	defer resp.Body.Close()
+
+	raw, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("doubletick: read upload body: %w", err)
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return "", &APIError{StatusCode: resp.StatusCode, Body: raw}
+	}
+
+	var out UploadMediaResponse
+	if err := json.Unmarshal(raw, &out); err != nil {
+		return "", fmt.Errorf("doubletick: decode upload response: %w", err)
+	}
+	return out.MediaURL, nil
 }
 
 type APIError struct {

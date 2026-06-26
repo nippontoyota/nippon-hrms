@@ -49,6 +49,7 @@ type UploadResponse struct {
 
 type Repository interface {
 	FindByPhone(ctx context.Context, phone string) (*Employee, error)
+	GetByID(ctx context.Context, id string) (*Employee, error)
 	VerifyIdentity(ctx context.Context, id, dob string) (*Employee, error)
 	UpdatePhone(ctx context.Context, id, newPhone string) error
 	BulkInsert(ctx context.Context, employees []Employee) error
