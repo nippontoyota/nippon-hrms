@@ -205,7 +205,7 @@ export default function SalaryDirectoryPage() {
 
         {/* ── Left: Month / Year navigator ─────────────────────────── */}
         <div className="flex items-center gap-3">
-          <div className="flex items-center border border-slate-300 bg-white divide-x divide-slate-300">
+          <div className="flex items-center border border-slate-300 bg-white shadow-sm divide-x divide-slate-300 rounded-md overflow-hidden" style={{ borderRadius: '0.375rem' }}>
             <button
               onClick={prevMonth}
               className="px-2.5 py-2 text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors cursor-pointer"
