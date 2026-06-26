@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { WarningCircle, PaperPlaneTilt, Spinner, CaretLeft, CaretRight, FilePdf, Eye, X } from '@phosphor-icons/react';
+import { WarningCircle, PaperPlaneTilt, Spinner, CaretLeft, CaretRight, FilePdf, Eye, X, CheckCircle } from '@phosphor-icons/react';
 import { salaryApi } from '@/api/endpoints';
 import { usePayrollRecords } from '@/api/hooks';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface ValidationError {
   employeeId: string;
@@ -29,6 +30,7 @@ export default function SalaryPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loadingPreviewId, setLoadingPreviewId] = useState<string | null>(null);
 
+  const qc = useQueryClient();
   const { data: records, isLoading: recordsLoading } = usePayrollRecords(month, year);
 
   const isNextMonthDisabled = year === currentYear && month === currentMonth;
@@ -62,11 +64,14 @@ export default function SalaryPage() {
     else setMonth(m => m + 1);
   };
 
+  const isDispatched = records?.some(r => r.dispatchedAt) ?? false;
+
   const handleDispatch = async () => {
     setDispatching(true);
     try {
       await salaryApi.dispatch(month, year);
       toast.success('Dispatch initiated successfully!');
+      qc.invalidateQueries({ queryKey: ['payrollRecords', month, year] });
     } catch {
       toast.error('Failed to trigger dispatch');
     } finally {
@@ -190,6 +195,11 @@ export default function SalaryPage() {
               </table>
             </div>
           </div>
+        ) : (!records || records.length === 0) ? (
+          <div className="flex-1 flex flex-col items-center justify-center gap-2 py-24 bg-white">
+            <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">No Records Found</p>
+            <p className="text-xs text-slate-400">Import records in the Salary Directory first.</p>
+          </div>
         ) : (
           <div className="flex-1 flex flex-col">
             <div className="flex items-start gap-3 bg-green-50 border-b border-green-200 p-5 shrink-0">
@@ -204,70 +214,67 @@ export default function SalaryPage() {
               </div>
             </div>
 
-            {recordsLoading ? (
-              <div className="flex-1 flex items-center justify-center py-12">
-                <Spinner className="animate-spin text-green-600" size={24} weight="bold" />
-              </div>
-            ) : records && records.length > 0 ? (
-              <div className="flex-1 overflow-y-auto custom-scrollbar p-0">
-                <table className="w-full text-left whitespace-nowrap">
-                  <thead className="bg-slate-50 text-[10px] uppercase tracking-widest text-slate-500 font-mono sticky top-0 border-b border-slate-200 shadow-sm z-10">
-                    <tr>
-                      <th className="px-5 py-3 font-semibold w-12 text-center">Sl. No.</th>
-                      <th className="px-5 py-3 font-semibold">EMP ID</th>
-                      <th className="px-5 py-3 font-semibold w-full">Name</th>
-                      <th className="px-5 py-3 font-semibold text-right">Net Salary</th>
-                      <th className="px-5 py-3 font-semibold text-center">Action</th>
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-0">
+              <table className="w-full text-left whitespace-nowrap">
+                <thead className="bg-slate-50 text-[10px] uppercase tracking-widest text-slate-500 font-mono sticky top-0 border-b border-slate-200 shadow-sm z-10">
+                  <tr>
+                    <th className="px-5 py-3 font-semibold w-12 text-center">Sl. No.</th>
+                    <th className="px-5 py-3 font-semibold">EMP ID</th>
+                    <th className="px-5 py-3 font-semibold w-full">Name</th>
+                    <th className="px-5 py-3 font-semibold text-right">Net Salary</th>
+                    <th className="px-5 py-3 font-semibold text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="text-xs text-slate-700 divide-y divide-slate-100">
+                  {records.map((rec, i) => (
+                    <tr key={rec.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-5 py-3 text-slate-400 font-mono text-center">{i + 1}</td>
+                      <td className="px-5 py-3 font-mono font-bold text-slate-900">{rec.employeeId}</td>
+                      <td className="px-5 py-3 font-semibold">{rec.empNameSnapshot}</td>
+                      <td className="px-5 py-3 font-mono font-bold text-slate-900 text-right">₹{rec.actualFinalAmount?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                      <td className="px-5 py-2 text-center">
+                        <button
+                          onClick={() => handlePreview(rec.employeeId)}
+                          disabled={loadingPreviewId === rec.employeeId}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 font-bold uppercase tracking-wider text-[10px] border border-slate-200 rounded transition-colors"
+                        >
+                          {loadingPreviewId === rec.employeeId ? (
+                            <Spinner className="animate-spin" size={14} weight="bold" />
+                          ) : (
+                            <Eye size={14} weight="bold" />
+                          )}
+                          Preview PDF
+                        </button>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="text-xs text-slate-700 divide-y divide-slate-100">
-                    {records.map((rec, i) => (
-                      <tr key={rec.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="px-5 py-3 text-slate-400 font-mono text-center">{i + 1}</td>
-                        <td className="px-5 py-3 font-mono font-bold text-slate-900">{rec.employeeId}</td>
-                        <td className="px-5 py-3 font-semibold">{rec.empNameSnapshot}</td>
-                        <td className="px-5 py-3 font-mono font-bold text-slate-900 text-right">₹{rec.actualFinalAmount?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                        <td className="px-5 py-2 text-center">
-                          <button
-                            onClick={() => handlePreview(rec.employeeId)}
-                            disabled={loadingPreviewId === rec.employeeId}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 font-bold uppercase tracking-wider text-[10px] border border-slate-200 rounded transition-colors"
-                          >
-                            {loadingPreviewId === rec.employeeId ? (
-                              <Spinner className="animate-spin" size={14} weight="bold" />
-                            ) : (
-                              <Eye size={14} weight="bold" />
-                            )}
-                            Preview PDF
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="flex-1 flex flex-col items-center justify-center gap-2 py-24">
-                <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">No Records Found</p>
-                <p className="text-xs text-slate-400">Import records in the Salary Directory first.</p>
-              </div>
-            )}
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
         {/* Action Footer */}
         <div className="border-t border-slate-200 bg-slate-50 p-5 flex items-center justify-between shrink-0">
           <div className="text-xs text-slate-500 font-medium">
-            {errors?.length === 0 ? 'Ready to process' : 'Action required'}
+            {isDispatched ? 'Process Completed' : errors?.length === 0 ? 'Ready to process' : 'Action required'}
           </div>
-          <button
-            onClick={handleDispatch}
-            disabled={loading || (errors && errors.length > 0) || dispatching}
-            className="btn-primary !px-6 !py-3 flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed shadow-md"
-          >
-            <PaperPlaneTilt size={18} weight="bold" />
-            {dispatching ? 'Triggering System...' : `Trigger Dispatch for ${MONTHS[month - 1]} ${year}`}
-          </button>
+          
+          {isDispatched ? (
+            <div className="flex items-center gap-2 px-4 py-2.5 bg-green-100 border border-green-200 text-green-800 font-bold uppercase tracking-wider text-[11px] rounded-none">
+              <CheckCircle size={18} weight="fill" className="text-green-600" />
+              Payslips Dispatched
+            </div>
+          ) : (
+            <button
+              onClick={handleDispatch}
+              disabled={loading || (errors && errors.length > 0) || dispatching || recordsLoading || !records || records.length === 0}
+              className="btn-primary !px-6 !py-3 flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed shadow-md"
+            >
+              <PaperPlaneTilt size={18} weight="bold" />
+              {dispatching ? 'Triggering System...' : `Trigger Dispatch for ${MONTHS[month - 1]} ${year}`}
+            </button>
+          )}
         </div>
       </div>
 

@@ -407,7 +407,7 @@ export default function EmployeesPage() {
                                 onClick={() => setPayslipTarget({ id: e.id, employeeId: e.employeeId, name: e.name, mobileNo: e.mobileNo })}
                                 disabled={!!editingId}
                               >
-                                <WhatsappLogo size={16} weight="duotone" className={!!editingId ? 'opacity-30' : ''} />
+                                <WhatsappLogo size={16} weight="duotone" className={editingId ? 'opacity-30' : ''} />
                               </button>
                               <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover/btn:block bg-slate-800 text-white text-[10px] uppercase font-bold tracking-wider px-2 py-1 whitespace-nowrap z-50 pointer-events-none">Send Payslip</span>
                             </div>
@@ -418,7 +418,7 @@ export default function EmployeesPage() {
                                 className="text-slate-400 hover:text-slate-600 inline-flex cursor-pointer"
                                 disabled={!!editingId}
                               >
-                                <PencilSimple size={16} weight="duotone" className={!!editingId ? 'opacity-30' : ''} />
+                                <PencilSimple size={16} weight="duotone" className={editingId ? 'opacity-30' : ''} />
                               </button>
                               <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover/btn:block bg-slate-800 text-white text-[10px] uppercase font-bold tracking-wider px-2 py-1 whitespace-nowrap z-50 pointer-events-none">Edit</span>
                             </div>
@@ -436,7 +436,7 @@ export default function EmployeesPage() {
                                     );
                                   }}
                               >
-                                <Trash size={16} weight="duotone" className={!!editingId ? 'opacity-30' : ''} />
+                                <Trash size={16} weight="duotone" className={editingId ? 'opacity-30' : ''} />
                               </button>
                               <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover/btn:block bg-slate-800 text-white text-[10px] uppercase font-bold tracking-wider px-2 py-1 whitespace-nowrap z-50 pointer-events-none">Delete</span>
                             </div>

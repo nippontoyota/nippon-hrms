@@ -3,7 +3,7 @@
  * Regenerate employee-seed.json and salary-seed.json from public/templates xlsx files.
  * Requires: npm install xlsx (devDependency)
  */
-import { readFileSync, writeFileSync } from 'fs';
+import { writeFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import XLSX from 'xlsx';
