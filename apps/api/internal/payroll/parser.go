@@ -3,6 +3,7 @@ package payroll
 import (
 	"fmt"
 	"io"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -10,8 +11,18 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
+var numericRegex = regexp.MustCompile(`[^0-9\.\-]`)
+
 func parseFloat(val string) float64 {
-	v, err := strconv.ParseFloat(strings.TrimSpace(val), 64)
+	// Remove all commas first
+	cleanVal := strings.ReplaceAll(val, ",", "")
+	// Remove any currency symbols, spaces, etc
+	cleanVal = numericRegex.ReplaceAllString(cleanVal, "")
+	cleanVal = strings.TrimSpace(cleanVal)
+	if cleanVal == "" || cleanVal == "-" || cleanVal == "." {
+		return 0
+	}
+	v, err := strconv.ParseFloat(cleanVal, 64)
 	if err != nil {
 		return 0
 	}
@@ -41,9 +52,9 @@ func ParseExcel(r io.Reader, month, year int) ([]Record, []string, error) {
 			continue // Skip header
 		}
 
-		if len(row) < 48 {
-			errors = append(errors, fmt.Sprintf("Row %d: missing columns (expected 48, got %d)", i+1, len(row)))
-			continue
+		// Pad row to 47 columns to handle trailing empty cells from Excel
+		for len(row) < 47 {
+			row = append(row, "")
 		}
 
 		empID := strings.TrimSpace(row[0])
