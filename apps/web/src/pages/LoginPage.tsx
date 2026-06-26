@@ -15,8 +15,8 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const { token, user } = await authApi.login(email, password);
-      setAuth(user, token);
+      const { access_token, user } = await authApi.login(email, password);
+      setAuth(user, access_token);
       toast.success(`Welcome, ${user.name}`);
       navigate('/admin');
     } catch {
