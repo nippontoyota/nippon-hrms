@@ -6,38 +6,40 @@ import (
 )
 
 type Employee struct {
-	ID                        string
-	Name                      string
-	Department                string
-	MobileNumber              string
-	Level                     string
-	DOJ                       string
-	YearsExperience           float64
-	Branch                    string
-	Designation               string
-	Zone                      string
-	Basic                     float64
-	DA                        float64
-	RevisedBasicDA            float64
-	HRA                       float64
-	Travel                    float64
-	Hostel                    float64
-	Children                  float64
-	TotalSalary               float64
-	Mobile                    float64
-	Conveyance                float64
-	WashAllowance             float64
-	BranchAllowance           float64
-	SpecialAllowance          float64
-	Training                  float64
-	TotalAllowances           float64
-	TotalSalaryWithAllowances float64
-	BankName                  string
-	AccountNumber             string
-	BankBranch                string
-	IFSCCode                  string
-	CreatedAt                 time.Time
-	UpdatedAt                 time.Time
+	ID                        string    `json:"id"`
+	EmployeeID                string    `json:"employeeId"`
+	Name                      string    `json:"name"`
+	Department                string    `json:"department"`
+	MobileNumber              string    `json:"mobileNo"`
+	Level                     string    `json:"level"`
+	DOJ                       string    `json:"doj"`
+	YearsExperience           float64   `json:"yearsExperience"`
+	Branch                    string    `json:"branch"`
+	Designation               string    `json:"designation"`
+	Zone                      string    `json:"zone"`
+	Basic                     float64   `json:"basic"`
+	DA                        float64   `json:"da"`
+	RevisedBasicDA            float64   `json:"revisedBasicDa"`
+	HRA                       float64   `json:"hra"`
+	Travel                    float64   `json:"travel"`
+	Hostel                    float64   `json:"hostel"`
+	Children                  float64   `json:"children"`
+	TotalSalary               float64   `json:"totalSalary"`
+	Mobile                    float64   `json:"mobile"`
+	Conveyance                float64   `json:"conveyance"`
+	WashAllowance             float64   `json:"washAllowance"`
+	BranchAllowance           float64   `json:"branchAllowance"`
+	SpecialAllowance          float64   `json:"specialAllowance"`
+	Training                  float64   `json:"training"`
+	TotalAllowances           float64   `json:"totalAllowances"`
+	TotalSalaryWithAllowances float64   `json:"totalSalaryWithAllowances"`
+	BankName                  string    `json:"bankName"`
+	AccountNumber             string    `json:"accountNumber"`
+	BankBranch                string    `json:"bankBranch"`
+	IFSCCode                  string    `json:"ifscCode"`
+	Status                    string    `json:"status"`
+	CreatedAt                 time.Time `json:"createdAt"`
+	UpdatedAt                 time.Time `json:"updatedAt"`
 }
 
 type UploadResponse struct {
@@ -48,6 +50,10 @@ type UploadResponse struct {
 }
 
 type Repository interface {
+	List(ctx context.Context) ([]Employee, error)
+	GetByID(ctx context.Context, id string) (*Employee, error)
+	Create(ctx context.Context, emp *Employee) error
+	Update(ctx context.Context, id string, emp *Employee) error
 	FindByPhone(ctx context.Context, phone string) (*Employee, error)
 	GetByID(ctx context.Context, id string) (*Employee, error)
 	VerifyIdentity(ctx context.Context, id, dob string) (*Employee, error)
