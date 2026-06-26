@@ -77,7 +77,7 @@ export default function SendPayslipModal({ open, employee, onClose }: Props) {
       <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative z-10 bg-white border border-slate-300 shadow-2xl w-full max-w-md mx-4">
+      <div className="relative z-10 bg-white border border-slate-300 shadow-2xl w-full max-w-md mx-4 rounded-lg overflow-hidden" style={{ borderRadius: '0.5rem' }}>
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 bg-green-50">
@@ -126,7 +126,8 @@ export default function SendPayslipModal({ open, employee, onClose }: Props) {
             <p className="text-[10px] text-slate-400 uppercase tracking-widest font-mono mb-2">Select Period</p>
             <div className="flex gap-3">
               <select
-                className="flex-1 bg-white border border-slate-300 text-sm px-3 py-2 focus:outline-none focus:border-[#eb0a1e] rounded-none"
+                className="flex-1 bg-white border border-slate-300 text-sm px-3 py-2 focus:outline-none focus:border-[#eb0a1e] rounded-md"
+                style={{ borderRadius: '0.375rem' }}
                 value={month}
                 onChange={(e) => { setMonth(Number(e.target.value)); setInlineError(null); }}
               >
@@ -141,7 +142,8 @@ export default function SendPayslipModal({ open, employee, onClose }: Props) {
               </select>
               <input
                 type="number"
-                className="w-24 bg-white border border-slate-300 text-sm px-3 py-2 focus:outline-none focus:border-[#eb0a1e] rounded-none"
+                className="w-24 bg-white border border-slate-300 text-sm px-3 py-2 focus:outline-none focus:border-[#eb0a1e] rounded-md"
+                style={{ borderRadius: '0.375rem' }}
                 value={year}
                 onChange={(e) => { 
                   let y = Number(e.target.value);
