@@ -101,10 +101,6 @@ export default function SalaryPage() {
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-headline font-bold tracking-tighter text-slate-900 uppercase">Process Payroll</h1>
-      </div>
 
       {/* Toolbar */}
       <div className="flex items-center gap-3">
