@@ -2,17 +2,17 @@ import api from '@/lib/axios';
 import type {
   DashboardStats,
   Employee,
-  EmployeeInput,
+  PayrollRecord,
   ImportResult,
 } from './types';
 
 export const employeesApi = {
   list: () => api.get<Employee[]>('/employees').then((r) => r.data),
   get: (id: string) => api.get<Employee>(`/employees/${id}`).then((r) => r.data),
-  create: (data: EmployeeInput) => api.post<Employee>('/employees', data).then((r) => r.data),
-  update: (id: string, data: EmployeeInput) =>
-    api.patch<Employee>(`/employees/${id}`, data).then((r) => r.data),
-  remove: (id: string) => api.delete(`/employees/${id}`),
+  create: (employee: Partial<Employee>) => api.post('/employees', employee).then((r) => r.data),
+  update: (id: string, employee: Partial<Employee>) =>
+    api.patch(`/employees/${id}`, employee).then((r) => r.data),
+  delete: (id: string) => api.delete(`/employees/${id}`).then((r) => r.data),
   commitBulkUpload: (file: File) => {
     const form = new FormData();
     form.append('file', file);
@@ -23,6 +23,8 @@ export const employeesApi = {
 };
 
 export const salaryApi = {
+  list: (month: number, year: number) =>
+    api.get<PayrollRecord[]>(`/payroll/list?month=${month}&year=${year}`).then((r) => r.data),
   commitBulkUpload: (file: File, month: number, year: number) => {
     const form = new FormData();
     form.append('file', file);
@@ -30,17 +32,24 @@ export const salaryApi = {
     form.append('year', String(year));
     return api.post<ImportResult>('/payroll/upload', form).then((r) => r.data);
   },
+  previewBulkUpload: (file: File, month: number, year: number) => {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('month', String(month));
+    form.append('year', String(year));
+    return api.post<{ records: PayrollRecord[], errors: any[] }>('/payroll/upload-preview', form).then((r) => r.data);
+  },
   dispatch: (month: number, year: number) =>
     api.post<{ jobId: string }>('/payroll/dispatch', { month, year }).then((r) => r.data),
+  sendPayslip: (employeeId: string, month: number, year: number) =>
+    api.post('/payroll/send', { employeeId, month, year }).then((r) => r.data),
+  previewPayslip: (employeeId: string, month: number, year: number) =>
+    api.get('/payroll/preview', { params: { employeeId, month, year }, responseType: 'blob' }).then((r) => r.data),
+  validatePayroll: (month: number, year: number) =>
+    api.post<{ errors: { employeeId: string; employeeName: string; reason: string }[] }>('/payroll/validate', { month, year }).then((r) => r.data),
+  delete: (id: string) => api.delete(`/payroll/${id}`).then((r) => r.data),
 };
 
-export const holidaysApi = {
-  upload: (file: File) => {
-    const form = new FormData();
-    form.append("file", file);
-    return api.post<ImportResult>("/holidays/upload", form).then((r) => r.data);
-  },
-};
 
 export const dashboardApi = {
   get: async () => {
