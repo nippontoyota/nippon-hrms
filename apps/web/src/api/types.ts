@@ -12,7 +12,7 @@ export interface LoginResponse {
   user: User;
 }
 
-export type EmployeeStatus = 'Active' | 'Inactive';
+export type EmployeeStatus = 'Active' | 'Inactive' | 'Notice Period' | 'Probation' | 'Relieved';
 
 export interface BankDetails {
   bank: string;

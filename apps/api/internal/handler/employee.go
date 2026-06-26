@@ -1,8 +1,10 @@
 package handler
 
 import (
+	"encoding/json"
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/nippon-toyota/hrms/internal/employee"
 	"github.com/nippon-toyota/hrms/pkg/logger"
 	"github.com/nippon-toyota/hrms/pkg/respond"
@@ -34,18 +36,21 @@ func (h *EmployeeHandler) BulkUpload(w http.ResponseWriter, r *http.Request) {
 
 	employees, errs, err := employee.ParseExcel(file)
 	if err != nil {
-		logger.Error("excel parsing failed", "err", err)
+		logger.Error("excel parsing failed", "err", err.Error())
 		respond.JSON(w, http.StatusUnprocessableEntity, respond.Envelope{
 			Success: false,
-			Error:   &respond.APIError{Code: "PARSE_ERROR", Message: "failed to read excel file"},
+			Error:   &respond.APIError{Code: "PARSE_ERROR", Message: "failed to read excel file: " + err.Error()},
 		})
 		return
 	}
 
 	if len(employees) > 0 {
 		if err := h.repo.BulkInsert(r.Context(), employees); err != nil {
-			logger.Error("bulk insert failed", "err", err)
-			respond.InternalError(w)
+			logger.Error("bulk insert failed", "err", err.Error())
+			respond.JSON(w, http.StatusInternalServerError, respond.Envelope{
+				Success: false,
+				Error:   &respond.APIError{Code: "DB_ERROR", Message: "bulk insert failed: " + err.Error()},
+			})
 			return
 		}
 	}
@@ -64,24 +69,55 @@ func (h *EmployeeHandler) BulkUpload(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *EmployeeHandler) List(w http.ResponseWriter, r *http.Request) {
-	respond.OK(w, map[string]interface{}{
-		"employees": []interface{}{},
-		"meta": map[string]int{
-			"page":     1,
-			"per_page": 20,
-			"total":    0,
-		},
-	})
+	employees, err := h.repo.List(r.Context())
+	if err != nil {
+		logger.Error("failed to list employees", "err", err)
+		respond.InternalError(w)
+		return
+	}
+	if employees == nil {
+		employees = []employee.Employee{}
+	}
+	respond.OK(w, employees)
 }
 
 func (h *EmployeeHandler) Create(w http.ResponseWriter, r *http.Request) {
-	respond.Created(w, map[string]string{"message": "employee creation — repository wiring pending"})
+	var emp employee.Employee
+	if err := json.NewDecoder(r.Body).Decode(&emp); err != nil {
+		respond.BadRequest(w, "invalid request payload")
+		return
+	}
+	emp.ID = emp.EmployeeID // Frontend sends employeeId
+	if err := h.repo.Create(r.Context(), &emp); err != nil {
+		logger.Error("failed to create employee", "err", err)
+		respond.InternalError(w)
+		return
+	}
+	respond.Created(w, emp)
 }
 
 func (h *EmployeeHandler) GetByID(w http.ResponseWriter, r *http.Request) {
-	respond.OK(w, map[string]string{"message": "get employee — repository wiring pending"})
+	id := chi.URLParam(r, "id")
+	emp, err := h.repo.GetByID(r.Context(), id)
+	if err != nil {
+		respond.NotFound(w, "employee")
+		return
+	}
+	emp.EmployeeID = emp.ID
+	respond.OK(w, emp)
 }
 
 func (h *EmployeeHandler) Update(w http.ResponseWriter, r *http.Request) {
-	respond.OK(w, map[string]string{"message": "update employee — repository wiring pending"})
+	id := chi.URLParam(r, "id")
+	var emp employee.Employee
+	if err := json.NewDecoder(r.Body).Decode(&emp); err != nil {
+		respond.BadRequest(w, "invalid request payload")
+		return
+	}
+	if err := h.repo.Update(r.Context(), id, &emp); err != nil {
+		logger.Error("failed to update employee", "err", err)
+		respond.InternalError(w)
+		return
+	}
+	respond.OK(w, emp)
 }
