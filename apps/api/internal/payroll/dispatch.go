@@ -88,6 +88,10 @@ func (d *Dispatcher) DispatchPayslips(ctx context.Context, month, year int) erro
 
 	slog.Info("dispatching payslips", "month", month, "year", year, "count", len(records))
 
+	if err := d.repo.MarkAsDispatched(ctx, month, year); err != nil {
+		slog.Error("failed to mark records as dispatched", "month", month, "year", year, "err", err)
+	}
+
 	go func() {
 		bgCtx := context.Background()
 		monthStr := time.Month(month).String()

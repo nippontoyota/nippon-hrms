@@ -28,7 +28,7 @@ func (r *PostgresRepository) GetPayslip(ctx context.Context, employeeID string, 
 			additional_deduction, loan, advance, lop_deduction,
 			company_statutory_contribution, reimb_medical, reimb_lta, zeta_meal_voucher,
 			reimb_travel, total_reimbursement, epf_er, net_incentive, total_deductions,
-			actual_final_amount, created_at
+			actual_final_amount, created_at, dispatched_at
 		FROM payroll_records
 		WHERE employee_id = $1 AND month = $2 AND year = $3 LIMIT 1
 	`
@@ -44,7 +44,7 @@ func (r *PostgresRepository) GetPayslip(ctx context.Context, employeeID string, 
 		&rec.AdditionalDeduction, &rec.Loan, &rec.Advance, &rec.LOPDeduction,
 		&rec.CompanyStatutoryContribution, &rec.ReimbMedical, &rec.ReimbLTA, &rec.ZetaMealVoucher,
 		&rec.ReimbTravel, &rec.TotalReimbursement, &rec.EPFER, &rec.NetIncentive,
-		&rec.TotalDeductions, &rec.ActualFinalAmount, &rec.CreatedAt,
+		&rec.TotalDeductions, &rec.ActualFinalAmount, &rec.CreatedAt, &rec.DispatchedAt,
 	)
 
 	if err != nil {
@@ -68,7 +68,7 @@ func (r *PostgresRepository) ListByPeriod(ctx context.Context, month, year int) 
 			additional_deduction, loan, advance, lop_deduction,
 			company_statutory_contribution, reimb_medical, reimb_lta, zeta_meal_voucher,
 			reimb_travel, total_reimbursement, epf_er, net_incentive, total_deductions,
-			actual_final_amount, created_at
+			actual_final_amount, created_at, dispatched_at
 		FROM payroll_records
 		WHERE month = $1 AND year = $2
 		ORDER BY employee_id
@@ -93,7 +93,7 @@ func (r *PostgresRepository) ListByPeriod(ctx context.Context, month, year int) 
 			&rec.AdditionalDeduction, &rec.Loan, &rec.Advance, &rec.LOPDeduction,
 			&rec.CompanyStatutoryContribution, &rec.ReimbMedical, &rec.ReimbLTA, &rec.ZetaMealVoucher,
 			&rec.ReimbTravel, &rec.TotalReimbursement, &rec.EPFER, &rec.NetIncentive,
-			&rec.TotalDeductions, &rec.ActualFinalAmount, &rec.CreatedAt,
+			&rec.TotalDeductions, &rec.ActualFinalAmount, &rec.CreatedAt, &rec.DispatchedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan error: %w", err)
 		}
@@ -210,4 +210,9 @@ func (r *PostgresRepository) Delete(ctx context.Context, id string) error {
 		return fmt.Errorf("payroll record not found")
 	}
 	return nil
+}
+
+func (r *PostgresRepository) MarkAsDispatched(ctx context.Context, month, year int) error {
+	_, err := r.db.Exec(ctx, "UPDATE payroll_records SET dispatched_at = CURRENT_TIMESTAMP WHERE month = $1 AND year = $2", month, year)
+	return err
 }

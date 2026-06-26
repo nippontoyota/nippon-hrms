@@ -144,6 +144,7 @@ export interface PayrollRecord {
   epfER: number;
   grossForPT: number;
   advance: number;
+  dispatchedAt?: string | null;
 }
 
 export type DispatchItemStatus = 'PENDING' | 'SENT' | 'FAILED' | 'SKIPPED';
