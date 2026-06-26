@@ -42,7 +42,7 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 	payrollRepo := payroll.NewPostgresRepository(pgPool)
 	holidayRepo := holiday.NewStubRepository()
 
-	payrollDispatcher := payroll.NewDispatcher(payrollRepo, dtClient)
+	payrollDispatcher := payroll.NewDispatcher(payrollRepo, empRepo, dtClient)
 
 	sessionStore := whatsapp.NewInMemoryStore(0)
 	waSvc := whatsapp.NewService(dtClient, sessionStore, empRepo, payrollRepo)

@@ -50,6 +50,41 @@ func (r *PostgresRepository) FindByPhone(ctx context.Context, phone string) (*Em
 	return &e, nil
 }
 
+func (r *PostgresRepository) GetByID(ctx context.Context, id string) (*Employee, error) {
+	query := `
+		SELECT 
+			id, name, COALESCE(department, ''), mobile_number, COALESCE(emp_level, ''),
+			COALESCE(doj::text, ''), COALESCE(years_experience, 0),
+			COALESCE(branch, ''), COALESCE(designation, ''), COALESCE(zone, ''),
+			basic, da, revised_basic_da, hra, travel, 
+			hostel, children, total_salary, mobile, conveyance, wash_allowance, 
+			branch_allowance, special_allowance, training, total_allowances, 
+			total_salary_with_allowances, COALESCE(bank_name, ''), COALESCE(account_number, ''),
+			COALESCE(bank_branch, ''), COALESCE(ifsc_code, ''), created_at, updated_at
+		FROM employees
+		WHERE id = $1 LIMIT 1
+	`
+
+	var e Employee
+	err := r.db.QueryRow(ctx, query, id).Scan(
+		&e.ID, &e.Name, &e.Department, &e.MobileNumber, &e.Level, &e.DOJ, &e.YearsExperience,
+		&e.Branch, &e.Designation, &e.Zone, &e.Basic, &e.DA, &e.RevisedBasicDA, &e.HRA, &e.Travel,
+		&e.Hostel, &e.Children, &e.TotalSalary, &e.Mobile, &e.Conveyance, &e.WashAllowance,
+		&e.BranchAllowance, &e.SpecialAllowance, &e.Training, &e.TotalAllowances,
+		&e.TotalSalaryWithAllowances, &e.BankName, &e.AccountNumber, &e.BankBranch,
+		&e.IFSCCode, &e.CreatedAt, &e.UpdatedAt,
+	)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, fmt.Errorf("employee not found")
+		}
+		return nil, fmt.Errorf("query error: %w", err)
+	}
+
+	return &e, nil
+}
+
 func (r *PostgresRepository) VerifyIdentity(ctx context.Context, id, dob string) (*Employee, error) {
 	// In the new schema we have DOJ instead of DateOfBirth for now,
 	// but let's assume they verify using DOJ as the fallback since DOB isn't in the provided column list.
