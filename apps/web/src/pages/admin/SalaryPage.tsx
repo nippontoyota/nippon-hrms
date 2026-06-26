@@ -261,7 +261,7 @@ export default function SalaryPage() {
           </div>
           
           {isDispatched ? (
-            <div className="flex items-center gap-2 px-4 py-2.5 bg-green-100 border border-green-200 text-green-800 font-bold uppercase tracking-wider text-[11px] rounded-none">
+            <div className="flex items-center gap-2 px-4 py-2.5 bg-green-100 border border-green-200 text-green-800 font-bold uppercase tracking-wider text-[11px] rounded-md">
               <CheckCircle size={18} weight="fill" className="text-green-600" />
               Payslips Dispatched
             </div>
@@ -269,7 +269,7 @@ export default function SalaryPage() {
             <button
               onClick={handleDispatch}
               disabled={loading || (errors && errors.length > 0) || dispatching || recordsLoading || !records || records.length === 0}
-              className="btn-primary !px-6 !py-3 flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed shadow-md"
+              className="bg-green-700 hover:bg-green-800 text-white font-bold uppercase tracking-wider !px-6 !py-3 flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed shadow-md transition-colors text-sm rounded-md"
             >
               <PaperPlaneTilt size={18} weight="bold" />
               {dispatching ? 'Triggering System...' : `Trigger Dispatch for ${MONTHS[month - 1]} ${year}`}

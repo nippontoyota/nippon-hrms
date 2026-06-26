@@ -104,7 +104,7 @@ export default function LoginPage() {
               </button>
             </div>
             
-            <button type="submit" className="w-full bg-[#e60000] hover:bg-red-700 text-white font-bold py-3 px-4 rounded-none transition-colors mt-2 flex items-center justify-center gap-2" disabled={loading}>
+            <button type="submit" className="w-full bg-[#e60000] hover:bg-red-700 text-white font-bold py-3 px-4 rounded-md transition-colors mt-2 flex items-center justify-center gap-2" disabled={loading}>
               {loading ? (
                 <>
                   <Spinner className="animate-spin" size={18} weight="bold" />

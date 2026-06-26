@@ -18,20 +18,20 @@
 
 @layer components {
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 px-6 py-2 rounded-none font-headline font-bold text-sm text-white transition-all hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 px-6 py-2 rounded-md font-headline font-bold text-sm text-white transition-all hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed;
     background-color: #eb0a1e;
     border: 1px solid #eb0a1e;
   }
   .btn-success {
-    @apply inline-flex items-center justify-center gap-2 px-6 py-2 rounded-none font-headline font-bold text-sm text-white transition-all hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 px-6 py-2 rounded-md font-headline font-bold text-sm text-white transition-all hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed;
     background-color: #0f172a; /* Slate 900 for success/primary actions other than brand red */
     border: 1px solid #0f172a;
   }
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 px-6 py-2 rounded-none bg-white text-slate-900 font-headline font-semibold text-sm transition-all hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed border border-slate-300;
+    @apply inline-flex items-center justify-center gap-2 px-6 py-2 rounded-md bg-white text-slate-900 font-headline font-semibold text-sm transition-all hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed border border-slate-300;
   }
   .btn-danger {
-    @apply inline-flex items-center justify-center gap-2 px-6 py-2 rounded-none bg-red-50 text-red-700 font-headline font-bold text-sm transition-all hover:bg-red-100 border border-red-200;
+    @apply inline-flex items-center justify-center gap-2 px-6 py-2 rounded-md bg-red-50 text-red-700 font-headline font-bold text-sm transition-all hover:bg-red-100 border border-red-200;
   }
   .btn-sm {
     @apply px-3 py-1 text-xs;
@@ -136,4 +136,14 @@
   @keyframes spin {
     100% { transform: rotate(360deg); }
   }
+}
+
+button,
+.btn-primary,
+.btn-success,
+.btn-secondary,
+.btn-danger,
+label.btn-success,
+a.btn-primary {
+  border-radius: 0.375rem !important;
 }

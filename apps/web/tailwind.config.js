@@ -17,17 +17,7 @@ export default {
         'on-surface-variant': '#64748b',
         'outline': '#cbd5e1',
       },
-      borderRadius: {
-        'none': '0px',
-        'sm': '0px',
-        DEFAULT: '0px',
-        'md': '0px',
-        'lg': '0px',
-        'xl': '0px',
-        '2xl': '0px',
-        '3xl': '0px',
-        'full': '0px',
-      },
+
       fontFamily: {
         headline: ['Geist', 'sans-serif'],
         body: ['Geist', 'sans-serif'],
