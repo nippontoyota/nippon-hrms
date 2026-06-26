@@ -245,6 +245,7 @@ export default function EmployeesPage() {
             <MagnifyingGlass className="absolute left-3 top-2.5 text-slate-400" size={16} />
             <input
               className="w-full bg-white rounded-md pl-10 pr-4 py-2 text-sm border border-slate-300 focus:outline-none focus:border-[#eb0a1e]"
+              style={{ borderRadius: '0.375rem' }}
               placeholder="Search employee name..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -312,6 +313,7 @@ export default function EmployeesPage() {
                       disabled={!!editingId}
                     />
                   </th>
+                  <th className="px-5 py-3 font-semibold w-12 text-center">Sl. No.</th>
                   <Th col="employeeId">EMP ID</Th>
                   <Th col="name">Name</Th>
                   <Th col="department">Department</Th>
@@ -346,7 +348,7 @@ export default function EmployeesPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((e) => {
+                {filtered.map((e, index) => {
                   const isEditing = editingId === e.id;
                   
                   // Common cell props
@@ -365,6 +367,7 @@ export default function EmployeesPage() {
                           disabled={!!editingId}
                         />
                       </td>
+                      <td className="text-center font-mono text-slate-500 text-xs px-2">{index + 1}</td>
                       <Cell {...cellProps} field="employeeId" className="font-mono font-bold text-slate-900" />
                       <Cell {...cellProps} field="name" className="font-semibold text-slate-900" />
                       <Cell {...cellProps} field="department" />
