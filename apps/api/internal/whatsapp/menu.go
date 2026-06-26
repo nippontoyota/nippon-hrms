@@ -5,19 +5,7 @@ import (
 	"github.com/nippon-toyota/hrms/internal/doubletick"
 )
 
-const msgVerifyPromptID = `🔒 *Verification Required*
-
-Your phone number is not registered. To link your device to your Nippon Toyota employee account, please reply with your *Employee ID*.
-
-Example: EMP001`
-
-const msgVerifyPromptDOB = `📅 Great! Now please reply with your *Date of Birth* (YYYY-MM-DD) to securely verify your identity.
-
-Example: 1990-05-24`
-
-const msgVerifyFailed = `❌ Verification failed. Please check your details and try again, or contact HR.`
-
-const msgVerifySuccess = `✅ Device verified successfully! Welcome to the HR Assistant.`
+const msgNotEmployee = `This number is not registered as a Nippon Toyota employee. Please contact HR to link your number.`
 
 func MainMenuTemplate() doubletick.TemplateContent {
 	return doubletick.TemplateContent{

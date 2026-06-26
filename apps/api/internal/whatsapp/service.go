@@ -50,27 +50,13 @@ func (s *Service) HandleWebhook(ctx context.Context, wh *doubletick.Webhook) err
 	}
 
 	if sess.EmployeeID == "" {
-		emp, err := s.empRepo.FindByPhone(ctx, from)
-		if err == nil && emp != nil {
-
+		if emp, err := s.empRepo.FindByPhone(ctx, from); err == nil && emp != nil {
 			sess.EmployeeID = emp.ID
-		} else {
-
-			if sess.State != StateVerifyID && sess.State != StateVerifyDOB {
-				sess.State = StateVerifyID
-				s.sessions.Set(from, sess)
-				return s.sendText(ctx, from, msgVerifyPromptID)
-			}
 		}
 	}
 
 	var err error
 	switch sess.State {
-	case StateVerifyID:
-		err = s.handleVerifyID(ctx, sess, from, input)
-	case StateVerifyDOB:
-		err = s.handleVerifyDOB(ctx, sess, from, input)
-
 	case StateIdle, StateMainMenu:
 		err = s.handleMainMenu(ctx, sess, from, input)
 
@@ -107,38 +93,28 @@ func (s *Service) HandleWebhook(ctx context.Context, wh *doubletick.Webhook) err
 	return err
 }
 
-func (s *Service) handleVerifyID(ctx context.Context, sess *Session, from, input string) error {
-	if input == "" {
-		return s.sendText(ctx, from, msgVerifyPromptID)
+func isMenuOption(in string) bool {
+	switch in {
+	case "1", "2", "3", "4", "5", "6":
+		return true
 	}
-	sess.EmployeeID = strings.ToUpper(input)
-	sess.State = StateVerifyDOB
-	s.sessions.Set(from, sess)
-	return s.sendText(ctx, from, msgVerifyPromptDOB)
-}
-
-func (s *Service) handleVerifyDOB(ctx context.Context, sess *Session, from, input string) error {
-	emp, err := s.empRepo.VerifyIdentity(ctx, sess.EmployeeID, input)
-	if err != nil || emp == nil {
-		sess.reset()
-		s.sessions.Set(from, sess)
-		return s.sendText(ctx, from, msgVerifyFailed)
+	for _, kw := range []string{"payslip", "leave", "attendance", "holiday", "incentive", "feedback"} {
+		if strings.Contains(in, kw) {
+			return true
+		}
 	}
-
-	if err := s.empRepo.UpdatePhone(ctx, emp.ID, from); err != nil {
-		slog.Error("failed to update phone", "err", err)
-	}
-
-	sess.EmployeeID = emp.ID
-	sess.State = StateMainMenu
-	s.sessions.Set(from, sess)
-
-	_ = s.sendText(ctx, from, msgVerifySuccess)
-	return s.sendMenuTemplate(ctx, from)
+	return false
 }
 
 func (s *Service) handleMainMenu(ctx context.Context, sess *Session, from, input string) error {
 	in := strings.ToLower(input)
+
+	// Gate: any real option requires a registered (identified) phone.
+	if isMenuOption(in) && sess.EmployeeID == "" {
+		sess.reset()
+		s.sessions.Set(from, sess)
+		return s.sendText(ctx, from, msgNotEmployee)
+	}
 
 	if strings.Contains(in, "payslip") || in == "1" {
 		sess.State = StatePayslipAwaitMonth
@@ -203,16 +179,22 @@ func (s *Service) handlePayslipMonth(ctx context.Context, sess *Session, from, i
 		return s.sendText(ctx, from, msgPayslipNotFound)
 	}
 
-	pdfBytes, err := payroll.GeneratePDF(record)
+	emp, err := s.empRepo.GetByID(ctx, sess.EmployeeID)
+	if err != nil {
+		slog.Warn("employee lookup failed, rendering payslip without master data", "emp", sess.EmployeeID, "err", err)
+		emp = nil
+	}
+
+	pdfBytes, err := payroll.GeneratePayslipPDF(emp, record)
 	if err != nil {
 		slog.Error("pdf generation failed", "err", err)
 		return s.sendText(ctx, from, msgPayslipError)
 	}
 
 	filename := fmt.Sprintf("payslip_%s_%02d_%d.pdf", sess.EmployeeID, month, year)
-	pdfURL, err := payroll.UploadToStorage(pdfBytes, filename)
+	mediaURL, err := s.dt.UploadMedia(ctx, pdfBytes, filename, "application/pdf")
 	if err != nil {
-		slog.Error("storage upload failed", "err", err)
+		slog.Error("media upload failed", "err", err)
 		return s.sendText(ctx, from, msgPayslipError)
 	}
 
@@ -220,9 +202,12 @@ func (s *Service) handlePayslipMonth(ctx context.Context, sess *Session, from, i
 	s.sessions.Set(from, sess)
 
 	monthStr := time.Month(month).String()
-	_ = s.sendText(ctx, from, msgPayslipReady(monthStr, fmt.Sprint(year)))
-
-	return s.sendText(ctx, from, fmt.Sprintf("Here is your secure PDF link: %s", pdfURL))
+	caption := fmt.Sprintf("Your payslip for %s %d", monthStr, year)
+	if _, err := s.dt.SendDocument(ctx, from, mediaURL, filename, caption); err != nil {
+		slog.Error("document send failed", "err", err)
+		return s.sendText(ctx, from, msgPayslipError)
+	}
+	return nil
 }
 
 func (s *Service) handleTicketTitle(ctx context.Context, sess *Session, from, input string) error {
