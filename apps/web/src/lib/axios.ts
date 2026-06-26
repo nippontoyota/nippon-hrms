@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: '/api/v1',
   headers: { 'Content-Type': 'application/json' },
   timeout: 15_000,
 });
@@ -16,7 +16,13 @@ api.interceptors.request.use((config) => {
 });
 
 api.interceptors.response.use(
-  (res) => res,
+  (res) => {
+    // Unwrap the Go backend Envelope: { success: true, data: ... }
+    if (res.data && typeof res.data === 'object' && 'success' in res.data && 'data' in res.data) {
+      res.data = res.data.data;
+    }
+    return res;
+  },
   (err) => {
     if (err.response?.status === 401) {
       localStorage.removeItem('access_token');
