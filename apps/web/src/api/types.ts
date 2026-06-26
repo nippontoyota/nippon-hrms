@@ -30,14 +30,35 @@ export interface Employee {
   mobileNo: string;
   level: string;
   doj: string;
-  tenureYears?: string;
+  yearsExperience?: number;
   branch: string;
   designation: string;
-  status: EmployeeStatus;
-  reportingManagerName: string;
-  reportingManagerPhone: string;
+  zone?: string;
+  basic?: number;
+  da?: number;
+  revisedBasicDa?: number;
+  hra?: number;
+  travel?: number;
+  hostel?: number;
+  children?: number;
+  totalSalary?: number;
+  mobile?: number;
+  conveyance?: number;
+  washAllowance?: number;
+  branchAllowance?: number;
+  specialAllowance?: number;
+  training?: number;
+  totalAllowances?: number;
+  totalSalaryWithAllowances?: number;
+  bankName?: string;
+  accountNumber?: string;
+  bankBranch?: string;
+  ifscCode?: string;
+  reportingManagerName?: string;
+  reportingManagerPhone?: string;
   ctcStructure?: Record<string, number | string | null>;
   bankDetails?: BankDetails;
+  status: EmployeeStatus;
   createdAt: string;
 }
 
@@ -51,8 +72,8 @@ export interface EmployeeInput {
   branch: string;
   designation: string;
   status: EmployeeStatus;
-  reportingManagerName: string;
-  reportingManagerPhone: string;
+  reportingManagerName?: string;
+  reportingManagerPhone?: string;
 }
 
 export type PeriodStatus = 'DRAFT' | 'READY' | 'SENT';
@@ -75,6 +96,54 @@ export interface SalaryRecord {
   data: Record<string, unknown>;
   netPay: number;
   matched: boolean;
+}
+
+export interface PayrollRecord {
+  id: string;
+  employeeId: string;
+  empNameSnapshot: string;
+  leaves: number;
+  lop: number;
+  days: number;
+  absents: number;
+  basic: number;
+  da: number;
+  basicDa: number;
+  hra: number;
+  travel: number;
+  childrenHostel: number;
+  childrenEducation: number;
+  mobile: number;
+  conveyance: number;
+  branchAllowance: number;
+  washAllowance: number;
+  specialAllowance: number;
+  training: number;
+  incentive: number;
+  totalEarWithIncen: number;
+  grossSalWithoutIncentives: number;
+  pf: number;
+  pf367: number;
+  pf833: number;
+  esi075: number;
+  esi325: number;
+  tds: number;
+  salAdv: number;
+  additionalDeduction: number;
+  loan: number;
+  companyStatutoryContribution: number;
+  reimbMedical: number;
+  reimbLTA: number;
+  zetaMealVoucher: number;
+  reimbTravel: number;
+  totalReimbursement: number;
+  netIncentive: number;
+  totalDeductions: number;
+  actualFinalAmount: number;
+  lopDeduction: number;
+  epfER: number;
+  grossForPT: number;
+  advance: number;
 }
 
 export type DispatchItemStatus = 'PENDING' | 'SENT' | 'FAILED' | 'SKIPPED';
