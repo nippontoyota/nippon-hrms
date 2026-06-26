@@ -244,8 +244,8 @@ export default function EmployeesPage() {
           <div className="relative w-full max-w-[500px]">
             <MagnifyingGlass className="absolute left-3 top-2.5 text-slate-400" size={16} />
             <input
-              className="w-full bg-white rounded-none pl-10 pr-4 py-2 text-sm border border-slate-300 focus:outline-none focus:border-[#eb0a1e]"
-              placeholder="Search employees..."
+              className="w-full bg-white rounded-md pl-10 pr-4 py-2 text-sm border border-slate-300 focus:outline-none focus:border-[#eb0a1e]"
+              placeholder="Search employee name..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               disabled={!!editingId}
@@ -254,7 +254,7 @@ export default function EmployeesPage() {
         </div>
         <div className="flex items-center gap-3">
           {editingId ? (
-            <div className="flex items-center gap-2 bg-yellow-50 border border-yellow-200 px-2 py-1 rounded shadow-sm">
+            <div className="flex items-center gap-2">
               <button 
                 onClick={cancelEdit}
                 className="btn-sm !px-4 !py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-semibold transition-colors uppercase tracking-wider text-[10px]"
