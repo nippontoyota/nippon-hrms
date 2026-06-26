@@ -42,12 +42,13 @@ export default function AdminShell() {
               to={item.to}
               end={item.end}
               className={({ isActive }) =>
-                `mx-3 px-3 py-2 flex items-center gap-3 transition-none group font-semibold text-[13px] ${
+                `mx-3 px-3 py-2 flex items-center gap-3 transition-colors group font-semibold text-[13px] rounded-md ${
                   isActive
                     ? 'bg-[#eb0a1e] text-white'
                     : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
                 }`
               }
+              style={{ borderRadius: '0.375rem' }}
             >
               {({ isActive }) => (
                 <>
