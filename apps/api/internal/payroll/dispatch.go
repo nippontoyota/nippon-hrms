@@ -95,7 +95,6 @@ func (d *Dispatcher) DispatchPayslips(ctx context.Context, month, year int) erro
 	go func() {
 		bgCtx := context.Background()
 		monthStr := time.Month(month).String()
-		caption := fmt.Sprintf("Your payslip for %s %d", monthStr, year)
 
 		sent := 0
 		for i := range records {
@@ -124,6 +123,7 @@ func (d *Dispatcher) DispatchPayslips(ctx context.Context, month, year int) erro
 				continue
 			}
 
+			caption := fmt.Sprintf("📄 *Payslip - %s %d*\n\nDear %s,\n\nPlease find attached your payslip for the month of %s %d.\n\nFor any discrepancies, please reach out to HR.", monthStr, year, emp.Name, monthStr, year)
 			if _, err := d.dtClient.SendDocument(bgCtx, emp.MobileNumber, mediaURL, filename, caption); err != nil {
 				slog.Error("dispatch: doubletick send failed", "emp", rec.EmployeeID, "err", err)
 				continue
@@ -160,7 +160,7 @@ func (d *Dispatcher) SendSinglePayslip(ctx context.Context, employeeID string, m
 
 	monthStr := time.Month(month).String()
 	filename := fmt.Sprintf("payslip_%s_%02d_%d.pdf", employeeID, month, year)
-	caption := fmt.Sprintf("Your payslip for %s %d", monthStr, year)
+	caption := fmt.Sprintf("📄 *Payslip - %s %d*\n\nDear %s,\n\nPlease find attached your payslip for the month of %s %d.\n\nFor any discrepancies, please reach out to HR.", monthStr, year, emp.Name, monthStr, year)
 
 	go func() {
 		bgCtx := context.Background()

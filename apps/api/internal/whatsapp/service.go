@@ -202,7 +202,11 @@ func (s *Service) handlePayslipMonth(ctx context.Context, sess *Session, from, i
 	s.sessions.Set(from, sess)
 
 	monthStr := time.Month(month).String()
-	caption := fmt.Sprintf("Your payslip for %s %d", monthStr, year)
+	empName := "Employee"
+	if emp != nil {
+		empName = emp.Name
+	}
+	caption := fmt.Sprintf("📄 *Payslip - %s %d*\n\nDear %s,\n\nPlease find attached your payslip for the month of %s %d.\n\nFor any discrepancies, please reach out to HR.\n\nReply *0* to return to the main menu.", monthStr, year, empName, monthStr, year)
 	if _, err := s.dt.SendDocument(ctx, from, mediaURL, filename, caption); err != nil {
 		slog.Error("document send failed", "err", err)
 		return s.sendText(ctx, from, msgPayslipError)
