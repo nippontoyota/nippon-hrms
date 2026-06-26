@@ -392,7 +392,7 @@ export default function EmployeesPage() {
                       <Cell {...cellProps} field="specialAllowance" type="number" className="text-right font-mono" />
                       <Cell {...cellProps} field="training" type="number" className="text-right font-mono" />
                       <Cell {...cellProps} field="totalAllowances" type="number" className="text-right font-mono font-bold bg-slate-50" />
-                      <Cell {...cellProps} field="totalSalaryWithAllowances" type="number" className="text-right font-mono font-black text-[#eb0a1e] bg-red-50" />
+                      <Cell {...cellProps} field="totalSalaryWithAllowances" type="number" className="text-right font-mono font-black text-[#eb0a1e] bg-slate-50" />
                       <Cell {...cellProps} field="bankName" />
                       <Cell {...cellProps} field="accountNumber" className="font-mono" />
                       <Cell {...cellProps} field="bankBranch" />
