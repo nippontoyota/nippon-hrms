@@ -40,9 +40,9 @@ func ParseExcel(r io.Reader) ([]Employee, []string, error) {
 			continue // Skip header
 		}
 
-		if len(row) < 30 {
-			errors = append(errors, fmt.Sprintf("Row %d: missing columns (expected 30, got %d)", i+1, len(row)))
-			continue
+		// Pad row to 30 columns to handle trailing empty cells
+		for len(row) < 30 {
+			row = append(row, "")
 		}
 
 		id := strings.TrimSpace(row[0])
