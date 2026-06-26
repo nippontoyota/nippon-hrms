@@ -37,7 +37,7 @@ export default function SendPayslipModal({ open, employee, onClose }: Props) {
       setMonth(currentMonth);
       setYear(currentYear);
     }
-  }, [open, employee?.id]);
+  }, [open, employee?.id, currentMonth, currentYear]);
 
   if (!open || !employee) return null;
 
