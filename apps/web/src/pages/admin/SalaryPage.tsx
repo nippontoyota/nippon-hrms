@@ -26,6 +26,7 @@ export default function SalaryPage() {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<ValidationError[] | null>(null);
   const [dispatching, setDispatching] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loadingPreviewId, setLoadingPreviewId] = useState<string | null>(null);
@@ -263,12 +264,12 @@ export default function SalaryPage() {
             </div>
           ) : (
             <button
-              onClick={handleDispatch}
+              onClick={() => setIsConfirmModalOpen(true)}
               disabled={loading || (errors && errors.length > 0) || dispatching || recordsLoading || !records || records.length === 0}
               className="bg-green-700 hover:bg-green-800 text-white font-bold uppercase tracking-wider !px-6 !py-3 flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed shadow-md transition-colors text-sm rounded-md"
             >
               <WhatsappLogo size={18} weight="fill" />
-              {dispatching ? 'Dispatching via WhatsApp...' : `Dispatch Payslips - ${MONTHS[month - 1]} ${year}`}
+              {dispatching ? 'Dispatching...' : 'Dispatch Payslips'}
             </button>
           )}
         </div>
@@ -296,6 +297,51 @@ export default function SalaryPage() {
                 className="w-full h-full rounded border border-slate-300 shadow-inner"
                 title="PDF Preview"
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {isConfirmModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-[2px] p-4">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200" style={{ borderRadius: '0.5rem' }}>
+            <div className="bg-red-50 p-5 border-b border-red-100 flex items-start gap-3">
+              <div className="bg-red-100 p-2 rounded-full shrink-0 mt-0.5">
+                <WarningCircle size={24} weight="fill" className="text-red-600" />
+              </div>
+              <div>
+                <h3 className="font-bold text-red-900 text-lg uppercase tracking-wide">Confirm Dispatch</h3>
+                <p className="text-sm text-red-700 mt-1 leading-relaxed">
+                  You are about to officially broadcast the {MONTHS[month - 1]} {year} payslips to all {records?.length || 0} employees via WhatsApp.
+                </p>
+              </div>
+            </div>
+            <div className="p-5 bg-white space-y-4">
+              <p className="text-sm text-slate-600 leading-relaxed">
+                This action will instantly send the PDF documents directly to their registered mobile numbers. <strong className="text-slate-900 font-bold">This cannot be undone.</strong>
+              </p>
+              <p className="text-sm text-slate-600 leading-relaxed">
+                Please ensure you have reviewed the preview PDFs and are ready to finalize the payroll for this period.
+              </p>
+            </div>
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
+              <button
+                onClick={() => setIsConfirmModalOpen(false)}
+                className="px-4 py-2 font-bold uppercase tracking-wider text-xs text-slate-600 bg-white border border-slate-300 hover:bg-slate-100 transition-colors rounded-md"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setIsConfirmModalOpen(false);
+                  handleDispatch();
+                }}
+                className="px-5 py-2 font-bold uppercase tracking-wider text-xs text-white bg-red-600 hover:bg-red-700 transition-colors rounded-md flex items-center gap-2"
+              >
+                <WhatsappLogo size={16} weight="fill" />
+                Confirm & Dispatch
+              </button>
             </div>
           </div>
         </div>
