@@ -76,7 +76,8 @@ export default function LoginPage() {
               <label className="block text-sm font-semibold text-slate-700 mb-1.5">Email</label>
               <input
                 type="email"
-                className="w-full bg-white rounded-none px-4 py-3 text-sm text-slate-900 font-body placeholder:text-slate-400 transition-none focus:outline-none border border-slate-300 focus:border-[#eb0a1e]"
+                className="w-full bg-white rounded-md px-4 py-3 text-sm text-slate-900 font-body placeholder:text-slate-400 transition-none focus:outline-none border border-slate-300 focus:border-[#eb0a1e]"
+                style={{ borderRadius: '0.375rem' }}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="admin@nippontoyota.com"
@@ -88,7 +89,8 @@ export default function LoginPage() {
               <label className="block text-sm font-semibold text-slate-700 mb-1.5">Password</label>
               <input
                 type={showPassword ? 'text' : 'password'}
-                className="w-full bg-white rounded-none pl-4 pr-12 py-3 text-sm text-slate-900 font-body placeholder:text-slate-400 transition-none focus:outline-none border border-slate-300 focus:border-[#eb0a1e]"
+                className="w-full bg-white rounded-md pl-4 pr-12 py-3 text-sm text-slate-900 font-body placeholder:text-slate-400 transition-none focus:outline-none border border-slate-300 focus:border-[#eb0a1e]"
+                style={{ borderRadius: '0.375rem' }}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
