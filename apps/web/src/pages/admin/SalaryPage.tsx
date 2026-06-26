@@ -1,58 +1,302 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import BulkUploadWizard from '@/components/BulkUploadWizard';
+import { WarningCircle, PaperPlaneTilt, Spinner, CaretLeft, CaretRight, FilePdf, Eye, X } from '@phosphor-icons/react';
 import { salaryApi } from '@/api/endpoints';
+import { usePayrollRecords } from '@/api/hooks';
+
+interface ValidationError {
+  employeeId: string;
+  employeeName: string;
+  reason: string;
+}
+
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 export default function SalaryPage() {
-  const [month, setMonth] = useState(new Date().getMonth() + 1);
-  const [year, setYear] = useState(new Date().getFullYear());
+  const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth() + 1;
+
+  const [month, setMonth] = useState(currentMonth);
+  const [year, setYear] = useState(currentYear);
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<ValidationError[] | null>(null);
   const [dispatching, setDispatching] = useState(false);
+  
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [loadingPreviewId, setLoadingPreviewId] = useState<string | null>(null);
+
+  const { data: records, isLoading: recordsLoading } = usePayrollRecords(month, year);
+
+  const isNextMonthDisabled = year === currentYear && month === currentMonth;
+  const isNextYearDisabled = year === currentYear;
+
+  const validate = async (m: number, y: number) => {
+    setLoading(true);
+    setErrors(null);
+    try {
+      const res = await salaryApi.validatePayroll(m, y);
+      setErrors(res.errors);
+    } catch {
+      toast.error('Failed to validate payroll records');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    validate(month, year);
+  }, [month, year]);
+
+  const prevMonth = () => {
+    if (month === 1) { setMonth(12); setYear(y => y - 1); }
+    else setMonth(m => m - 1);
+  };
+
+  const nextMonth = () => {
+    if (isNextMonthDisabled) return;
+    if (month === 12) { setMonth(1); setYear(y => y + 1); }
+    else setMonth(m => m + 1);
+  };
 
   const handleDispatch = async () => {
     setDispatching(true);
     try {
       await salaryApi.dispatch(month, year);
-      toast.success('Dispatch job started in the background');
+      toast.success('Dispatch initiated successfully!');
     } catch {
-      toast.error('Failed to start dispatch');
+      toast.error('Failed to trigger dispatch');
     } finally {
       setDispatching(false);
     }
   };
 
+  const handlePreview = async (employeeId: string) => {
+    try {
+      setLoadingPreviewId(employeeId);
+      const blob = await salaryApi.previewPayslip(employeeId, month, year);
+      const url = window.URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+      setPreviewUrl(url);
+    } catch {
+      toast.error('Failed to load payslip preview');
+    } finally {
+      setLoadingPreviewId(null);
+    }
+  };
+
+  const closePreview = () => {
+    if (previewUrl) {
+      window.URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+    }
+  };
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-headline font-bold tracking-tighter text-on-surface uppercase">Payroll</h1>
-          <p className="text-sm text-on-surface-variant mt-1">Upload salary data and dispatch payslips</p>
+    <div className="space-y-6 max-w-5xl mx-auto">
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-headline font-bold tracking-tighter text-slate-900 uppercase">Process Payroll</h1>
+      </div>
+
+      {/* Toolbar */}
+      <div className="flex items-center gap-3">
+        <div className="flex items-center border border-slate-300 bg-white shadow-sm divide-x divide-slate-300">
+          <button
+            onClick={prevMonth}
+            className="px-2.5 py-2 text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors cursor-pointer"
+          >
+            <CaretLeft size={14} weight="bold" />
+          </button>
+          <div className="flex items-center px-1 gap-0.5">
+            {MONTH_SHORT.map((m, i) => {
+              const isDisabled = year === currentYear && i + 1 > currentMonth;
+              return (
+                <button
+                  key={m}
+                  onClick={() => setMonth(i + 1)}
+                  disabled={isDisabled}
+                  className={`px-1.5 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                    isDisabled ? 'text-slate-200 cursor-not-allowed' :
+                    month === i + 1
+                      ? 'bg-green-600 text-white cursor-pointer'
+                      : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100 cursor-pointer'
+                  }`}
+                >
+                  {m}
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex items-center gap-1 px-2">
+            <button onClick={() => setYear(y => y - 1)} className="text-slate-400 hover:text-slate-700 cursor-pointer">
+              <CaretLeft size={11} weight="bold" />
+            </button>
+            <span className="text-sm font-bold text-slate-800 tabular-nums w-10 text-center select-none">{year}</span>
+            <button onClick={() => setYear(y => y + 1)} disabled={isNextYearDisabled} className={`transition-colors ${isNextYearDisabled ? 'text-slate-200 cursor-not-allowed' : 'text-slate-400 hover:text-slate-700 cursor-pointer'}`}>
+              <CaretRight size={11} weight="bold" />
+            </button>
+          </div>
+          <button
+            onClick={nextMonth}
+            disabled={isNextMonthDisabled}
+            className={`px-2.5 py-2 transition-colors ${isNextMonthDisabled ? 'text-slate-200 cursor-not-allowed' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800 cursor-pointer'}`}
+          >
+            <CaretRight size={14} weight="bold" />
+          </button>
         </div>
       </div>
 
-      <BulkUploadWizard
-        title="Upload salary Excel"
-        showMonthYear
-        month={month}
-        year={year}
-        onMonthChange={setMonth}
-        onYearChange={setYear}
-        onCommit={(file) => salaryApi.commitBulkUpload(file, month, year)}
-      />
+      {/* Validation Panel */}
+      <div className="bg-white border border-slate-300 shadow-sm min-h-[400px] flex flex-col relative">
+        {loading ? (
+          <div className="flex-1 flex flex-col items-center justify-center gap-4 py-16">
+            <Spinner className="animate-spin text-green-600" size={32} weight="bold" />
+            <p className="text-xs font-mono text-slate-500 uppercase tracking-widest">Validating records...</p>
+          </div>
+        ) : errors && errors.length > 0 ? (
+          <div className="flex-1 flex flex-col">
+            <div className="flex items-start gap-3 bg-red-50 border-b border-red-200 p-5 shrink-0">
+              <WarningCircle size={24} weight="fill" className="text-red-600 shrink-0 mt-0.5" />
+              <div>
+                <h3 className="text-sm font-bold text-red-800 uppercase tracking-wide">Validation Failed</h3>
+                <p className="text-xs text-red-700 mt-1 leading-relaxed">
+                  Found <strong>{errors.length}</strong> critical issue{errors.length > 1 ? 's' : ''} for {MONTHS[month - 1]} {year}. These must be fixed in the database (or via Excel re-import) before payslips can be sent.
+                </p>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-0">
+              <table className="w-full text-left whitespace-nowrap">
+                <thead className="bg-slate-50 text-[10px] uppercase tracking-widest text-slate-500 font-mono sticky top-0 border-b border-slate-200 shadow-sm z-10">
+                  <tr>
+                    <th className="px-5 py-3 font-semibold w-12 text-center">Sl. No.</th>
+                    <th className="px-5 py-3 font-semibold">EMP ID</th>
+                    <th className="px-5 py-3 font-semibold">Name</th>
+                    <th className="px-5 py-3 font-semibold w-full">Issue</th>
+                  </tr>
+                </thead>
+                <tbody className="text-xs text-slate-700 divide-y divide-slate-100">
+                  {errors.map((err, i) => (
+                    <tr key={i} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-5 py-3 text-slate-400 font-mono text-center">{i + 1}</td>
+                      <td className="px-5 py-3 font-mono font-bold text-slate-900">{err.employeeId}</td>
+                      <td className="px-5 py-3 font-semibold">{err.employeeName}</td>
+                      <td className="px-5 py-3 text-red-600 font-medium">{err.reason}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 flex flex-col">
+            <div className="flex items-start gap-3 bg-green-50 border-b border-green-200 p-5 shrink-0">
+              <div className="p-2 bg-green-100 rounded-full shrink-0">
+                <FilePdf size={20} weight="fill" className="text-green-600" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-green-800 uppercase tracking-wide">All Systems Go</h3>
+                <p className="text-xs text-green-700 mt-1 leading-relaxed">
+                  Every payroll record for {MONTHS[month - 1]} {year} is valid. You can preview the generated PDFs below before dispatching.
+                </p>
+              </div>
+            </div>
 
-      <div className="card space-y-4">
-        <p className="font-headline font-bold uppercase text-sm tracking-tight text-on-surface">Dispatch Payslips</p>
-        <p className="text-sm text-on-surface-variant">
-          Generate PDF payslips and dispatch them to all employees via WhatsApp for {month}/{year}.
-        </p>
-        <button
-          type="button"
-          className="btn-primary"
-          onClick={handleDispatch}
-          disabled={dispatching}
-        >
-          {dispatching ? 'Dispatching…' : 'Trigger Dispatch'}
-        </button>
+            {recordsLoading ? (
+              <div className="flex-1 flex items-center justify-center py-12">
+                <Spinner className="animate-spin text-green-600" size={24} weight="bold" />
+              </div>
+            ) : records && records.length > 0 ? (
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-0">
+                <table className="w-full text-left whitespace-nowrap">
+                  <thead className="bg-slate-50 text-[10px] uppercase tracking-widest text-slate-500 font-mono sticky top-0 border-b border-slate-200 shadow-sm z-10">
+                    <tr>
+                      <th className="px-5 py-3 font-semibold w-12 text-center">Sl. No.</th>
+                      <th className="px-5 py-3 font-semibold">EMP ID</th>
+                      <th className="px-5 py-3 font-semibold w-full">Name</th>
+                      <th className="px-5 py-3 font-semibold text-right">Net Salary</th>
+                      <th className="px-5 py-3 font-semibold text-center">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-xs text-slate-700 divide-y divide-slate-100">
+                    {records.map((rec, i) => (
+                      <tr key={rec.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-5 py-3 text-slate-400 font-mono text-center">{i + 1}</td>
+                        <td className="px-5 py-3 font-mono font-bold text-slate-900">{rec.employeeId}</td>
+                        <td className="px-5 py-3 font-semibold">{rec.empNameSnapshot}</td>
+                        <td className="px-5 py-3 font-mono font-bold text-slate-900 text-right">₹{rec.actualFinalAmount?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                        <td className="px-5 py-2 text-center">
+                          <button
+                            onClick={() => handlePreview(rec.employeeId)}
+                            disabled={loadingPreviewId === rec.employeeId}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 font-bold uppercase tracking-wider text-[10px] border border-slate-200 rounded transition-colors"
+                          >
+                            {loadingPreviewId === rec.employeeId ? (
+                              <Spinner className="animate-spin" size={14} weight="bold" />
+                            ) : (
+                              <Eye size={14} weight="bold" />
+                            )}
+                            Preview PDF
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center gap-2 py-24">
+                <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">No Records Found</p>
+                <p className="text-xs text-slate-400">Import records in the Salary Directory first.</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Action Footer */}
+        <div className="border-t border-slate-200 bg-slate-50 p-5 flex items-center justify-between shrink-0">
+          <div className="text-xs text-slate-500 font-medium">
+            {errors?.length === 0 ? 'Ready to process' : 'Action required'}
+          </div>
+          <button
+            onClick={handleDispatch}
+            disabled={loading || (errors && errors.length > 0) || dispatching}
+            className="btn-primary !px-6 !py-3 flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed shadow-md"
+          >
+            <PaperPlaneTilt size={18} weight="bold" />
+            {dispatching ? 'Triggering System...' : `Trigger Dispatch for ${MONTHS[month - 1]} ${year}`}
+          </button>
+        </div>
       </div>
+
+      {/* PDF Preview Modal */}
+      {previewUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 md:p-8">
+          <div className="bg-white rounded shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between p-4 border-b border-slate-200 bg-slate-50 shrink-0">
+              <div className="flex items-center gap-2 text-slate-800">
+                <FilePdf size={20} weight="fill" className="text-red-500" />
+                <h3 className="font-bold uppercase tracking-wider text-sm">Payslip Preview</h3>
+              </div>
+              <button
+                onClick={closePreview}
+                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded transition-colors"
+              >
+                <X size={18} weight="bold" />
+              </button>
+            </div>
+            <div className="flex-1 w-full bg-slate-200 p-2">
+              <iframe
+                src={previewUrl}
+                className="w-full h-full rounded border border-slate-300 shadow-inner"
+                title="PDF Preview"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
