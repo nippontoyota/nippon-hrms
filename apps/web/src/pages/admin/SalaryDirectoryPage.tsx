@@ -339,6 +339,7 @@ export default function SalaryDirectoryPage() {
                       disabled={!!previewFile}
                     />
                   </th>
+                  <th className="px-5 py-3 font-semibold w-12 text-center border-r border-slate-300">Sl. No.</th>
                   <Th col="employeeId">EMP ID</Th>
                   <Th col="empNameSnapshot">Name</Th>
                   <Th col="leaves" className="text-center">Leaves</Th>
@@ -400,6 +401,7 @@ export default function SalaryDirectoryPage() {
                         disabled={!!previewFile}
                       />
                     </td>
+                    <td className="text-center font-mono text-slate-500 text-xs px-2 border-r border-slate-300">{idx + 1}</td>
                     <td className="font-mono font-bold text-slate-900">{r.employeeId}</td>
                     <td className="font-semibold text-slate-900">{r.empNameSnapshot}</td>
                     <td className="text-center font-mono">{r.leaves?.toFixed(1) || '0.0'}</td>
