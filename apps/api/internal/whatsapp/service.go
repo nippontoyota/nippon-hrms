@@ -9,6 +9,7 @@ import (
 
 	"github.com/nippon-toyota/hrms/internal/doubletick"
 	"github.com/nippon-toyota/hrms/internal/employee"
+	"github.com/nippon-toyota/hrms/internal/epf"
 	"github.com/nippon-toyota/hrms/internal/payroll"
 )
 
@@ -16,16 +17,29 @@ type Service struct {
 	dt          *doubletick.Client
 	sessions    SessionStore
 	empRepo     employee.Repository
+	epfRepo     epf.Repository
 	payrollRepo payroll.Repository
 }
 
-func NewService(dt *doubletick.Client, sessions SessionStore, empRepo employee.Repository, payrollRepo payroll.Repository) *Service {
+func NewService(dt *doubletick.Client, sessions SessionStore, empRepo employee.Repository, epfRepo epf.Repository, payrollRepo payroll.Repository) *Service {
 	return &Service{
 		dt:          dt,
 		sessions:    sessions,
 		empRepo:     empRepo,
+		epfRepo:     epfRepo,
 		payrollRepo: payrollRepo,
 	}
+}
+
+func (s *Service) lookupEpf(ctx context.Context, employeeID string) *epf.Record {
+	if s.epfRepo == nil {
+		return nil
+	}
+	rec, err := s.epfRepo.GetByID(ctx, employeeID)
+	if err != nil {
+		return nil
+	}
+	return rec
 }
 
 func (s *Service) HandleWebhook(ctx context.Context, wh *doubletick.Webhook) error {
@@ -185,7 +199,7 @@ func (s *Service) handlePayslipMonth(ctx context.Context, sess *Session, from, i
 		emp = nil
 	}
 
-	pdfBytes, err := payroll.GeneratePayslipPDF(emp, record)
+	pdfBytes, err := payroll.GeneratePayslipPDF(emp, record, s.lookupEpf(ctx, sess.EmployeeID))
 	if err != nil {
 		slog.Error("pdf generation failed", "err", err)
 		return s.sendText(ctx, from, msgPayslipError)

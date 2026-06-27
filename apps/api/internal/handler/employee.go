@@ -90,72 +90,6 @@ func (h *EmployeeHandler) BulkUpload(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (h *EmployeeHandler) BulkEPFUpload(w http.ResponseWriter, r *http.Request) {
-	defer func() {
-		if rec := recover(); rec != nil {
-			logger.Error("panic in BulkEPFUpload", "panic", rec)
-			respond.JSON(w, http.StatusInternalServerError, respond.Envelope{
-				Success: false,
-				Error:   &respond.APIError{Code: "PANIC", Message: fmt.Sprintf("Server panic: %v", rec)},
-			})
-		}
-	}()
-
-	if err := r.ParseMultipartForm(10 << 20); err != nil {
-		respond.BadRequest(w, "failed to parse multipart form")
-		return
-	}
-
-	file, _, err := r.FormFile("file")
-	if err != nil {
-		respond.BadRequest(w, "missing 'file' field")
-		return
-	}
-	defer file.Close()
-
-	employees, errs, err := employee.ParseEPFExcel(file)
-	if err != nil {
-		logger.Error("epf excel parsing failed", "err", err.Error())
-		respond.JSON(w, http.StatusUnprocessableEntity, respond.Envelope{
-			Success: false,
-			Error:   &respond.APIError{Code: "PARSE_ERROR", Message: "failed to read excel file: " + err.Error()},
-		})
-		return
-	}
-
-	if err := h.repo.ClearAllEPFFields(r.Context()); err != nil {
-		logger.Error("failed to clear existing epf fields", "err", err.Error())
-		respond.JSON(w, http.StatusInternalServerError, respond.Envelope{
-			Success: false,
-			Error:   &respond.APIError{Code: "DB_ERROR", Message: "failed to clear existing epf data: " + err.Error()},
-		})
-		return
-	}
-
-	if len(employees) > 0 {
-		if err := h.repo.BulkUpdateEPF(r.Context(), employees); err != nil {
-			logger.Error("bulk update epf failed", "err", err.Error())
-			respond.JSON(w, http.StatusInternalServerError, respond.Envelope{
-				Success: false,
-				Error:   &respond.APIError{Code: "DB_ERROR", Message: "bulk update epf failed: " + err.Error()},
-			})
-			return
-		}
-	}
-
-	resp := employee.UploadResponse{
-		TotalProcessed: len(employees) + len(errs),
-		SuccessCount:   len(employees),
-		ErrorCount:     len(errs),
-		Errors:         errs,
-	}
-
-	respond.JSON(w, http.StatusOK, respond.Envelope{
-		Success: true,
-		Data:    resp,
-	})
-}
-
 func (h *EmployeeHandler) List(w http.ResponseWriter, r *http.Request) {
 	employees, err := h.repo.List(r.Context())
 	if err != nil {
@@ -246,10 +180,10 @@ func (h *EmployeeHandler) ExportExcel(w http.ResponseWriter, r *http.Request) {
 
 	headers := []string{
 		"employeeId", "name", "department", "mobileNo", "level", "doj", "yearsExperience",
-		"branch", "designation", "zone", "basic", "da", "revisedBasicDa", "hra", "travel",
+		"branch", "designation", "basic", "da", "revisedBasicDa", "hra", "travel",
 		"hostel", "children", "totalSalary", "mobile", "conveyance", "washAllowance",
 		"branchAllowance", "specialAllowance", "training", "totalAllowances",
-		"totalSalaryWithAllowances", "bankName", "accountNumber", "bankBranch", "ifscCode",
+		"totalSalaryWithAllowances", "bankName", "accountNumber", "bankBranch", "ifscCode", "zone",
 	}
 
 	// Write headers
@@ -270,27 +204,27 @@ func (h *EmployeeHandler) ExportExcel(w http.ResponseWriter, r *http.Request) {
 		f.SetCellValue(sheet, fmt.Sprintf("G%d", row), emp.YearsExperience)
 		f.SetCellValue(sheet, fmt.Sprintf("H%d", row), emp.Branch)
 		f.SetCellValue(sheet, fmt.Sprintf("I%d", row), emp.Designation)
-		f.SetCellValue(sheet, fmt.Sprintf("J%d", row), emp.Zone)
-		f.SetCellValue(sheet, fmt.Sprintf("K%d", row), emp.Basic)
-		f.SetCellValue(sheet, fmt.Sprintf("L%d", row), emp.DA)
-		f.SetCellValue(sheet, fmt.Sprintf("M%d", row), emp.RevisedBasicDA)
-		f.SetCellValue(sheet, fmt.Sprintf("N%d", row), emp.HRA)
-		f.SetCellValue(sheet, fmt.Sprintf("O%d", row), emp.Travel)
-		f.SetCellValue(sheet, fmt.Sprintf("P%d", row), emp.Hostel)
-		f.SetCellValue(sheet, fmt.Sprintf("Q%d", row), emp.Children)
-		f.SetCellValue(sheet, fmt.Sprintf("R%d", row), emp.TotalSalary)
-		f.SetCellValue(sheet, fmt.Sprintf("S%d", row), emp.Mobile)
-		f.SetCellValue(sheet, fmt.Sprintf("T%d", row), emp.Conveyance)
-		f.SetCellValue(sheet, fmt.Sprintf("U%d", row), emp.WashAllowance)
-		f.SetCellValue(sheet, fmt.Sprintf("V%d", row), emp.BranchAllowance)
-		f.SetCellValue(sheet, fmt.Sprintf("W%d", row), emp.SpecialAllowance)
-		f.SetCellValue(sheet, fmt.Sprintf("X%d", row), emp.Training)
-		f.SetCellValue(sheet, fmt.Sprintf("Y%d", row), emp.TotalAllowances)
-		f.SetCellValue(sheet, fmt.Sprintf("Z%d", row), emp.TotalSalaryWithAllowances)
-		f.SetCellValue(sheet, fmt.Sprintf("AA%d", row), emp.BankName)
-		f.SetCellValue(sheet, fmt.Sprintf("AB%d", row), emp.AccountNumber)
-		f.SetCellValue(sheet, fmt.Sprintf("AC%d", row), emp.BankBranch)
-		f.SetCellValue(sheet, fmt.Sprintf("AD%d", row), emp.IFSCCode)
+		f.SetCellValue(sheet, fmt.Sprintf("J%d", row), emp.Basic)
+		f.SetCellValue(sheet, fmt.Sprintf("K%d", row), emp.DA)
+		f.SetCellValue(sheet, fmt.Sprintf("L%d", row), emp.RevisedBasicDA)
+		f.SetCellValue(sheet, fmt.Sprintf("M%d", row), emp.HRA)
+		f.SetCellValue(sheet, fmt.Sprintf("N%d", row), emp.Travel)
+		f.SetCellValue(sheet, fmt.Sprintf("O%d", row), emp.Hostel)
+		f.SetCellValue(sheet, fmt.Sprintf("P%d", row), emp.Children)
+		f.SetCellValue(sheet, fmt.Sprintf("Q%d", row), emp.TotalSalary)
+		f.SetCellValue(sheet, fmt.Sprintf("R%d", row), emp.Mobile)
+		f.SetCellValue(sheet, fmt.Sprintf("S%d", row), emp.Conveyance)
+		f.SetCellValue(sheet, fmt.Sprintf("T%d", row), emp.WashAllowance)
+		f.SetCellValue(sheet, fmt.Sprintf("U%d", row), emp.BranchAllowance)
+		f.SetCellValue(sheet, fmt.Sprintf("V%d", row), emp.SpecialAllowance)
+		f.SetCellValue(sheet, fmt.Sprintf("W%d", row), emp.Training)
+		f.SetCellValue(sheet, fmt.Sprintf("X%d", row), emp.TotalAllowances)
+		f.SetCellValue(sheet, fmt.Sprintf("Y%d", row), emp.TotalSalaryWithAllowances)
+		f.SetCellValue(sheet, fmt.Sprintf("Z%d", row), emp.BankName)
+		f.SetCellValue(sheet, fmt.Sprintf("AA%d", row), emp.AccountNumber)
+		f.SetCellValue(sheet, fmt.Sprintf("AB%d", row), emp.BankBranch)
+		f.SetCellValue(sheet, fmt.Sprintf("AC%d", row), emp.IFSCCode)
+		f.SetCellValue(sheet, fmt.Sprintf("AD%d", row), emp.Zone)
 	}
 
 	// Auto-size columns
@@ -314,10 +248,10 @@ func (h *EmployeeHandler) ExportExcel(w http.ResponseWriter, r *http.Request) {
 func (h *EmployeeHandler) DownloadTemplate(w http.ResponseWriter, r *http.Request) {
 	headers := []string{
 		"employeeId", "name", "department", "mobileNo", "level", "doj", "yearsExperience",
-		"branch", "designation", "zone", "basic", "da", "revisedBasicDa", "hra", "travel",
+		"branch", "designation", "basic", "da", "revisedBasicDa", "hra", "travel",
 		"hostel", "children", "totalSalary", "mobile", "conveyance", "washAllowance",
 		"branchAllowance", "specialAllowance", "training", "totalAllowances",
-		"totalSalaryWithAllowances", "bankName", "accountNumber", "bankBranch", "ifscCode",
+		"totalSalaryWithAllowances", "bankName", "accountNumber", "bankBranch", "ifscCode", "zone",
 	}
 
 	timestamp := time.Now().Format("2006-01-02_15-04-05")

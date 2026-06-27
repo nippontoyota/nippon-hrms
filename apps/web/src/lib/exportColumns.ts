@@ -9,7 +9,6 @@ export const EMPLOYEE_DIRECTORY_HEADERS = [
   'yearsExperience',
   'branch',
   'designation',
-  'zone',
   'basic',
   'da',
   'revisedBasicDa',
@@ -30,6 +29,23 @@ export const EMPLOYEE_DIRECTORY_HEADERS = [
   'accountNumber',
   'bankBranch',
   'ifscCode',
+  'zone',
+] as const;
+
+/** Column headers for EPF directory bulk upload / export (12-column template). */
+export const EPF_DIRECTORY_HEADERS = [
+  'Sl No',
+  'employeeId',
+  'name',
+  'department',
+  'level',
+  'doj',
+  'yearsSinceDoj',
+  'doa',
+  'yearsSinceDoa',
+  'epfNumber',
+  'uan',
+  'esiNumber',
 ] as const;
 
 /**

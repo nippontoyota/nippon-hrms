@@ -12,6 +12,7 @@ import (
 	"github.com/nippon-toyota/hrms/internal/db"
 	"github.com/nippon-toyota/hrms/internal/doubletick"
 	"github.com/nippon-toyota/hrms/internal/employee"
+	"github.com/nippon-toyota/hrms/internal/epf"
 	"github.com/nippon-toyota/hrms/internal/handler"
 	appMiddleware "github.com/nippon-toyota/hrms/internal/middleware"
 	"github.com/nippon-toyota/hrms/internal/payroll"
@@ -37,15 +38,17 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 	_ = supaClient
 
 	empRepo := employee.NewPostgresRepository(pgPool)
+	epfRepo := epf.NewPostgresRepository(pgPool)
 	payrollRepo := payroll.NewPostgresRepository(pgPool)
 
-	payrollDispatcher := payroll.NewDispatcher(payrollRepo, empRepo, dtClient)
+	payrollDispatcher := payroll.NewDispatcher(payrollRepo, empRepo, epfRepo, dtClient)
 
 	sessionStore := whatsapp.NewInMemoryStore(0)
-	waSvc := whatsapp.NewService(dtClient, sessionStore, empRepo, payrollRepo)
+	waSvc := whatsapp.NewService(dtClient, sessionStore, empRepo, epfRepo, payrollRepo)
 	waHandler := whatsapp.NewHandler(waSvc, cfg.DoubleTickWebhookSecret)
 
 	employeeH := handler.NewEmployeeHandler(empRepo)
+	epfH := handler.NewEpfHandler(epfRepo)
 	payrollH := handler.NewPayrollHandler(payrollRepo, payrollDispatcher)
 
 	r.Get("/health", handler.HealthHandler)
@@ -61,12 +64,21 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 				r.Get("/", employeeH.List)
 				r.Post("/", employeeH.Create)
 				r.Post("/upload", employeeH.BulkUpload)
-				r.Post("/epf-upload", employeeH.BulkEPFUpload)
 				r.Get("/export", employeeH.ExportExcel)
 				r.Get("/template", employeeH.DownloadTemplate)
 				r.Get("/{id}", employeeH.GetByID)
 				r.Patch("/{id}", employeeH.Update)
 				r.Delete("/{id}", employeeH.Delete)
+			})
+
+			r.Route("/epf", func(r chi.Router) {
+				r.Get("/", epfH.List)
+				r.Post("/upload", epfH.BulkUpload)
+				r.Get("/export", epfH.ExportExcel)
+				r.Get("/template", epfH.DownloadTemplate)
+				r.Get("/{id}", epfH.GetByID)
+				r.Patch("/{id}", epfH.Update)
+				r.Delete("/{id}", epfH.Delete)
 			})
 
 			r.Route("/payroll", func(r chi.Router) {

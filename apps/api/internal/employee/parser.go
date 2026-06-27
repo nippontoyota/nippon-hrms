@@ -40,8 +40,8 @@ func ParseExcel(r io.Reader) ([]Employee, []string, error) {
 			continue // Skip header
 		}
 
-		// Pad row to 34 columns to handle trailing empty cells (added EPF fields)
-		for len(row) < 34 {
+		// Pad row to 30 columns to handle trailing empty cells
+		for len(row) < 30 {
 			row = append(row, "")
 		}
 
@@ -82,60 +82,10 @@ func ParseExcel(r io.Reader) ([]Employee, []string, error) {
 			BankBranch:                strings.TrimSpace(row[27]),
 			IFSCCode:                  strings.TrimSpace(row[28]),
 			Zone:                      strings.TrimSpace(row[29]),
-			DOA:                       strings.TrimSpace(row[30]),
-			EPFNumber:                 strings.TrimSpace(row[31]),
-			UAN:                       strings.TrimSpace(row[32]),
-			ESINumber:                 strings.TrimSpace(row[33]),
 			CreatedAt:                 time.Now(),
 			UpdatedAt:                 time.Now(),
 		})
 	}
 
 	return employees, errors, nil
-}
-
-// ParseEPFExcel reads an uploaded Excel file matching the EPF Compliance 12-column template.
-// Format: Sl No | EMP | Name | Department | New Level | DOJ | No: of Yrs | DOA | No: of Yrs | KR/KCH/19297/ | UAN | ESI
-func ParseEPFExcel(r io.Reader) ([]Employee, []string, error) {
-	f, err := excelize.OpenReader(r)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to open excel: %w", err)
-	}
-	defer f.Close()
-
-	sheetName := f.GetSheetName(0)
-	rows, err := f.GetRows(sheetName)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get rows: %w", err)
-	}
-
-	var employees []Employee
-	var errs []string
-
-	for i, row := range rows {
-		if i == 0 {
-			continue // Skip header
-		}
-
-		// Pad row to 12 columns
-		for len(row) < 12 {
-			row = append(row, "")
-		}
-
-		id := strings.TrimSpace(row[1])
-		if id == "" {
-			errs = append(errs, fmt.Sprintf("Row %d: empty EMP ID", i+1))
-			continue
-		}
-
-		employees = append(employees, Employee{
-			ID:        id,
-			DOA:       strings.TrimSpace(row[7]),
-			EPFNumber: strings.TrimSpace(row[9]),
-			UAN:       strings.TrimSpace(row[10]),
-			ESINumber: strings.TrimSpace(row[11]),
-		})
-	}
-
-	return employees, errs, nil
 }

@@ -11,13 +11,6 @@ type Record struct {
 	Month                        int        `json:"month"`
 	Year                         int        `json:"year"`
 	EmpNameSnapshot              string     `json:"empNameSnapshot"`
-	Department                   string     `json:"department"`
-	Level                        string     `json:"level"`
-	DOJ                          string     `json:"doj"`
-	DOA                          string     `json:"doa"`
-	EPFNumber                    string     `json:"epfNumber"`
-	UAN                          string     `json:"uan"`
-	ESINumber                    string     `json:"esiNumber"`
 	Leaves                       float64    `json:"leaves"`
 	LOP                          float64    `json:"lop"`
 	Days                         float64    `json:"days"`

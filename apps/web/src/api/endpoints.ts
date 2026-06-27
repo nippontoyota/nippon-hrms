@@ -2,6 +2,7 @@ import api from '@/lib/axios';
 import type {
   DashboardStats,
   Employee,
+  EpfRecord,
   PayrollRecord,
   ImportResult,
 } from './types';
@@ -18,17 +19,29 @@ export const employeesApi = {
     form.append('file', file);
     return api.post<ImportResult>('/employees/upload', form).then((r) => r.data);
   },
-  commitEpfBulkUpload: (file: File) => {
-    const fd = new FormData();
-    fd.append('file', file);
-    return api.post<ImportResult>('/employees/epf-upload', fd).then(r => r.data);
-  },
   downloadTemplate: () =>
     fetch('/templates/employee_template.xlsx').then((r) => r.blob()),
   downloadTemplateCsv: () =>
     api.get('/employees/template', { responseType: 'blob' }).then((r) => r.data),
   exportExcel: () =>
     api.get('/employees/export', { responseType: 'blob' }).then((r) => r.data),
+};
+
+export const epfApi = {
+  list: () => api.get<EpfRecord[]>('/epf').then((r) => r.data),
+  get: (id: string) => api.get<EpfRecord>(`/epf/${id}`).then((r) => r.data),
+  update: (id: string, record: Partial<EpfRecord>) =>
+    api.patch(`/epf/${id}`, record).then((r) => r.data),
+  delete: (id: string) => api.delete(`/epf/${id}`).then((r) => r.data),
+  commitBulkUpload: (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return api.post<ImportResult>('/epf/upload', form).then((r) => r.data);
+  },
+  exportExcel: () =>
+    api.get('/epf/export', { responseType: 'blob' }).then((r) => r.data),
+  downloadTemplateCsv: () =>
+    api.get('/epf/template', { responseType: 'blob' }).then((r) => r.data),
 };
 
 export const salaryApi = {
