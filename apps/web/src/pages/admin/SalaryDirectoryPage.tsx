@@ -2,8 +2,10 @@ import { useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { usePayrollRecords, salaryApi } from '@/api/hooks';
-import { MicrosoftExcelLogo, CaretLeft, CaretRight, Trash, FloppyDisk, Warning, X, ArrowsDownUp } from '@phosphor-icons/react';
+import { MicrosoftExcelLogo, CaretLeft, CaretRight, Trash, FloppyDisk, Warning, X, ArrowsDownUp, MagnifyingGlass, DownloadSimple, FileCsv, Eye, FilePdf, Spinner } from '@phosphor-icons/react';
 import { PayrollRecord } from '@/api/types';
+import { downloadApiBlob, exportCsv } from '@/lib/format';
+import { SALARY_DIRECTORY_HEADERS } from '@/lib/exportColumns';
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -41,10 +43,12 @@ export default function SalaryDirectoryPage() {
   const [sortKey, setSortKey] = useState<SortKey>('employeeId');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
 
+  // Search
+  const [search, setSearch] = useState('');
+
   const qc = useQueryClient();
   const { data: records, isLoading } = usePayrollRecords(month, year);
 
-  const hasData = !isLoading && records && records.length > 0;
   const isNextMonthDisabled = year === currentYear && month === currentMonth;
   const isNextYearDisabled = year === currentYear;
 
@@ -85,7 +89,7 @@ export default function SalaryDirectoryPage() {
 
   const filtered = useMemo(() => {
     const base = previewData ? previewData.records : (records ?? []);
-    return [...base].sort((a, b) => {
+    let result = [...base].sort((a, b) => {
       const av = a[sortKey];
       const bv = b[sortKey];
 
@@ -103,7 +107,19 @@ export default function SalaryDirectoryPage() {
       }
       return sortDir === 'asc' ? avStr.localeCompare(bvStr) : bvStr.localeCompare(avStr);
     });
-  }, [records, previewData, sortKey, sortDir]);
+
+    // Apply search filter
+    if (search.trim()) {
+      const searchLower = search.toLowerCase();
+      result = result.filter(r =>
+        r.employeeId?.toLowerCase().includes(searchLower) ||
+        r.empNameSnapshot?.toLowerCase().includes(searchLower) ||
+        r.mobileNo?.toLowerCase().includes(searchLower)
+      );
+    }
+
+    return result;
+  }, [records, previewData, sortKey, sortDir, search]);
 
   const allSelected = filtered.length > 0 && selectedIds.size === filtered.length;
 
@@ -197,14 +213,61 @@ export default function SalaryDirectoryPage() {
     setSelectedIds(new Set());
   };
 
+  const handleExportExcel = async () => {
+    if (previewFile || previewData) {
+      toast.error('Save payroll data to the database before exporting');
+      return;
+    }
+    try {
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-').replace('T', '_');
+      await downloadApiBlob(
+        () => salaryApi.exportExcel(month, year),
+        `SalaryDirectory_${timestamp}.xlsx`,
+        'Failed to export to Excel',
+      );
+      toast.success('Salary directory exported to Excel');
+    } catch {
+      toast.error('Failed to export to Excel');
+    }
+  };
+
+  const handleDownloadTemplate = () => {
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-').replace('T', '_');
+    exportCsv(`SalaryDirectory_Template_${timestamp}.csv`, [...SALARY_DIRECTORY_HEADERS], []);
+    toast.success('Template downloaded');
+  };
+
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [loadingPreviewId, setLoadingPreviewId] = useState<string | null>(null);
+
+  const handlePreview = async (employeeId: string) => {
+    try {
+      setLoadingPreviewId(employeeId);
+      const blob = await salaryApi.previewPayslip(employeeId, month, year);
+      const url = window.URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+      setPreviewUrl(url);
+    } catch {
+      toast.error('Failed to load payslip preview');
+    } finally {
+      setLoadingPreviewId(null);
+    }
+  };
+
+  const closePreview = () => {
+    if (previewUrl) {
+      window.URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+    }
+  };
+
   return (
     <div className="space-y-4 max-w-full relative">
 
       {/* ── Toolbar ─────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center justify-between gap-4">
 
-        {/* ── Left: Month / Year navigator ─────────────────────────── */}
-        <div className="flex items-center gap-3">
+        {/* ── Left: Month / Year navigator + Search ─────────────────── */}
+        <div className="flex items-center gap-3 flex-1 min-w-[300px]">
           <div className="flex items-center border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 shadow-sm divide-x divide-slate-300 rounded-md overflow-hidden" style={{ borderRadius: '0.375rem' }}>
             <button
               onClick={prevMonth}
@@ -267,6 +330,20 @@ export default function SalaryDirectoryPage() {
               <CaretRight size={14} weight="bold" />
             </button>
           </div>
+
+          {/* Search Input */}
+          <div className="relative w-full max-w-[400px] flex-1">
+            <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <input
+              type="text"
+              placeholder="Search employee..."
+              className="w-full bg-white dark:bg-slate-800 rounded-md pl-10 pr-4 py-2 text-sm border border-slate-300 dark:border-slate-600 focus:outline-none focus:border-[#eb0a1e]"
+              style={{ borderRadius: '0.375rem' }}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              disabled={!!previewFile}
+            />
+          </div>
         </div>
 
         {/* ── Right: Actions ─────────────────────────── */}
@@ -296,12 +373,22 @@ export default function SalaryDirectoryPage() {
                   <Trash size={15} weight="bold" /> Delete ({selectedIds.size})
                 </button>
               )}
-              {!hasData && (
-                <label className="btn-success btn-sm !px-4 !py-2 bg-green-700 hover:bg-green-800 text-white border border-green-800 cursor-pointer flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-colors">
-                  <MicrosoftExcelLogo size={16} weight="bold" /> Import from Excel
-                  <input type="file" className="hidden" accept=".xlsx,.xls" onChange={handleFileUpload} />
-                </label>
-              )}
+              <label className="btn-success btn-sm !px-4 !py-2 bg-green-700 hover:bg-green-800 text-white border border-green-800 cursor-pointer flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-colors">
+                <MicrosoftExcelLogo size={16} weight="bold" /> Import from Excel
+                <input type="file" className="hidden" accept=".xlsx,.xls" onChange={handleFileUpload} />
+              </label>
+              <button 
+                onClick={handleDownloadTemplate}
+                className="btn-sm !px-4 !py-2 bg-blue-700 hover:bg-blue-800 text-white border border-blue-800 cursor-pointer flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-colors"
+              >
+                <FileCsv size={14} weight="bold" /> Download Template
+              </button>
+              <button 
+                onClick={handleExportExcel}
+                className="btn-sm !px-4 !py-2 bg-purple-700 hover:bg-purple-800 text-white border border-purple-800 cursor-pointer flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-colors"
+              >
+                <DownloadSimple size={14} weight="bold" /> Export to Excel
+              </button>
             </>
           )}
         </div>
@@ -340,6 +427,7 @@ export default function SalaryDirectoryPage() {
                     />
                   </th>
                   <th className="px-5 py-3 font-semibold w-12 text-center border-r border-slate-300 dark:border-slate-600">Sl. No.</th>
+                  <th className="w-16 text-center" data-ui-only>Preview</th>
                   <Th col="employeeId">EMP ID</Th>
                   <Th col="empNameSnapshot">Name</Th>
                   <Th col="leaves" className="text-center">Leaves</Th>
@@ -402,6 +490,22 @@ export default function SalaryDirectoryPage() {
                       />
                     </td>
                     <td className="text-center font-mono text-slate-500 dark:text-slate-400 text-xs px-2 border-r border-slate-300 dark:border-slate-600">{idx + 1}</td>
+                    <td className="text-center px-2" data-ui-only>
+                      {!previewFile && (
+                        <button
+                          onClick={() => handlePreview(r.employeeId)}
+                          disabled={loadingPreviewId === r.employeeId}
+                          className="inline-flex items-center justify-center p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 dark:hover:bg-blue-950 disabled:opacity-50 cursor-pointer transition-colors rounded"
+                          title="Preview Payslip"
+                        >
+                          {loadingPreviewId === r.employeeId ? (
+                            <Spinner className="animate-spin" size={16} weight="bold" />
+                          ) : (
+                            <Eye size={16} weight="duotone" />
+                          )}
+                        </button>
+                      )}
+                    </td>
                     <td className="font-mono font-bold text-slate-900 dark:text-white">{r.employeeId}</td>
                     <td className="font-semibold text-slate-900 dark:text-white">{r.empNameSnapshot}</td>
                     <td className="text-center font-mono">{r.leaves?.toFixed(1) || '0.0'}</td>
@@ -453,7 +557,7 @@ export default function SalaryDirectoryPage() {
                 ))}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={49} className="text-center p-8 text-slate-400 font-mono text-xs uppercase tracking-widest">
+                    <td colSpan={50} className="text-center p-8 text-slate-400 font-mono text-xs uppercase tracking-widest">
                       {previewFile ? 'No valid records found in the Excel file' : `No payroll records for ${MONTHS[month - 1]} ${year}`}
                     </td>
                   </tr>
@@ -488,6 +592,34 @@ export default function SalaryDirectoryPage() {
           </div>
         </div>
       )}
+
+      {/* PDF Preview Modal */}
+      {previewUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 md:p-8">
+          <div className="bg-white dark:bg-slate-800 rounded shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 shrink-0">
+              <div className="flex items-center gap-2 text-slate-800 dark:text-slate-100">
+                <FilePdf size={20} weight="fill" className="text-red-500" />
+                <h3 className="font-bold uppercase tracking-wider text-sm">Payslip Preview</h3>
+              </div>
+              <button
+                onClick={closePreview}
+                className="p-1.5 text-slate-400 hover:text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-500 dark:bg-slate-600 rounded transition-colors cursor-pointer"
+              >
+                <X size={18} weight="bold" />
+              </button>
+            </div>
+            <div className="flex-1 w-full bg-slate-200 dark:bg-slate-600 p-2">
+              <iframe
+                src={previewUrl}
+                className="w-full h-full rounded border border-slate-300 dark:border-slate-600 shadow-inner"
+                title="PDF Preview"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

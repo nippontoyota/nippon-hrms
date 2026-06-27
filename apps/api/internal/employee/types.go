@@ -63,5 +63,7 @@ type Repository interface {
 	UpdatePhone(ctx context.Context, id, newPhone string) error
 	BulkInsert(ctx context.Context, employees []Employee) error
 	BulkUpdateEPF(ctx context.Context, employees []Employee) error
+	ClearAllEPFFields(ctx context.Context) error
 	Delete(ctx context.Context, id string) error
+	DeleteAll(ctx context.Context) error
 }
