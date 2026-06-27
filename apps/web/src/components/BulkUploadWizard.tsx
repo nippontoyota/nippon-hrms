@@ -64,7 +64,7 @@ export default function BulkUploadWizard({
             </button>
           )}
           {onCancel && (
-            <button type="button" className="text-sm text-slate-500 hover:text-slate-700 font-semibold" onClick={onCancel}>
+            <button type="button" className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-200 font-semibold" onClick={onCancel}>
               Cancel
             </button>
           )}

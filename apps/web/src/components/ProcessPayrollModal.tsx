@@ -60,29 +60,29 @@ export default function ProcessPayrollModal({ open, month, year, onClose, onSucc
       <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative z-10 bg-white border border-slate-300 shadow-2xl w-full max-w-2xl mx-4 flex flex-col max-h-[90vh]">
+      <div className="relative z-10 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 shadow-2xl w-full max-w-2xl mx-4 flex flex-col max-h-[90vh]">
         
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 bg-slate-50 shrink-0">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 shrink-0">
           <div>
-            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-800">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-800 dark:text-slate-100">
               Process Payroll — {MONTHS[month - 1]} {year}
             </h2>
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
               Validation checks must pass before WhatsApp dispatch
             </p>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors cursor-pointer">
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:text-slate-300 transition-colors cursor-pointer">
             <X size={16} weight="bold" />
           </button>
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto p-5 bg-white">
+        <div className="flex-1 overflow-y-auto p-5 bg-white dark:bg-slate-800">
           {loading ? (
             <div className="py-16 flex flex-col items-center justify-center gap-4">
               <Spinner className="animate-spin text-[#eb0a1e]" size={32} weight="bold" />
-              <p className="text-xs font-mono text-slate-500 uppercase tracking-widest">Validating records...</p>
+              <p className="text-xs font-mono text-slate-500 dark:text-slate-400 uppercase tracking-widest">Validating records...</p>
             </div>
           ) : errors && errors.length > 0 ? (
             <div className="space-y-4">
@@ -96,19 +96,19 @@ export default function ProcessPayrollModal({ open, month, year, onClose, onSucc
                 </div>
               </div>
 
-              <div className="border border-slate-200">
+              <div className="border border-slate-200 dark:border-slate-700">
                 <table className="w-full text-left border-collapse whitespace-nowrap">
-                  <thead className="bg-slate-50 text-[10px] uppercase tracking-widest text-slate-500 font-mono">
+                  <thead className="bg-slate-50 dark:bg-slate-900 text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 font-mono">
                     <tr>
-                      <th className="px-4 py-3 font-semibold border-b border-slate-200">EMP ID</th>
-                      <th className="px-4 py-3 font-semibold border-b border-slate-200">Name</th>
-                      <th className="px-4 py-3 font-semibold border-b border-slate-200">Issue</th>
+                      <th className="px-4 py-3 font-semibold border-b border-slate-200 dark:border-slate-700">EMP ID</th>
+                      <th className="px-4 py-3 font-semibold border-b border-slate-200 dark:border-slate-700">Name</th>
+                      <th className="px-4 py-3 font-semibold border-b border-slate-200 dark:border-slate-700">Issue</th>
                     </tr>
                   </thead>
-                  <tbody className="text-xs text-slate-700">
+                  <tbody className="text-xs text-slate-700 dark:text-slate-200">
                     {errors.map((err, i) => (
-                      <tr key={i} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                        <td className="px-4 py-3 font-mono font-bold text-slate-900">{err.employeeId}</td>
+                      <tr key={i} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-700 dark:bg-slate-900">
+                        <td className="px-4 py-3 font-mono font-bold text-slate-900 dark:text-white">{err.employeeId}</td>
                         <td className="px-4 py-3 font-semibold">{err.employeeName}</td>
                         <td className="px-4 py-3 text-red-600 font-medium">{err.reason}</td>
                       </tr>
@@ -121,8 +121,8 @@ export default function ProcessPayrollModal({ open, month, year, onClose, onSucc
             <div className="py-12 flex flex-col items-center justify-center gap-4 text-center">
               <CheckCircle size={48} weight="fill" className="text-green-600" />
               <div>
-                <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">All Checks Passed</h3>
-                <p className="text-xs text-slate-500 mt-2 max-w-sm mx-auto leading-relaxed">
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wider">All Checks Passed</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 max-w-sm mx-auto leading-relaxed">
                   Every payroll record for {MONTHS[month - 1]} {year} is valid, has a positive net salary, and corresponds to an employee with a registered mobile number.
                 </p>
               </div>
@@ -131,10 +131,10 @@ export default function ProcessPayrollModal({ open, month, year, onClose, onSucc
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-slate-200 bg-slate-50 shrink-0">
+        <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 shrink-0">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-slate-600 border border-slate-300 bg-white hover:bg-slate-100 transition-colors cursor-pointer"
+            className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-600 dark:bg-slate-700 transition-colors cursor-pointer"
           >
             Cancel
           </button>

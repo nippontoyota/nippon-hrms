@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
@@ -11,8 +12,19 @@ import SalaryPage from '@/pages/admin/SalaryPage';
 import SalaryDirectoryPage from '@/pages/admin/SalaryDirectoryPage';
 import SalaryPeriodPage from '@/pages/admin/SalaryPeriodPage';
 import DispatchJobPage from '@/pages/admin/DispatchJobPage';
+import { useThemeStore } from '@/stores/themeStore';
 
 export default function App() {
+  const isDark = useThemeStore((s) => s.isDark);
+
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDark]);
+
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
@@ -31,41 +43,41 @@ export default function App() {
               boxShadow: '0 4px 16px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.08)',
               maxWidth: '380px',
               border: '1px solid',
-              background: '#ffffff',
-              color: '#0f172a',
-              borderColor: '#e2e8f0',
+              background: isDark ? '#1e293b' : '#ffffff',
+              color: isDark ? '#f8fafc' : '#0f172a',
+              borderColor: isDark ? '#334155' : '#e2e8f0',
             },
             success: {
               style: {
-                background: '#f0fdf4',
-                color: '#14532d',
-                borderColor: '#bbf7d0',
+                background: isDark ? '#064e3b' : '#f0fdf4',
+                color: isDark ? '#ecfdf5' : '#14532d',
+                borderColor: isDark ? '#065f46' : '#bbf7d0',
               },
               iconTheme: {
                 primary: '#16a34a',
-                secondary: '#f0fdf4',
+                secondary: isDark ? '#064e3b' : '#f0fdf4',
               },
             },
             error: {
               style: {
-                background: '#fff5f5',
-                color: '#7f1d1d',
-                borderColor: '#fecaca',
+                background: isDark ? '#7f1d1d' : '#fff5f5',
+                color: isDark ? '#fef2f2' : '#7f1d1d',
+                borderColor: isDark ? '#991b1b' : '#fecaca',
               },
               iconTheme: {
                 primary: '#dc2626',
-                secondary: '#fff5f5',
+                secondary: isDark ? '#7f1d1d' : '#fff5f5',
               },
             },
             loading: {
               style: {
-                background: '#f8fafc',
-                color: '#1e293b',
-                borderColor: '#e2e8f0',
+                background: isDark ? '#0f172a' : '#f8fafc',
+                color: isDark ? '#f8fafc' : '#1e293b',
+                borderColor: isDark ? '#1e293b' : '#e2e8f0',
               },
               iconTheme: {
                 primary: '#64748b',
-                secondary: '#f8fafc',
+                secondary: isDark ? '#0f172a' : '#f8fafc',
               },
             },
           }}

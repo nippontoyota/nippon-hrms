@@ -4,9 +4,13 @@
 
 @layer base {
   body {
-    @apply bg-background text-on-surface font-body antialiased;
+    @apply bg-background text-on-surface font-body antialiased dark:bg-slate-900 dark:text-slate-50;
     background-color: #f4f6fa;
     color: #1a1a1c;
+  }
+  html.dark body {
+    background-color: #0f172a;
+    color: #f8fafc;
   }
   * {
     @apply selection:bg-primary/20 selection:text-on-surface;
@@ -28,7 +32,7 @@
     border: 1px solid #0f172a;
   }
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 px-6 py-2 rounded-md bg-white text-slate-900 font-headline font-semibold text-sm transition-all hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed border border-slate-300;
+    @apply inline-flex items-center justify-center gap-2 px-6 py-2 rounded-md bg-white text-slate-900 font-headline font-semibold text-sm transition-all hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed border border-slate-300 dark:bg-slate-800 dark:text-slate-100 dark:border-slate-700 dark:hover:bg-slate-700;
   }
   .btn-danger {
     @apply inline-flex items-center justify-center gap-2 px-6 py-2 rounded-md bg-red-50 text-red-700 font-headline font-bold text-sm transition-all hover:bg-red-100 border border-red-200;
@@ -43,13 +47,13 @@
     @apply block font-label text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1;
   }
   .card {
-    @apply bg-white rounded-none p-4 border border-slate-300;
+    @apply bg-white rounded-none p-4 border border-slate-300 dark:bg-slate-800 dark:border-slate-700;
   }
   .card-raised {
     @apply bg-white rounded-none p-4 border border-slate-300;
   }
   .badge {
-    @apply inline-flex items-center rounded-none px-2 py-0.5 text-[10px] font-label font-bold uppercase tracking-widest border border-slate-300 bg-slate-50 text-slate-700;
+    @apply inline-flex items-center rounded-none px-2 py-0.5 text-[10px] font-label font-bold uppercase tracking-widest border border-slate-300 bg-slate-50 text-slate-700 dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600;
   }
   .badge-success {
     @apply bg-green-50 text-green-700 border border-green-200;
@@ -70,7 +74,7 @@
     @apply flex flex-wrap items-start justify-between gap-4 mb-4;
   }
   .page-title {
-    @apply font-headline text-2xl font-bold tracking-tight text-slate-900;
+    @apply font-headline text-2xl font-bold tracking-tight text-slate-900 dark:text-white;
   }
   .page-subtitle {
     @apply text-sm text-slate-500 font-body mt-1;
@@ -82,7 +86,7 @@
     @apply card flex flex-col gap-2;
   }
   .kpi-value {
-    @apply font-mono text-3xl font-bold text-slate-900;
+    @apply font-mono text-3xl font-bold text-slate-900 dark:text-white;
   }
   .kpi-label {
     @apply text-xs font-label uppercase tracking-widest text-slate-500;
@@ -96,16 +100,16 @@
     @apply w-full text-xs font-body border-collapse;
   }
   .table-dense thead {
-    @apply bg-slate-100;
+    @apply bg-slate-100 dark:bg-slate-800;
   }
   .table-dense th {
-    @apply px-2 py-1 text-left text-[10px] font-label font-bold text-slate-700 uppercase tracking-widest whitespace-nowrap border-b border-r border-slate-300;
+    @apply px-2 py-1 text-left text-[10px] font-label font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest whitespace-nowrap border-b border-r border-slate-300 dark:border-slate-700;
   }
   .table-dense td {
-    @apply px-2 py-1 text-slate-900 border-b border-r border-slate-300 cursor-cell;
+    @apply px-2 py-1 text-slate-900 dark:text-slate-100 border-b border-r border-slate-300 dark:border-slate-700 cursor-cell;
   }
   .table-dense tbody tr {
-    @apply bg-white hover:bg-blue-50 transition-none;
+    @apply bg-white dark:bg-slate-800/50 hover:bg-blue-50 dark:hover:bg-slate-700 transition-none;
   }
 
 

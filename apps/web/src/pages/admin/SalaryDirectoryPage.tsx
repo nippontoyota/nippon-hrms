@@ -73,7 +73,7 @@ export default function SalaryDirectoryPage() {
 
   const Th = ({ col, className = '', children }: { col: SortKey; className?: string; children: React.ReactNode }) => (
     <th
-      className={`cursor-pointer select-none hover:bg-slate-200 transition-colors ${className}`}
+      className={`cursor-pointer select-none hover:bg-slate-200 dark:hover:bg-slate-500 dark:bg-slate-600 transition-colors ${className}`}
       onClick={() => handleSort(col)}
     >
       <span className={`inline-flex items-center ${className.includes('text-right') ? 'justify-end w-full' : ''}`}>
@@ -205,10 +205,10 @@ export default function SalaryDirectoryPage() {
 
         {/* ── Left: Month / Year navigator ─────────────────────────── */}
         <div className="flex items-center gap-3">
-          <div className="flex items-center border border-slate-300 bg-white shadow-sm divide-x divide-slate-300 rounded-md overflow-hidden" style={{ borderRadius: '0.375rem' }}>
+          <div className="flex items-center border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 shadow-sm divide-x divide-slate-300 rounded-md overflow-hidden" style={{ borderRadius: '0.375rem' }}>
             <button
               onClick={prevMonth}
-              className="px-2.5 py-2 text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors cursor-pointer"
+              className="px-2.5 py-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-600 dark:bg-slate-700 hover:text-slate-800 dark:text-slate-100 transition-colors cursor-pointer"
               title="Previous month"
             >
               <CaretLeft size={14} weight="bold" />
@@ -227,7 +227,7 @@ export default function SalaryDirectoryPage() {
                       isDisabled ? 'text-slate-200 cursor-not-allowed' :
                       month === i + 1
                         ? 'bg-green-600 text-white cursor-pointer'
-                        : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100 cursor-pointer'
+                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-600 dark:bg-slate-700 cursor-pointer'
                     }`}
                   >
                     {m}
@@ -240,18 +240,18 @@ export default function SalaryDirectoryPage() {
             <div className="flex items-center gap-1 px-2">
               <button
                 onClick={() => { setYear(y => y - 1); setSelectedIds(new Set()); cancelPreview(); }}
-                className="text-slate-400 hover:text-slate-700 cursor-pointer"
+                className="text-slate-400 hover:text-slate-700 dark:text-slate-200 cursor-pointer"
                 title="Previous year"
               >
                 <CaretLeft size={11} weight="bold" />
               </button>
-              <span className="text-sm font-bold text-slate-800 tabular-nums w-10 text-center select-none">
+              <span className="text-sm font-bold text-slate-800 dark:text-slate-100 tabular-nums w-10 text-center select-none">
                 {year}
               </span>
               <button
                 onClick={() => { setYear(y => y + 1); setSelectedIds(new Set()); cancelPreview(); }}
                 disabled={isNextYearDisabled}
-                className={`transition-colors ${isNextYearDisabled ? 'text-slate-200 cursor-not-allowed' : 'text-slate-400 hover:text-slate-700 cursor-pointer'}`}
+                className={`transition-colors ${isNextYearDisabled ? 'text-slate-200 cursor-not-allowed' : 'text-slate-400 hover:text-slate-700 dark:text-slate-200 cursor-pointer'}`}
                 title="Next year"
               >
                 <CaretRight size={11} weight="bold" />
@@ -261,7 +261,7 @@ export default function SalaryDirectoryPage() {
             <button
               onClick={nextMonth}
               disabled={isNextMonthDisabled}
-              className={`px-2.5 py-2 transition-colors ${isNextMonthDisabled ? 'text-slate-200 cursor-not-allowed' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800 cursor-pointer'}`}
+              className={`px-2.5 py-2 transition-colors ${isNextMonthDisabled ? 'text-slate-200 cursor-not-allowed' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-600 dark:bg-slate-700 hover:text-slate-800 dark:text-slate-100 cursor-pointer'}`}
               title="Next month"
             >
               <CaretRight size={14} weight="bold" />
@@ -275,7 +275,7 @@ export default function SalaryDirectoryPage() {
             <>
               <button
                 onClick={cancelPreview}
-                className="btn-sm !px-4 !py-2 bg-white text-slate-600 hover:bg-slate-100 border border-slate-300 cursor-pointer flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-colors"
+                className="btn-sm !px-4 !py-2 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 cursor-pointer flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-colors"
               >
                 <X size={15} weight="bold" /> Cancel
               </button>
@@ -291,7 +291,7 @@ export default function SalaryDirectoryPage() {
               {selectedIds.size > 0 && (
                 <button
                   onClick={handleBulkDelete}
-                  className="btn-sm !px-4 !py-2 bg-white text-green-600 hover:bg-green-50 border border-green-200 cursor-pointer flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-colors"
+                  className="btn-sm !px-4 !py-2 bg-white dark:bg-slate-800 text-green-600 hover:bg-green-50 border border-green-200 cursor-pointer flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-colors"
                 >
                   <Trash size={15} weight="bold" /> Delete ({selectedIds.size})
                 </button>
@@ -319,11 +319,11 @@ export default function SalaryDirectoryPage() {
       )}
 
       {/* ── Table ───────────────────────────────────────────────── */}
-      <div className="mt-4 border-t border-l border-slate-300">
+      <div className="mt-4 border-t border-l border-slate-300 dark:border-slate-600">
         {isLoading && !previewFile ? (
-          <div className="p-12 flex flex-col items-center justify-center gap-4 bg-white border-b border-r border-slate-300">
+          <div className="p-12 flex flex-col items-center justify-center gap-4 bg-white dark:bg-slate-800 border-b border-r border-slate-300 dark:border-slate-600">
             <div className="spinner-dashed"></div>
-            <p className="text-slate-500 font-mono text-[10px] uppercase tracking-widest">Fetching records...</p>
+            <p className="text-slate-500 dark:text-slate-400 font-mono text-[10px] uppercase tracking-widest">Fetching records...</p>
           </div>
         ) : (
           <div className="table-wrapper overflow-x-auto w-full">
@@ -339,7 +339,7 @@ export default function SalaryDirectoryPage() {
                       disabled={!!previewFile}
                     />
                   </th>
-                  <th className="px-5 py-3 font-semibold w-12 text-center border-r border-slate-300">Sl. No.</th>
+                  <th className="px-5 py-3 font-semibold w-12 text-center border-r border-slate-300 dark:border-slate-600">Sl. No.</th>
                   <Th col="employeeId">EMP ID</Th>
                   <Th col="empNameSnapshot">Name</Th>
                   <Th col="leaves" className="text-center">Leaves</Th>
@@ -347,7 +347,7 @@ export default function SalaryDirectoryPage() {
                   <Th col="days" className="text-center">Days</Th>
                   <Th col="basic" className="text-right">Basic</Th>
                   <Th col="da" className="text-right">DA</Th>
-                  <Th col="basicDa" className="text-right font-bold bg-slate-50">Basic+DA</Th>
+                  <Th col="basicDa" className="text-right font-bold bg-slate-50 dark:bg-slate-900">Basic+DA</Th>
                   <Th col="hra" className="text-right">HRA</Th>
                   <Th col="travel" className="text-right">Travel</Th>
                   <Th col="childrenHostel" className="text-right">Children Hostel</Th>
@@ -385,13 +385,13 @@ export default function SalaryDirectoryPage() {
                   <Th col="advance" className="text-right">Advance</Th>
                   <Th col="pf367" className="text-right">3.67.1</Th>
                   <Th col="pf833" className="text-right">8.33.1</Th>
-                  <th className="text-right font-bold text-slate-500 select-none">Total</th>
+                  <th className="text-right font-bold text-slate-500 dark:text-slate-400 select-none">Total</th>
                   <Th col="absents" className="text-center text-red-600 font-bold">ABSENTS</Th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((r, idx) => (
-                  <tr key={r.id || `preview-${idx}`} className={`hover:bg-slate-50 ${(r.id && selectedIds.has(r.id)) ? 'bg-red-50/50' : ''}`}>
+                  <tr key={r.id || `preview-${idx}`} className={`hover:bg-slate-50 dark:hover:bg-slate-700 dark:bg-slate-900 ${(r.id && selectedIds.has(r.id)) ? 'bg-red-50/50' : ''}`}>
                     <td className="text-center px-0">
                       <input
                         type="checkbox"
@@ -401,15 +401,15 @@ export default function SalaryDirectoryPage() {
                         disabled={!!previewFile}
                       />
                     </td>
-                    <td className="text-center font-mono text-slate-500 text-xs px-2 border-r border-slate-300">{idx + 1}</td>
-                    <td className="font-mono font-bold text-slate-900">{r.employeeId}</td>
-                    <td className="font-semibold text-slate-900">{r.empNameSnapshot}</td>
+                    <td className="text-center font-mono text-slate-500 dark:text-slate-400 text-xs px-2 border-r border-slate-300 dark:border-slate-600">{idx + 1}</td>
+                    <td className="font-mono font-bold text-slate-900 dark:text-white">{r.employeeId}</td>
+                    <td className="font-semibold text-slate-900 dark:text-white">{r.empNameSnapshot}</td>
                     <td className="text-center font-mono">{r.leaves?.toFixed(1) || '0.0'}</td>
                     <td className="text-center font-mono text-red-600">{r.lop?.toFixed(1) || '0.0'}</td>
                     <td className="text-center font-mono">{r.days?.toFixed(1) || '0.0'}</td>
                     <td className="text-right font-mono">{r.basic?.toFixed(2) || '0.00'}</td>
                     <td className="text-right font-mono">{r.da?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono font-bold bg-slate-50">{r.basicDa?.toFixed(2) || '0.00'}</td>
+                    <td className="text-right font-mono font-bold bg-slate-50 dark:bg-slate-900">{r.basicDa?.toFixed(2) || '0.00'}</td>
                     <td className="text-right font-mono">{r.hra?.toFixed(2) || '0.00'}</td>
                     <td className="text-right font-mono">{r.travel?.toFixed(2) || '0.00'}</td>
                     <td className="text-right font-mono">{r.childrenHostel?.toFixed(2) || '0.00'}</td>
@@ -468,13 +468,13 @@ export default function SalaryDirectoryPage() {
       {confirmState.open && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={closeConfirm} />
-          <div className="relative z-10 bg-white border border-slate-300 shadow-2xl w-full max-w-sm p-6 space-y-4">
-            <h3 className="text-base font-bold text-slate-900 uppercase tracking-wider">{confirmState.title}</h3>
-            <p className="text-sm text-slate-600 leading-relaxed">{confirmState.message}</p>
+          <div className="relative z-10 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 shadow-2xl w-full max-w-sm p-6 space-y-4">
+            <h3 className="text-base font-bold text-slate-900 dark:text-white uppercase tracking-wider">{confirmState.title}</h3>
+            <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{confirmState.message}</p>
             <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
               <button
                 onClick={closeConfirm}
-                className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
+                className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-500 dark:bg-slate-600 transition-colors cursor-pointer"
               >
                 Cancel
               </button>
