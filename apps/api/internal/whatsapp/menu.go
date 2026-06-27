@@ -6,27 +6,29 @@ import (
 	"github.com/nippon-toyota/hrms/internal/doubletick"
 )
 
-const msgNotEmployee = `We could not find your mobile number in the Nippon Toyota employee records.
+const msgNotEmployee = `*Unauthorized Access*
 
-If you are an employee, please contact HR to register your WhatsApp number. Otherwise, kindly reach out to HR for assistance.`
+This mobile number is not registered in the Nippon Toyota Human Resources database.
 
-const msgWelcome = `Welcome to Nippon Toyota HR Assistant!`
+If you are an active employee, please contact the HR department to update your registered contact information.`
 
-const msgGeneratePayBody = `Tap the button below to download your payslip.`
+const msgWelcome = `Welcome to *Nippon HR Connect*`
 
-const msgNoPayslips = `No payslips are on file for your account yet. Please contact HR.`
+const msgGeneratePayBody = `Please select an option below to proceed with your request.`
 
-const msgPayslipNotFound = `No payslip found for that period. Please try again.`
+const msgNoPayslips = `There are currently no payroll records available for your account. Please contact the HR department for further assistance.`
 
-const msgPayslipError = `There was an issue generating your payslip. Please contact HR.`
+const msgPayslipNotFound = `No payroll records were found for the selected period. Please verify the month and year and try again.`
 
-const msgPayslipAwaitMonthFallback = `Please enter the month and year you need the payslip for.
+const msgPayslipError = `A system error occurred while generating your document. Please contact the HR department for support.`
 
-Example: 06/2026`
+const msgPayslipAwaitMonthFallback = `Please specify the required payroll period (Month and Year).
+
+Format: MM/YYYY (e.g., 06/2026)`
 
 func msgPayslipCaption(name, monthStr string, year int) string {
 	return fmt.Sprintf(
-		"📄 *Payslip - %s %d*\n\nDear %s,\n\nPlease find attached your payslip for the month of %s %d.\n\nFor any discrepancies, please reach out to HR.",
+		"📄 *Official Payslip | %s %d*\n\nDear %s,\n\nPlease find the attached payslip for the payroll period of %s %d.\n\nFor any discrepancies or payroll-related inquiries, please contact the HR department.",
 		monthStr, year, name, monthStr, year,
 	)
 }
