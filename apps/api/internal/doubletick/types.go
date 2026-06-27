@@ -48,17 +48,19 @@ type UploadMediaResponse struct {
 }
 
 type TextRequest struct {
-	Messages []TextMessage `json:"messages"`
-}
-
-type TextMessage struct {
-	Content TextContent `json:"content"`
 	From    string      `json:"from"`
 	To      string      `json:"to"`
+	Content TextContent `json:"content"`
 }
 
 type TextContent struct {
 	Text string `json:"text"`
+}
+
+type MarkReadRequest struct {
+	From      string `json:"from"`
+	To        string `json:"to"`
+	MessageID string `json:"messageId"`
 }
 
 type Response struct {
@@ -117,4 +119,49 @@ type ListReplyBody struct {
 	ID          string `json:"id"`
 	Title       string `json:"title"`
 	Description string `json:"description"`
+}
+
+// InteractiveButtonRequest is the body for POST /whatsapp/message/interactive.
+type InteractiveButtonRequest struct {
+	From    string                    `json:"from"`
+	To      string                    `json:"to"`
+	Content InteractiveButtonContent  `json:"content"`
+}
+
+type InteractiveButtonContent struct {
+	Header  string            `json:"header,omitempty"`
+	Body    string            `json:"body"`
+	Footer  string            `json:"footer,omitempty"`
+	Buttons []InteractiveButton `json:"buttons"`
+}
+
+type InteractiveButton struct {
+	ID    string `json:"id"`
+	Title string `json:"title"`
+}
+
+// InteractiveListRequest is the body for POST /whatsapp/message/interactive-list.
+type InteractiveListRequest struct {
+	From    string                 `json:"from"`
+	To      string                 `json:"to"`
+	Content InteractiveListContent `json:"content"`
+}
+
+type InteractiveListContent struct {
+	Header   string                 `json:"header,omitempty"`
+	Body     string                 `json:"body"`
+	Footer   string                 `json:"footer,omitempty"`
+	Button   string                 `json:"button"`
+	Sections []InteractiveListSection `json:"sections"`
+}
+
+type InteractiveListSection struct {
+	Title string              `json:"title"`
+	Rows  []InteractiveListRow `json:"rows"`
+}
+
+type InteractiveListRow struct {
+	ID          string `json:"id"`
+	Title       string `json:"title"`
+	Description string `json:"description,omitempty"`
 }

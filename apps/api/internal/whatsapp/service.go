@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strconv"
 	"strings"
 	"time"
 
@@ -16,6 +17,8 @@ import (
 type Service struct {
 	dt          *doubletick.Client
 	sessions    SessionStore
+	dedup       *dedupStore
+	phoneLock   *phoneLocker
 	empRepo     employee.Repository
 	epfRepo     epf.Repository
 	payrollRepo payroll.Repository
@@ -25,6 +28,8 @@ func NewService(dt *doubletick.Client, sessions SessionStore, empRepo employee.R
 	return &Service{
 		dt:          dt,
 		sessions:    sessions,
+		dedup:       newDedupStore(0),
+		phoneLock:   newPhoneLocker(),
 		empRepo:     empRepo,
 		epfRepo:     epfRepo,
 		payrollRepo: payrollRepo,
@@ -50,55 +55,44 @@ func (s *Service) HandleWebhook(ctx context.Context, wh *doubletick.Webhook) err
 	from := wh.Data.From
 	input := strings.TrimSpace(wh.Data.Body())
 
-	slog.Info("whatsapp inbound", "from", from, "input", input)
+	go func() {
+		bg := context.Background()
+		if err := s.dt.MarkMessageRead(bg, from, wh.Data.MessageID); err != nil {
+			slog.Debug("whatsapp mark read failed", "from", from, "messageId", wh.Data.MessageID, "err", err)
+		}
+	}()
 
+	var handleErr error
+	s.phoneLock.run(from, func() {
+		handleErr = s.handleWebhookLocked(ctx, from, input, wh.Data.Type, wh.Data.MessageID)
+	})
+	return handleErr
+}
+
+func (s *Service) handleWebhookLocked(ctx context.Context, from, input, msgType, messageID string) error {
 	sess, ok := s.sessions.Get(from)
 	if !ok {
 		sess = &Session{Phone: from, State: StateIdle}
 	}
 
-	if input == "0" {
-		sess.reset()
-		s.sessions.Set(from, sess)
-		return s.sendMenuTemplate(ctx, from)
+	if shouldSkipInboundEcho(input, msgType, sess.State) {
+		slog.Info("whatsapp inbound skipped echo", "from", from, "input", input, "type", msgType, "state", sess.State)
+		return nil
 	}
 
-	if sess.EmployeeID == "" {
-		if emp, err := s.empRepo.FindByPhone(ctx, from); err == nil && emp != nil {
-			sess.EmployeeID = emp.ID
-		}
+	if s.dedup.isDuplicate(messageID, from, input, msgType) {
+		slog.Info("whatsapp inbound skipped duplicate", "from", from, "input", input, "type", msgType, "messageId", messageID)
+		return nil
 	}
+
+	slog.Info("whatsapp inbound", "from", from, "input", input, "type", msgType)
 
 	var err error
 	switch sess.State {
-	case StateIdle, StateMainMenu:
-		err = s.handleMainMenu(ctx, sess, from, input)
-
-	case StatePayslipAwaitMonth:
-		err = s.handlePayslipMonth(ctx, sess, from, input)
-
-	case StateTicketAwaitTitle:
-		err = s.handleTicketTitle(ctx, sess, from, input)
-	case StateTicketAwaitDesc:
-		err = s.handleTicketDesc(ctx, sess, from, input)
-	case StateTicketAwaitConfirm:
-		err = s.handleTicketConfirm(ctx, sess, from, input)
-
-	case StateLeaveAwaitStart:
-		err = s.handleLeaveStart(ctx, sess, from, input)
-	case StateLeaveAwaitEnd:
-		err = s.handleLeaveEnd(ctx, sess, from, input)
-	case StateLeaveAwaitReason:
-		err = s.handleLeaveReason(ctx, sess, from, input)
-	case StateLeaveAwaitConfirm:
-		err = s.handleLeaveConfirm(ctx, sess, from, input)
-
-	case StateFeedbackAwaitText:
-		err = s.handleFeedback(ctx, sess, from, input)
-
+	case StateAwaitPeriod:
+		err = s.handleAwaitPeriod(ctx, sess, from, input)
 	default:
-		sess.reset()
-		err = s.sendMenuTemplate(ctx, from)
+		err = s.handleIdle(ctx, sess, from, input)
 	}
 
 	if err != nil {
@@ -107,88 +101,77 @@ func (s *Service) HandleWebhook(ctx context.Context, wh *doubletick.Webhook) err
 	return err
 }
 
-func isMenuOption(in string) bool {
-	switch in {
-	case "1", "2", "3", "4", "5", "6":
-		return true
+func (s *Service) ensureEmployee(ctx context.Context, sess *Session, from string) {
+	if sess.EmployeeID != "" {
+		return
 	}
-	for _, kw := range []string{"payslip", "leave", "attendance", "holiday", "incentive", "feedback"} {
-		if strings.Contains(in, kw) {
-			return true
-		}
+	emp, err := s.empRepo.FindByPhone(ctx, from)
+	if err != nil || emp == nil {
+		return
 	}
-	return false
-}
-
-func (s *Service) handleMainMenu(ctx context.Context, sess *Session, from, input string) error {
-	in := strings.ToLower(input)
-
-	// Gate: any real option requires a registered (identified) phone.
-	if isMenuOption(in) && sess.EmployeeID == "" {
-		sess.reset()
-		s.sessions.Set(from, sess)
-		return s.sendText(ctx, from, msgNotEmployee)
-	}
-
-	if strings.Contains(in, "payslip") || in == "1" {
-		sess.State = StatePayslipAwaitMonth
-		s.sessions.Set(from, sess)
-		return s.sendText(ctx, from, msgPayslipAwaitMonth)
-	}
-	if strings.Contains(in, "leave") || in == "2" {
-		sess.State = StateLeaveAwaitStart
-		s.sessions.Set(from, sess)
-		return s.sendText(ctx, from, msgLeaveAwaitStart)
-	}
-	if strings.Contains(in, "attendance") || in == "3" {
-		sess.State = StateIdle
-		s.sessions.Set(from, sess)
-		return s.sendText(ctx, from, msgAttendanceSummary)
-	}
-	if strings.Contains(in, "holiday") || in == "4" {
-		sess.State = StateIdle
-		s.sessions.Set(from, sess)
-		return s.sendText(ctx, from, msgHolidayCalendar)
-	}
-	if strings.Contains(in, "incentive") || in == "5" {
-		sess.State = StateIdle
-		s.sessions.Set(from, sess)
-		return s.sendText(ctx, from, msgIncentiveSummary)
-	}
-	if strings.Contains(in, "feedback") || in == "6" {
-		sess.State = StateFeedbackAwaitText
-		s.sessions.Set(from, sess)
-		return s.sendText(ctx, from, msgFeedbackAwaitText)
-	}
-
-	sess.State = StateMainMenu
+	sess.EmployeeID = emp.ID
 	s.sessions.Set(from, sess)
-	return s.sendMenuTemplate(ctx, from)
 }
 
-func (s *Service) handlePayslipMonth(ctx context.Context, sess *Session, from, input string) error {
-	if input == "" {
-		return s.sendText(ctx, from, msgPayslipAwaitMonth)
+func (s *Service) handleIdle(ctx context.Context, sess *Session, from, input string) error {
+	if input == payloadGeneratePay {
+		s.ensureEmployee(ctx, sess, from)
+		if sess.EmployeeID == "" {
+			sess.resetFlow()
+			s.sessions.Set(from, sess)
+			return s.sendText(ctx, from, msgNotEmployee)
+		}
+		return s.sendPeriodList(ctx, sess, from)
+	}
+	return s.sendGeneratePayButton(ctx, from)
+}
+
+func (s *Service) handleAwaitPeriod(ctx context.Context, sess *Session, from, input string) error {
+	if !strings.HasPrefix(input, periodIDPrefix) {
+		if strings.Contains(input, "/") {
+			return s.handleManualPeriod(ctx, sess, from, input)
+		}
+		return nil
 	}
 
+	parts := strings.Split(strings.TrimPrefix(input, periodIDPrefix), "_")
+	if len(parts) != 2 {
+		return nil
+	}
+	month, err1 := strconv.Atoi(parts[0])
+	year, err2 := strconv.Atoi(parts[1])
+	if err1 != nil || err2 != nil || month < 1 || month > 12 || year < 2000 {
+		return nil
+	}
+
+	return s.deliverPayslip(ctx, sess, from, month, year)
+}
+
+func (s *Service) handleManualPeriod(ctx context.Context, sess *Session, from, input string) error {
 	parts := strings.Split(input, "/")
 	if len(parts) != 2 {
-		return s.sendText(ctx, from, "❌ Invalid format. Please use MM/YYYY (e.g. 05/2026).")
+		return s.sendText(ctx, from, msgPayslipAwaitMonthFallback)
 	}
-
-	month := 0
-	year := 0
-	fmt.Sscanf(parts[0], "%d", &month)
-	fmt.Sscanf(parts[1], "%d", &year)
-
+	month, _ := strconv.Atoi(strings.TrimSpace(parts[0]))
+	year, _ := strconv.Atoi(strings.TrimSpace(parts[1]))
 	if month < 1 || month > 12 || year < 2000 {
-		return s.sendText(ctx, from, "❌ Invalid date. Please use MM/YYYY (e.g. 05/2026).")
+		return s.sendText(ctx, from, msgPayslipAwaitMonthFallback)
+	}
+	return s.deliverPayslip(ctx, sess, from, month, year)
+}
+
+func (s *Service) deliverPayslip(ctx context.Context, sess *Session, from string, month, year int) error {
+	s.ensureEmployee(ctx, sess, from)
+	if sess.EmployeeID == "" {
+		sess.resetFlow()
+		s.sessions.Set(from, sess)
+		return s.sendText(ctx, from, msgNotEmployee)
 	}
 
 	record, err := s.payrollRepo.GetPayslip(ctx, sess.EmployeeID, month, year)
 	if err != nil {
 		slog.Warn("payslip not found", "emp", sess.EmployeeID, "m", month, "y", year)
-		sess.reset()
+		sess.resetFlow()
 		s.sessions.Set(from, sess)
 		return s.sendText(ctx, from, msgPayslipNotFound)
 	}
@@ -212,127 +195,78 @@ func (s *Service) handlePayslipMonth(ctx context.Context, sess *Session, from, i
 		return s.sendText(ctx, from, msgPayslipError)
 	}
 
-	sess.reset()
-	s.sessions.Set(from, sess)
-
 	monthStr := time.Month(month).String()
-	empName := "Employee"
-	if emp != nil {
+	empName := record.EmpNameSnapshot
+	if emp != nil && emp.Name != "" {
 		empName = emp.Name
 	}
-	caption := fmt.Sprintf("📄 *Payslip - %s %d*\n\nDear %s,\n\nPlease find attached your payslip for the month of %s %d.\n\nFor any discrepancies, please reach out to HR.\n\nReply *0* to return to the main menu.", monthStr, year, empName, monthStr, year)
+	caption := msgPayslipCaption(empName, monthStr, year)
+
 	if _, err := s.dt.SendDocument(ctx, from, mediaURL, filename, caption); err != nil {
 		slog.Error("document send failed", "err", err)
 		return s.sendText(ctx, from, msgPayslipError)
 	}
+
+	sess.resetFlow()
+	s.sessions.Set(from, sess)
 	return nil
 }
 
-func (s *Service) handleTicketTitle(ctx context.Context, sess *Session, from, input string) error {
-	if input == "" {
-		return s.sendText(ctx, from, msgTicketAwaitTitle)
+func (s *Service) sendGeneratePayButton(ctx context.Context, to string) error {
+	_, err := s.dt.SendInteractiveButtons(ctx, to, msgWelcome, msgGeneratePayBody, "", generatePayButtons())
+	if err != nil {
+		slog.Warn("interactive button send failed, falling back to text", "err", err)
+		return s.sendText(ctx, to, msgWelcome+"\n\n"+msgGeneratePayBody+"\n\nReply *Generate Pay* to continue.")
 	}
-	sess.Ticket.Title = input
-	sess.State = StateTicketAwaitDesc
-	s.sessions.Set(from, sess)
-	return s.sendText(ctx, from, msgTicketAwaitDesc)
+	return nil
 }
 
-func (s *Service) handleTicketDesc(ctx context.Context, sess *Session, from, input string) error {
-	if input == "" {
-		return s.sendText(ctx, from, msgTicketAwaitDesc)
+func (s *Service) sendPeriodList(ctx context.Context, sess *Session, to string) error {
+	s.ensureEmployee(ctx, sess, to)
+	if sess.EmployeeID == "" {
+		sess.resetFlow()
+		s.sessions.Set(to, sess)
+		return s.sendText(ctx, to, msgNotEmployee)
 	}
-	sess.Ticket.Description = input
-	sess.State = StateTicketAwaitConfirm
-	s.sessions.Set(from, sess)
-	return s.sendText(ctx, from, msgTicketConfirmPrompt(sess.Ticket.Title, sess.Ticket.Description))
-}
 
-func (s *Service) handleTicketConfirm(ctx context.Context, sess *Session, from, input string) error {
-	switch strings.ToLower(input) {
-	case "yes", "y", "submit", "confirm":
-		ticketID := fmt.Sprintf("TKT-%s-001", strings.ToUpper(sess.Phone[len(sess.Phone)-4:]))
-		sess.reset()
-		s.sessions.Set(from, sess)
-		return s.sendText(ctx, from, msgTicketCreated(ticketID))
-
-	case "no", "n", "cancel":
-		sess.reset()
-		s.sessions.Set(from, sess)
-		return s.sendText(ctx, from, msgTicketCancelled)
-
-	default:
-		return s.sendText(ctx, from, msgTicketConfirmPrompt(sess.Ticket.Title, sess.Ticket.Description))
+	periods, err := s.payrollRepo.ListPeriodsByEmployee(ctx, sess.EmployeeID)
+	if err != nil {
+		slog.Error("list periods failed", "emp", sess.EmployeeID, "err", err)
+		return s.sendText(ctx, to, msgPayslipError)
 	}
+	if len(periods) == 0 {
+		sess.resetFlow()
+		s.sessions.Set(to, sess)
+		return s.sendText(ctx, to, msgNoPayslips)
+	}
+
+	rows := make([]doubletick.InteractiveListRow, 0, len(periods))
+	for _, p := range periods {
+		rows = append(rows, doubletick.InteractiveListRow{
+			ID:    periodListRowID(p.Month, p.Year),
+			Title: periodListRowTitle(p.Month, p.Year),
+		})
+	}
+
+	sections := []doubletick.InteractiveListSection{{
+		Title: "Payslip Periods",
+		Rows:  rows,
+	}}
+
+	sess.State = StateAwaitPeriod
+	s.sessions.Set(to, sess)
+
+	_, err = s.dt.SendInteractiveList(ctx, to, "Select Period", "Choose the month and year for your payslip.", "", "View Periods", sections)
+	if err != nil {
+		slog.Warn("interactive list send failed, falling back to text", "err", err)
+		sess.State = StateAwaitPeriod
+		s.sessions.Set(to, sess)
+		return s.sendText(ctx, to, msgPayslipAwaitMonthFallback)
+	}
+	return nil
 }
 
 func (s *Service) sendText(ctx context.Context, to, text string) error {
 	_, err := s.dt.SendText(ctx, to, text)
 	return err
-}
-
-func (s *Service) sendMenuTemplate(ctx context.Context, to string) error {
-	tpl := MainMenuTemplate()
-	_, err := s.dt.SendTemplate(ctx, to, tpl.TemplateName, tpl.Language, tpl.Components)
-	return err
-}
-
-// ─── Phase 1 Additions ────────────────────────────────────────────────────────
-
-func (s *Service) handleLeaveStart(ctx context.Context, sess *Session, from, input string) error {
-	if input == "" {
-		return s.sendText(ctx, from, msgLeaveAwaitStart)
-	}
-	sess.Leave.StartDate = input
-	sess.State = StateLeaveAwaitEnd
-	s.sessions.Set(from, sess)
-	return s.sendText(ctx, from, msgLeaveAwaitEnd)
-}
-
-func (s *Service) handleLeaveEnd(ctx context.Context, sess *Session, from, input string) error {
-	if input == "" {
-		return s.sendText(ctx, from, msgLeaveAwaitEnd)
-	}
-	sess.Leave.EndDate = input
-	sess.State = StateLeaveAwaitReason
-	s.sessions.Set(from, sess)
-	return s.sendText(ctx, from, msgLeaveAwaitReason)
-}
-
-func (s *Service) handleLeaveReason(ctx context.Context, sess *Session, from, input string) error {
-	if input == "" {
-		return s.sendText(ctx, from, msgLeaveAwaitReason)
-	}
-	sess.Leave.Reason = input
-	sess.State = StateLeaveAwaitConfirm
-	s.sessions.Set(from, sess)
-	return s.sendText(ctx, from, msgLeaveConfirmPrompt(sess.Leave.StartDate, sess.Leave.EndDate, sess.Leave.Reason))
-}
-
-func (s *Service) handleLeaveConfirm(ctx context.Context, sess *Session, from, input string) error {
-	switch strings.ToLower(input) {
-	case "yes", "y", "submit", "confirm":
-		// In a real app, we'd save this to leave.Repository here.
-		sess.reset()
-		s.sessions.Set(from, sess)
-		return s.sendText(ctx, from, msgLeaveCreated)
-
-	case "no", "n", "cancel":
-		sess.reset()
-		s.sessions.Set(from, sess)
-		return s.sendText(ctx, from, msgLeaveCancelled)
-
-	default:
-		return s.sendText(ctx, from, msgLeaveConfirmPrompt(sess.Leave.StartDate, sess.Leave.EndDate, sess.Leave.Reason))
-	}
-}
-
-func (s *Service) handleFeedback(ctx context.Context, sess *Session, from, input string) error {
-	if input == "" {
-		return s.sendText(ctx, from, msgFeedbackAwaitText)
-	}
-	// Save to feedback.Repository
-	sess.reset()
-	s.sessions.Set(from, sess)
-	return s.sendText(ctx, from, msgFeedbackSubmitted)
 }
