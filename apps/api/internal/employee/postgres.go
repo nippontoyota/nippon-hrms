@@ -225,6 +225,36 @@ func (r *PostgresRepository) BulkInsert(ctx context.Context, employees []Employe
 	return err
 }
 
+func (r *PostgresRepository) BulkUpdateEPF(ctx context.Context, employees []Employee) error {
+	if len(employees) == 0 {
+		return nil
+	}
+
+	batch := &pgx.Batch{}
+	query := `
+		UPDATE employees SET
+			doa = $2,
+			epf_number = $3,
+			uan = $4,
+			esi_number = $5,
+			updated_at = NOW()
+		WHERE id = $1
+	`
+	for _, e := range employees {
+		batch.Queue(query, e.ID, parseDOJ(e.DOA), e.EPFNumber, e.UAN, e.ESINumber)
+	}
+
+	br := r.db.SendBatch(ctx, batch)
+	defer br.Close()
+
+	for _, e := range employees {
+		if _, err := br.Exec(); err != nil {
+			return fmt.Errorf("update epf for employee %s: %w", e.ID, err)
+		}
+	}
+	return nil
+}
+
 func (r *PostgresRepository) List(ctx context.Context) ([]Employee, error) {
 	query := `
 		SELECT 

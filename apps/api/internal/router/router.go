@@ -63,7 +63,8 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 				r.Get("/{id}", employeeH.GetByID)
 				r.Patch("/{id}", employeeH.Update)
 				r.Delete("/{id}", employeeH.Delete)
-				r.Post("/upload", employeeH.BulkUpload) // New Bulk Upload
+				r.Post("/upload", employeeH.BulkUpload)     // Regular Master Upload
+				r.Post("/epf-upload", employeeH.BulkEPFUpload) // EPF Master Upload
 			})
 
 			r.Route("/payroll", func(r chi.Router) {

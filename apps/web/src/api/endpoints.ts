@@ -18,6 +18,11 @@ export const employeesApi = {
     form.append('file', file);
     return api.post<ImportResult>('/employees/upload', form).then((r) => r.data);
   },
+  commitEpfBulkUpload: (file: File) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return api.post<ImportResult>('/employees/epf-upload', fd).then(r => r.data);
+  },
   downloadTemplate: () =>
     fetch('/templates/employee_template.xlsx').then((r) => r.blob()),
 };

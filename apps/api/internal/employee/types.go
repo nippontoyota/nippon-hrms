@@ -62,5 +62,6 @@ type Repository interface {
 	VerifyIdentity(ctx context.Context, id, dob string) (*Employee, error)
 	UpdatePhone(ctx context.Context, id, newPhone string) error
 	BulkInsert(ctx context.Context, employees []Employee) error
+	BulkUpdateEPF(ctx context.Context, employees []Employee) error
 	Delete(ctx context.Context, id string) error
 }
