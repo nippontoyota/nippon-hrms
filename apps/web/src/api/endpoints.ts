@@ -25,6 +25,10 @@ export const employeesApi = {
   },
   downloadTemplate: () =>
     fetch('/templates/employee_template.xlsx').then((r) => r.blob()),
+  downloadTemplateCsv: () =>
+    api.get('/employees/template', { responseType: 'blob' }).then((r) => r.data),
+  exportExcel: () =>
+    api.get('/employees/export', { responseType: 'blob' }).then((r) => r.data),
 };
 
 export const salaryApi = {
@@ -42,7 +46,7 @@ export const salaryApi = {
     form.append('file', file);
     form.append('month', String(month));
     form.append('year', String(year));
-    return api.post<{ records: PayrollRecord[], errors: any[] }>('/payroll/upload-preview', form).then((r) => r.data);
+    return api.post<{ records: PayrollRecord[]; errors: any[] }>('/payroll/upload-preview', form).then((r) => r.data);
   },
   dispatch: (month: number, year: number) =>
     api.post<{ jobId: string }>('/payroll/dispatch', { month, year }).then((r) => r.data),
@@ -53,6 +57,8 @@ export const salaryApi = {
   validatePayroll: (month: number, year: number) =>
     api.post<{ errors: { employeeId: string; employeeName: string; reason: string }[] }>('/payroll/validate', { month, year }).then((r) => r.data),
   delete: (id: string) => api.delete(`/payroll/${id}`).then((r) => r.data),
+  exportExcel: (month: number, year: number) => api.get(`/payroll/export?month=${month}&year=${year}`, { responseType: 'blob' }).then((r) => r.data),
+  downloadTemplateCsv: (month: number, year: number) => api.get(`/payroll/template?month=${month}&year=${year}`, { responseType: 'blob' }).then((r) => r.data),
 };
 
 

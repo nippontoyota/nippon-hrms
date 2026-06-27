@@ -345,3 +345,16 @@ func (r *PostgresRepository) Delete(ctx context.Context, id string) error {
 	_, err := r.db.Exec(ctx, "DELETE FROM employees WHERE id = $1", id)
 	return err
 }
+
+func (r *PostgresRepository) DeleteAll(ctx context.Context) error {
+	_, err := r.db.Exec(ctx, "DELETE FROM employees")
+	return err
+}
+
+func (r *PostgresRepository) ClearAllEPFFields(ctx context.Context) error {
+	_, err := r.db.Exec(ctx, `
+		UPDATE employees
+		SET epf_number = NULL, uan = NULL, esi_number = NULL, doa = NULL
+	`)
+	return err
+}
