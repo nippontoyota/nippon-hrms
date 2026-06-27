@@ -51,3 +51,6 @@ CREATE TABLE IF NOT EXISTS employees (
 
 -- Indexes for fast lookup
 CREATE INDEX idx_employees_mobile ON employees(mobile_number);
+CREATE INDEX idx_employees_epf ON employees(epf_number);
+CREATE INDEX idx_employees_uan ON employees(uan);
+CREATE INDEX idx_employees_esi ON employees(esi_number);
