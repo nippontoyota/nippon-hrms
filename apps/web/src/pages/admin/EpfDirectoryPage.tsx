@@ -22,6 +22,14 @@ function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey; s
     : <CaretRight size={11} weight="fill" className="ml-1 text-[#eb0a1e] rotate-90" />;
 }
 
+const calculateYears = (dateStr?: string) => {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return '';
+  const diff = (Date.now() - date.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+  return diff.toFixed(1);
+};
+
 export default function EpfDirectoryPage() {
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
@@ -342,6 +350,15 @@ export default function EpfDirectoryPage() {
                   <th className="px-5 py-3 font-semibold w-12 text-center border-r border-slate-300 dark:border-slate-600">Sl. No.</th>
                   <Th col="employeeId">EMP ID</Th>
                   <Th col="empNameSnapshot">Name</Th>
+                  <Th col="department">Department</Th>
+                  <Th col="level">New Level</Th>
+                  <Th col="doj" className="text-center">DOJ</Th>
+                  <th className="px-5 py-3 font-semibold text-center border-r border-slate-300 dark:border-slate-600">No: of Yrs</th>
+                  <Th col="doa" className="text-center">DOA</Th>
+                  <th className="px-5 py-3 font-semibold text-center border-r border-slate-300 dark:border-slate-600">No: of Yrs</th>
+                  <Th col="epfNumber">KR/KCH/19297/</Th>
+                  <Th col="uan">UAN</Th>
+                  <Th col="esiNumber">ESI</Th>
                   <Th col="basic" className="text-right">PF Wages</Th>
                   <Th col="pf" className="text-right bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300">EE PF (12%)</Th>
                   <Th col="pf833" className="text-right bg-purple-50 dark:bg-purple-900/20 text-purple-800 dark:text-purple-300">ER Pen (8.33%)</Th>
@@ -365,6 +382,15 @@ export default function EpfDirectoryPage() {
                     <td className="text-center font-mono text-slate-500 dark:text-slate-400 text-xs px-2 border-r border-slate-300 dark:border-slate-600">{idx + 1}</td>
                     <td className="font-mono font-bold text-slate-900 dark:text-white">{r.employeeId}</td>
                     <td className="font-semibold text-slate-900 dark:text-white">{r.empNameSnapshot}</td>
+                    <td className="text-slate-600 dark:text-slate-400">{r.department}</td>
+                    <td className="text-slate-600 dark:text-slate-400">{r.level}</td>
+                    <td className="text-center font-mono text-sm">{r.doj}</td>
+                    <td className="text-center font-mono text-sm text-slate-500">{calculateYears(r.doj)}</td>
+                    <td className="text-center font-mono text-sm">{r.doa}</td>
+                    <td className="text-center font-mono text-sm text-slate-500">{calculateYears(r.doa)}</td>
+                    <td className="font-mono text-slate-700 dark:text-slate-300">{r.epfNumber}</td>
+                    <td className="font-mono text-slate-700 dark:text-slate-300">{r.uan}</td>
+                    <td className="font-mono text-slate-700 dark:text-slate-300">{r.esiNumber}</td>
                     <td className="text-right font-mono">{r.basic?.toFixed(2) || '0.00'}</td>
                     <td className="text-right font-mono font-bold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20">{r.pf?.toFixed(2) || '0.00'}</td>
                     <td className="text-right font-mono font-bold text-purple-700 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20">{r.pf833?.toFixed(2) || '0.00'}</td>
