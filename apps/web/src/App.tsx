@@ -12,6 +12,7 @@ import SalaryPage from '@/pages/admin/SalaryPage';
 import SalaryDirectoryPage from '@/pages/admin/SalaryDirectoryPage';
 import SalaryPeriodPage from '@/pages/admin/SalaryPeriodPage';
 import DispatchJobPage from '@/pages/admin/DispatchJobPage';
+import EpfDirectoryPage from '@/pages/admin/EpfDirectoryPage';
 import { useThemeStore } from '@/stores/themeStore';
 
 export default function App() {
@@ -92,6 +93,7 @@ export default function App() {
             <Route path="employees/:id/edit" element={<EmployeeFormPage />} />
             <Route path="salary" element={<SalaryPage />} />
             <Route path="salary-directory" element={<SalaryDirectoryPage />} />
+            <Route path="epf-directory" element={<EpfDirectoryPage />} />
             <Route path="salary/:periodId" element={<SalaryPeriodPage />} />
             <Route path="salary/dispatch/:jobId" element={<DispatchJobPage />} />
           </Route>
