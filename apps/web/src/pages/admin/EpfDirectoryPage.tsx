@@ -359,12 +359,6 @@ export default function EpfDirectoryPage() {
                   <Th col="epfNumber">KR/KCH/19297/</Th>
                   <Th col="uan">UAN</Th>
                   <Th col="esiNumber">ESI</Th>
-                  <Th col="basic" className="text-right">PF Wages</Th>
-                  <Th col="pf" className="text-right bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300">EE PF (12%)</Th>
-                  <Th col="pf833" className="text-right bg-purple-50 dark:bg-purple-900/20 text-purple-800 dark:text-purple-300">ER Pen (8.33%)</Th>
-                  <Th col="pf367" className="text-right bg-orange-50 dark:bg-orange-900/20 text-orange-800 dark:text-orange-300">ER PF (3.67%)</Th>
-                  <Th col="epfER" className="text-right">EPF ER</Th>
-                  <th className="text-right font-bold text-slate-700 dark:text-slate-200 select-none bg-green-50 dark:bg-green-900/20">Total ER (8.33+3.67)</th>
                 </tr>
               </thead>
               <tbody>
@@ -391,12 +385,6 @@ export default function EpfDirectoryPage() {
                     <td className="font-mono text-slate-700 dark:text-slate-300">{r.epfNumber || '-'}</td>
                     <td className="font-mono text-slate-700 dark:text-slate-300">{r.uan || '-'}</td>
                     <td className="font-mono text-slate-700 dark:text-slate-300">{r.esiNumber || '-'}</td>
-                    <td className="text-right font-mono">{r.basic?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono font-bold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20">{r.pf?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono font-bold text-purple-700 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20">{r.pf833?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono font-bold text-orange-700 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20">{r.pf367?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono">{r.epfER?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono font-black text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20">{((r.pf367 || 0) + (r.pf833 || 0)).toFixed(2)}</td>
                   </tr>
                 ))}
                 {filtered.length === 0 && (
