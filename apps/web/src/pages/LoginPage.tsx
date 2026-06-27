@@ -43,9 +43,9 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex">
       {/* Left side: Large Logo */}
-      <div className="hidden lg:flex w-1/2 bg-white items-center justify-center p-12 border-r border-slate-300">
+      <div className="hidden lg:flex w-1/2 bg-white dark:bg-slate-800 items-center justify-center p-12 border-r border-slate-300 dark:border-slate-600">
         <div className="max-w-lg w-full text-center">
           <img 
             src="/nippon-logo.png" 
@@ -56,27 +56,27 @@ export default function LoginPage() {
       </div>
 
       {/* Right side: Login Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 bg-slate-50">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 bg-slate-50 dark:bg-slate-900">
         <div className="w-full max-w-md">
           <div className="mb-10 text-center lg:text-left">
             {/* Mobile logo fallback */}
             <img src="/nippon-logo.png" alt="Nippon Toyota" className="h-10 mx-auto mb-8 object-contain lg:hidden" />
             
-            <h1 className="text-4xl lg:text-5xl font-headline font-black text-slate-900 tracking-tighter mb-4 leading-tight">
+            <h1 className="text-4xl lg:text-5xl font-headline font-black text-slate-900 dark:text-white tracking-tighter mb-4 leading-tight">
               Nippon <span className="text-[#eb0a1e]">HR Connect</span>
             </h1>
             <div className="flex items-center justify-center lg:justify-start gap-4">
               <div className="h-[2px] w-12 bg-[#eb0a1e]"></div>
-              <p className="text-sm lg:text-base font-bold text-slate-600 uppercase tracking-[0.25em]">Admin Portal</p>
+              <p className="text-sm lg:text-base font-bold text-slate-600 dark:text-slate-300 uppercase tracking-[0.25em]">Admin Portal</p>
             </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Email</label>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5">Email</label>
               <input
                 type="email"
-                className="w-full bg-white rounded-md px-4 py-3 text-sm text-slate-900 font-body placeholder:text-slate-400 transition-none focus:outline-none border border-slate-300 focus:border-[#eb0a1e]"
+                className="w-full bg-white dark:bg-slate-800 rounded-md px-4 py-3 text-sm text-slate-900 dark:text-white font-body placeholder:text-slate-400 transition-none focus:outline-none border border-slate-300 dark:border-slate-600 focus:border-[#eb0a1e]"
                 style={{ borderRadius: '0.375rem' }}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -86,10 +86,10 @@ export default function LoginPage() {
             </div>
             
             <div className="relative">
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Password</label>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5">Password</label>
               <input
                 type={showPassword ? 'text' : 'password'}
-                className="w-full bg-white rounded-md pl-4 pr-12 py-3 text-sm text-slate-900 font-body placeholder:text-slate-400 transition-none focus:outline-none border border-slate-300 focus:border-[#eb0a1e]"
+                className="w-full bg-white dark:bg-slate-800 rounded-md pl-4 pr-12 py-3 text-sm text-slate-900 dark:text-white font-body placeholder:text-slate-400 transition-none focus:outline-none border border-slate-300 dark:border-slate-600 focus:border-[#eb0a1e]"
                 style={{ borderRadius: '0.375rem' }}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -99,7 +99,7 @@ export default function LoginPage() {
               <button 
                 type="button" 
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-[38px] text-slate-400 hover:text-slate-600 transition-colors"
+                className="absolute right-4 top-[38px] text-slate-400 hover:text-slate-600 dark:text-slate-300 transition-colors"
                 title={showPassword ? "Hide password" : "Show password"}
               >
                 {showPassword ? <EyeSlash size={18} /> : <Eye size={18} />}

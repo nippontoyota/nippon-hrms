@@ -39,7 +39,7 @@ const Cell = ({
       <td className={`${className} p-1`}>
         <input
           type={type}
-          className="w-full bg-yellow-50 border border-dashed border-slate-400 px-2 py-1 text-xs text-black focus:outline-none focus:border-[#eb0a1e] focus:bg-white transition-colors"
+          className="w-full bg-yellow-50 border border-dashed border-slate-400 px-2 py-1 text-xs text-black focus:outline-none focus:border-[#eb0a1e] focus:bg-white dark:bg-slate-800 transition-colors"
           value={editForm[field] as string | number || ''}
           onChange={(e) => setEditForm(prev => ({ 
             ...prev, 
@@ -103,7 +103,7 @@ export default function EmployeesPage() {
 
   const Th = ({ col, className = '', children }: { col: SortKey; className?: string; children: React.ReactNode }) => (
     <th
-      className={`cursor-pointer select-none hover:bg-slate-200 transition-colors ${className}`}
+      className={`cursor-pointer select-none hover:bg-slate-200 dark:hover:bg-slate-500 dark:bg-slate-600 transition-colors ${className}`}
       onClick={() => handleSort(col)}
     >
       <span className="inline-flex items-center">
@@ -244,7 +244,7 @@ export default function EmployeesPage() {
           <div className="relative w-full max-w-[500px]">
             <MagnifyingGlass className="absolute left-3 top-2.5 text-slate-400" size={16} />
             <input
-              className="w-full bg-white rounded-md pl-10 pr-4 py-2 text-sm border border-slate-300 focus:outline-none focus:border-[#eb0a1e]"
+              className="w-full bg-white dark:bg-slate-800 rounded-md pl-10 pr-4 py-2 text-sm border border-slate-300 dark:border-slate-600 focus:outline-none focus:border-[#eb0a1e]"
               style={{ borderRadius: '0.375rem' }}
               placeholder="Search employee name..."
               value={search}
@@ -258,7 +258,7 @@ export default function EmployeesPage() {
             <div className="flex items-center gap-2">
               <button 
                 onClick={cancelEdit}
-                className="btn-sm !px-4 !py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-semibold transition-colors uppercase tracking-wider text-[10px]"
+                className="btn-sm !px-4 !py-1.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 font-semibold transition-colors uppercase tracking-wider text-[10px]"
               >
                 Cancel
               </button>
@@ -293,11 +293,11 @@ export default function EmployeesPage() {
         </div>
       </div>
 
-      <div className="mt-6 border-t border-l border-slate-300 relative z-0">
+      <div className="mt-6 border-t border-l border-slate-300 dark:border-slate-600 relative z-0">
         {isLoading ? (
-          <div className="p-12 flex flex-col items-center justify-center gap-4 bg-white border-b border-r border-slate-300">
+          <div className="p-12 flex flex-col items-center justify-center gap-4 bg-white dark:bg-slate-800 border-b border-r border-slate-300 dark:border-slate-600">
             <div className="spinner-dashed"></div>
-            <p className="text-slate-500 font-mono text-[10px] uppercase tracking-widest">Fetching records...</p>
+            <p className="text-slate-500 dark:text-slate-400 font-mono text-[10px] uppercase tracking-widest">Fetching records...</p>
           </div>
         ) : (
           <div className="table-wrapper overflow-x-auto w-full">
@@ -344,7 +344,7 @@ export default function EmployeesPage() {
                   <th>Bank Branch</th>
                   <th>IFSC Code</th>
                   <th>Zone</th>
-                  <th className="sticky right-0 z-10 bg-slate-100 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.05)] border-l border-slate-300">Actions</th>
+                  <th className="sticky right-0 z-10 bg-slate-100 dark:bg-slate-700 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.05)] border-l border-slate-300 dark:border-slate-600">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -357,7 +357,7 @@ export default function EmployeesPage() {
                   };
 
                   return (
-                    <tr key={e.id} className={`hover:bg-slate-50 transition-colors ${isEditing ? 'bg-yellow-50/50' : ''}`}>
+                    <tr key={e.id} className={`hover:bg-slate-50 dark:hover:bg-slate-700 dark:bg-slate-900 transition-colors ${isEditing ? 'bg-yellow-50/50' : ''}`}>
                       <td className="text-center px-0">
                         <input 
                           type="checkbox" 
@@ -367,11 +367,11 @@ export default function EmployeesPage() {
                           disabled={!!editingId}
                         />
                       </td>
-                      <td className="text-center font-mono text-slate-500 text-xs px-2">{index + 1}</td>
-                      <Cell {...cellProps} field="employeeId" className="font-mono font-bold text-slate-900" />
-                      <Cell {...cellProps} field="name" className="font-semibold text-slate-900" />
+                      <td className="text-center font-mono text-slate-500 dark:text-slate-400 text-xs px-2">{index + 1}</td>
+                      <Cell {...cellProps} field="employeeId" className="font-mono font-bold text-slate-900 dark:text-white" />
+                      <Cell {...cellProps} field="name" className="font-semibold text-slate-900 dark:text-white" />
                       <Cell {...cellProps} field="department" />
-                      <Cell {...cellProps} field="mobileNo" className="font-mono text-slate-700" formatFn={v => formatMobile(v as string)} />
+                      <Cell {...cellProps} field="mobileNo" className="font-mono text-slate-700 dark:text-slate-200" formatFn={v => formatMobile(v as string)} />
                       <Cell {...cellProps} field="level" className="text-center" />
                       <Cell {...cellProps} field="doj" />
                       <Cell {...cellProps} field="yearsExperience" type="number" className="text-center" formatFn={v => v?.toString()} />
@@ -384,22 +384,22 @@ export default function EmployeesPage() {
                       <Cell {...cellProps} field="travel" type="number" className="text-right font-mono" />
                       <Cell {...cellProps} field="hostel" type="number" className="text-right font-mono" />
                       <Cell {...cellProps} field="children" type="number" className="text-right font-mono" />
-                      <Cell {...cellProps} field="totalSalary" type="number" className="text-right font-mono font-bold bg-slate-50" />
+                      <Cell {...cellProps} field="totalSalary" type="number" className="text-right font-mono font-bold bg-slate-50 dark:bg-slate-900" />
                       <Cell {...cellProps} field="mobile" type="number" className="text-right font-mono" />
                       <Cell {...cellProps} field="conveyance" type="number" className="text-right font-mono" />
                       <Cell {...cellProps} field="washAllowance" type="number" className="text-right font-mono" />
                       <Cell {...cellProps} field="branchAllowance" type="number" className="text-right font-mono" />
                       <Cell {...cellProps} field="specialAllowance" type="number" className="text-right font-mono" />
                       <Cell {...cellProps} field="training" type="number" className="text-right font-mono" />
-                      <Cell {...cellProps} field="totalAllowances" type="number" className="text-right font-mono font-bold bg-slate-50" />
-                      <Cell {...cellProps} field="totalSalaryWithAllowances" type="number" className="text-right font-mono font-black text-[#eb0a1e] bg-slate-50" />
+                      <Cell {...cellProps} field="totalAllowances" type="number" className="text-right font-mono font-bold bg-slate-50 dark:bg-slate-900" />
+                      <Cell {...cellProps} field="totalSalaryWithAllowances" type="number" className="text-right font-mono font-black text-[#eb0a1e] bg-slate-50 dark:bg-slate-900" />
                       <Cell {...cellProps} field="bankName" />
                       <Cell {...cellProps} field="accountNumber" className="font-mono" />
                       <Cell {...cellProps} field="bankBranch" />
                       <Cell {...cellProps} field="ifscCode" className="font-mono" />
                       <Cell {...cellProps} field="zone" />
                       
-                      <td className={`sticky right-0 z-10 ${isEditing ? 'bg-yellow-50' : 'bg-white group-hover:bg-slate-50'} border-l border-slate-300 text-center space-x-2 px-2 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.05)]`}>
+                      <td className={`sticky right-0 z-10 ${isEditing ? 'bg-yellow-50' : 'bg-white dark:bg-slate-800 group-hover:bg-slate-50 dark:hover:bg-slate-700 dark:bg-slate-900'} border-l border-slate-300 dark:border-slate-600 text-center space-x-2 px-2 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.05)]`}>
                         {isEditing ? (
                           <span className="text-[10px] font-bold text-yellow-700 uppercase tracking-wider px-2">Editing</span>
                         ) : (
@@ -451,7 +451,7 @@ export default function EmployeesPage() {
                 })}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={32} className="text-center p-4 text-slate-500 font-mono">NO RECORDS FOUND</td>
+                    <td colSpan={32} className="text-center p-4 text-slate-500 dark:text-slate-400 font-mono">NO RECORDS FOUND</td>
                   </tr>
                 )}
               </tbody>

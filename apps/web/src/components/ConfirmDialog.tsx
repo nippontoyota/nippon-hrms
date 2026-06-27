@@ -46,22 +46,22 @@ export default function ConfirmDialog({
       />
 
       {/* Dialog */}
-      <div className="relative z-10 bg-white border border-slate-300 shadow-2xl w-full max-w-md mx-4">
+      <div className="relative z-10 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 shadow-2xl w-full max-w-md mx-4">
         {/* Header */}
-        <div className={`flex items-center justify-between px-5 py-4 border-b border-slate-200 ${danger ? 'bg-red-50' : 'bg-slate-50'}`}>
+        <div className={`flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-700 ${danger ? 'bg-red-50' : 'bg-slate-50 dark:bg-slate-900'}`}>
           <div className="flex items-center gap-3">
             <WarningDiamond
               size={20}
               weight="fill"
-              className={danger ? 'text-red-600' : 'text-slate-500'}
+              className={danger ? 'text-red-600' : 'text-slate-500 dark:text-slate-400'}
             />
-            <span className={`text-sm font-bold uppercase tracking-wider ${danger ? 'text-red-800' : 'text-slate-700'}`}>
+            <span className={`text-sm font-bold uppercase tracking-wider ${danger ? 'text-red-800' : 'text-slate-700 dark:text-slate-200'}`}>
               {title}
             </span>
           </div>
           <button
             onClick={onCancel}
-            className="text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+            className="text-slate-400 hover:text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
           >
             <X size={16} weight="bold" />
           </button>
@@ -69,14 +69,14 @@ export default function ConfirmDialog({
 
         {/* Body */}
         <div className="px-5 py-5">
-          <p className="text-sm text-slate-600 leading-relaxed">{message}</p>
+          <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{message}</p>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-slate-200 bg-slate-50">
+        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
           <button
             onClick={onCancel}
-            className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-slate-600 border border-slate-300 bg-white hover:bg-slate-100 transition-colors cursor-pointer"
+            className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-600 dark:bg-slate-700 transition-colors cursor-pointer"
           >
             Cancel
           </button>

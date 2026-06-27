@@ -6,11 +6,11 @@ function KPI({ label, value, subtext, icon: Icon }: { label: string; value: stri
   return (
     <div className="card !p-4">
       <div className="flex justify-between items-start mb-2">
-        <p className="font-semibold text-[10px] uppercase tracking-widest text-slate-500">{label}</p>
-        <Icon size={20} weight="duotone" className="text-slate-400" />
+        <p className="font-semibold text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400">{label}</p>
+        <Icon size={20} weight="duotone" className="text-slate-400 dark:text-slate-500" />
       </div>
-      <p className="font-mono text-3xl font-bold text-slate-900 leading-none mb-1">{value}</p>
-      <p className="text-[11px] text-slate-500 font-medium">{subtext}</p>
+      <p className="font-mono text-3xl font-bold text-slate-900 dark:text-white leading-none mb-1">{value}</p>
+      <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">{subtext}</p>
     </div>
   );
 }
@@ -21,16 +21,16 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-headline font-bold text-slate-900 tracking-tight">HR Overview</h1>
+        <h1 className="text-2xl font-headline font-bold text-slate-900 dark:text-white tracking-tight">HR Overview</h1>
         <Link to="/admin/salary" className="btn-primary">
           Process Monthly Payroll Batch <ArrowRight size={16} weight="bold" className="ml-1" />
         </Link>
       </div>
 
       {isLoading ? (
-        <div className="p-12 flex flex-col items-center justify-center gap-4 bg-white border border-slate-300">
+        <div className="p-12 flex flex-col items-center justify-center gap-4 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700">
           <div className="spinner-dashed"></div>
-          <p className="text-slate-500 font-mono text-[10px] uppercase tracking-widest">Aggregating telemetry...</p>
+          <p className="text-slate-500 dark:text-slate-400 font-mono text-[10px] uppercase tracking-widest">Aggregating telemetry...</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -62,8 +62,8 @@ export default function DashboardPage() {
       )}
 
       <div className="mt-8">
-        <div className="flex justify-between items-center p-3 bg-slate-100 border-t border-l border-r border-slate-300">
-          <h2 className="text-xs font-bold text-slate-800 uppercase tracking-widest">Recent Payroll Batches</h2>
+        <div className="flex justify-between items-center p-3 bg-slate-100 dark:bg-slate-800 border-t border-l border-r border-slate-300 dark:border-slate-700">
+          <h2 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest">Recent Payroll Batches</h2>
           <button className="text-[10px] font-bold text-[#eb0a1e] uppercase tracking-wider hover:underline">View all</button>
         </div>
         <div className="table-wrapper">
