@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Navigate, Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { SquaresFour, Users, Money, House, SignOut, ListDashes, List, Sun, Moon, Bank } from '@phosphor-icons/react';
+import { SquaresFour, Users, Money, House, SignOut, ListDashes, List, Sun, Moon } from '@phosphor-icons/react';
 import { useAuthStore } from '@/stores/authStore';
 import { useThemeStore } from '@/stores/themeStore';
 
@@ -8,7 +8,6 @@ const sideNav = [
   { to: '/admin', icon: SquaresFour, label: 'HR Overview', end: true },
   { to: '/admin/employees', icon: Users, label: 'Employee Directory' },
   { to: '/admin/salary-directory', icon: ListDashes, label: 'Salary Directory' },
-  { to: '/admin/epf-directory', icon: Bank, label: 'EPF Directory' },
   { to: '/admin/salary', icon: Money, label: 'Process Payroll' },
 ];
 

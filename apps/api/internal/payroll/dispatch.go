@@ -8,20 +8,34 @@ import (
 
 	"github.com/nippon-toyota/hrms/internal/doubletick"
 	"github.com/nippon-toyota/hrms/internal/employee"
+	"github.com/nippon-toyota/hrms/internal/epf"
 )
 
 type Dispatcher struct {
 	repo     Repository
 	empRepo  employee.Repository
+	epfRepo  epf.Repository
 	dtClient *doubletick.Client
 }
 
-func NewDispatcher(repo Repository, empRepo employee.Repository, dtClient *doubletick.Client) *Dispatcher {
+func NewDispatcher(repo Repository, empRepo employee.Repository, epfRepo epf.Repository, dtClient *doubletick.Client) *Dispatcher {
 	return &Dispatcher{
 		repo:     repo,
 		empRepo:  empRepo,
+		epfRepo:  epfRepo,
 		dtClient: dtClient,
 	}
+}
+
+func (d *Dispatcher) lookupEpf(ctx context.Context, employeeID string) *epf.Record {
+	if d.epfRepo == nil {
+		return nil
+	}
+	rec, err := d.epfRepo.GetByID(ctx, employeeID)
+	if err != nil {
+		return nil
+	}
+	return rec
 }
 
 type ValidationError struct {
@@ -110,7 +124,7 @@ func (d *Dispatcher) DispatchPayslips(ctx context.Context, month, year int) erro
 				continue
 			}
 
-			pdfBytes, err := GeneratePayslipPDF(emp, &rec)
+			pdfBytes, err := GeneratePayslipPDF(emp, &rec, d.lookupEpf(bgCtx, rec.EmployeeID))
 			if err != nil {
 				slog.Error("dispatch: pdf gen failed", "emp", rec.EmployeeID, "err", err)
 				continue
@@ -153,7 +167,7 @@ func (d *Dispatcher) SendSinglePayslip(ctx context.Context, employeeID string, m
 		return fmt.Errorf("no payroll record found for %s in %02d/%d: %w", employeeID, month, year, err)
 	}
 
-	pdfBytes, err := GeneratePayslipPDF(emp, rec)
+	pdfBytes, err := GeneratePayslipPDF(emp, rec, d.lookupEpf(ctx, employeeID))
 	if err != nil {
 		return fmt.Errorf("pdf generation failed: %w", err)
 	}
@@ -190,5 +204,5 @@ func (d *Dispatcher) GeneratePreviewPDF(ctx context.Context, employeeID string, 
 		return nil, fmt.Errorf("employee not found: %w", err)
 	}
 
-	return GeneratePayslipPDF(emp, record)
+	return GeneratePayslipPDF(emp, record, d.lookupEpf(ctx, employeeID))
 }

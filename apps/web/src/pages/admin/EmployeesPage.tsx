@@ -9,6 +9,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import SendPayslipModal from '@/components/SendPayslipModal';
 import { downloadApiBlob, exportCsv } from '@/lib/format';
 import { EMPLOYEE_DIRECTORY_HEADERS } from '@/lib/exportColumns';
+import EpfRecordsSection from '@/components/EpfRecordsSection';
 
 type SortKey = 'employeeId' | 'name' | 'department' | 'doj' | 'branch' | 'designation';
 type SortDir = 'asc' | 'desc';
@@ -491,6 +492,8 @@ export default function EmployeesPage() {
           </div>
         )}
       </div>
+
+      <EpfRecordsSection />
     </div>
   );
 }

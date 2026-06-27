@@ -10,16 +10,10 @@ CREATE TABLE IF NOT EXISTS employees (
     mobile_number VARCHAR(20) UNIQUE NOT NULL,
     emp_level VARCHAR(50),
     doj DATE,
-    doa DATE,
     years_experience FLOAT,
     branch VARCHAR(255),
     designation VARCHAR(255),
     zone VARCHAR(100),
-
-    -- Statutory IDs
-    epf_number VARCHAR(100),
-    uan VARCHAR(100),
-    esi_number VARCHAR(100),
 
     -- Fixed Salary Structure
     basic FLOAT DEFAULT 0,
@@ -51,6 +45,3 @@ CREATE TABLE IF NOT EXISTS employees (
 
 -- Indexes for fast lookup
 CREATE INDEX idx_employees_mobile ON employees(mobile_number);
-CREATE INDEX idx_employees_epf ON employees(epf_number);
-CREATE INDEX idx_employees_uan ON employees(uan);
-CREATE INDEX idx_employees_esi ON employees(esi_number);

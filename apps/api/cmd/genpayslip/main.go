@@ -19,6 +19,7 @@ import (
 
 	"github.com/nippon-toyota/hrms/internal/db"
 	"github.com/nippon-toyota/hrms/internal/employee"
+	"github.com/nippon-toyota/hrms/internal/epf"
 	"github.com/nippon-toyota/hrms/internal/payroll"
 )
 
@@ -64,6 +65,7 @@ func run() error {
 	defer pool.Close()
 
 	empRepo := employee.NewPostgresRepository(pool)
+	epfRepo := epf.NewPostgresRepository(pool)
 	payrollRepo := payroll.NewPostgresRepository(pool)
 
 	emp, err := empRepo.GetByID(ctx, empID)
@@ -76,7 +78,9 @@ func run() error {
 		return fmt.Errorf("fetch payslip %s %02d/%d: %w", empID, month, year, err)
 	}
 
-	pdfBytes, err := payroll.GeneratePayslipPDF(emp, rec)
+	epfRec, _ := epfRepo.GetByID(ctx, empID)
+
+	pdfBytes, err := payroll.GeneratePayslipPDF(emp, rec, epfRec)
 	if err != nil {
 		return fmt.Errorf("generate pdf: %w", err)
 	}

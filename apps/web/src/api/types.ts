@@ -62,6 +62,22 @@ export interface Employee {
   createdAt: string;
 }
 
+export interface EpfRecord {
+  employeeId: string;
+  name: string;
+  department: string;
+  level: string;
+  doj: string;
+  yearsSinceDoj: number;
+  doa: string;
+  yearsSinceDoa: number;
+  epfNumber: string;
+  uan: string;
+  esiNumber: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface EmployeeInput {
   employeeId: string;
   name: string;
@@ -102,13 +118,6 @@ export interface PayrollRecord {
   id: string;
   employeeId: string;
   empNameSnapshot: string;
-  department?: string;
-  level?: string;
-  doj?: string;
-  doa?: string;
-  epfNumber?: string;
-  uan?: string;
-  esiNumber?: string;
   leaves: number;
   lop: number;
   days: number;

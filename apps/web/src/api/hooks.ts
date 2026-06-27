@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   dashboardApi,
   employeesApi,
+  epfApi,
   salaryApi,
 } from './endpoints';
 import type { Employee } from './types';
@@ -55,6 +56,24 @@ export function useDeleteEmployee() {
   });
 }
 
+export function useEpfRecords() {
+  return useQuery({
+    queryKey: ['epf'],
+    queryFn: epfApi.list,
+    retry: 1,
+  });
+}
+
+export function useDeleteEpfRecord() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: epfApi.delete,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['epf'] });
+    },
+  });
+}
+
 export function useDeletePayroll() {
   const qc = useQueryClient();
   return useMutation({
@@ -72,4 +91,4 @@ export function usePayrollRecords(month: number, year: number) {
   });
 }
 
-export { employeesApi, salaryApi };
+export { employeesApi, epfApi, salaryApi };

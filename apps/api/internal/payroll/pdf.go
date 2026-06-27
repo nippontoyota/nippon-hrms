@@ -19,6 +19,7 @@ import (
 	"github.com/johnfercher/maroto/v2/pkg/props"
 
 	"github.com/nippon-toyota/hrms/internal/employee"
+	"github.com/nippon-toyota/hrms/internal/epf"
 )
 
 //go:embed assets/nippon-logo.png
@@ -73,7 +74,7 @@ func money(v float64) string {
 	return fmt.Sprintf("%.0f", v)
 }
 
-func newPayslipView(emp *employee.Employee, rec *Record) PayslipView {
+func newPayslipView(emp *employee.Employee, rec *Record, epfRec *epf.Record) PayslipView {
 	name := rec.EmpNameSnapshot
 	if emp != nil && emp.Name != "" {
 		name = emp.Name
@@ -88,7 +89,6 @@ func newPayslipView(emp *employee.Employee, rec *Record) PayslipView {
 		EmployeeID:   rec.EmployeeID,
 		EmployeeName: name,
 
-		// Statutory identifiers are not stored in the DB yet; rendered blank.
 		PFNumber: "",
 		UAN:      "",
 		ESICIP:   "0",
@@ -98,6 +98,12 @@ func newPayslipView(emp *employee.Employee, rec *Record) PayslipView {
 		LOPDays:     money(rec.LOP),
 	}
 
+	if epfRec != nil {
+		v.PFNumber = epf.FormatPFNumber(epfRec.EPFNumber)
+		v.UAN = epfRec.UAN
+		v.ESICIP = epf.FormatESINumber(epfRec.ESINumber)
+	}
+
 	if emp != nil {
 		v.Designation = emp.Designation
 		v.Department = emp.Department
@@ -105,6 +111,10 @@ func newPayslipView(emp *employee.Employee, rec *Record) PayslipView {
 		v.BankName = emp.BankName
 		v.IFSCCode = emp.IFSCCode
 		v.Location = emp.Branch
+	}
+
+	if v.Department == "" && epfRec != nil {
+		v.Department = epfRec.Department
 	}
 
 	v.Earnings = []lineItem{
@@ -148,9 +158,9 @@ func styleCell(bg *props.Color, bt border.Type) *props.Cell {
 }
 
 // GeneratePayslipPDF renders the FORM XIII payslip for an employee/record and returns the PDF bytes.
-// The same bytes are reused by the WhatsApp delivery (mass + on-demand) flows.
-func GeneratePayslipPDF(emp *employee.Employee, rec *Record) ([]byte, error) {
-	v := newPayslipView(emp, rec)
+// epfRec may be nil when no EPF compliance record exists for the employee.
+func GeneratePayslipPDF(emp *employee.Employee, rec *Record, epfRec *epf.Record) ([]byte, error) {
+	v := newPayslipView(emp, rec, epfRec)
 
 	cfg := config.NewBuilder().
 		WithPageSize(pagesize.A4).
@@ -336,7 +346,6 @@ func addFooter(m core.Maroto) {
 }
 
 // GeneratePDF is kept for backward compatibility with callers that only have a payroll Record.
-// It renders the same FORM XIII layout with employee master fields left blank.
 func GeneratePDF(record *Record) ([]byte, error) {
-	return GeneratePayslipPDF(nil, record)
+	return GeneratePayslipPDF(nil, record, nil)
 }
