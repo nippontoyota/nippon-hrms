@@ -40,8 +40,30 @@ export function downloadBlob(blob: Blob, filename: string) {
   const a = document.createElement('a');
   a.href = url;
   a.download = filename;
+  document.body.appendChild(a);
   a.click();
+  document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+/** Download a blob from the API, surfacing JSON error bodies as thrown messages. */
+export async function downloadApiBlob(
+  fetcher: () => Promise<Blob>,
+  filename: string,
+  fallbackError = 'Download failed',
+) {
+  const blob = await fetcher();
+  if (blob.type.includes('json') || blob.type.includes('text/plain')) {
+    const text = await blob.text();
+    try {
+      const err = JSON.parse(text) as { error?: { message?: string }; message?: string };
+      throw new Error(err.error?.message ?? err.message ?? fallbackError);
+    } catch (e) {
+      if (e instanceof Error && e.message !== fallbackError) throw e;
+      throw new Error(text.trim() || fallbackError);
+    }
+  }
+  downloadBlob(blob, filename);
 }
 
 export function exportCsv(filename: string, headers: string[], rows: (string | number)[][]) {

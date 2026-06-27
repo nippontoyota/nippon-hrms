@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { WarningCircle, PaperPlaneTilt, Spinner, CaretLeft, CaretRight, FilePdf, Eye, X, CheckCircle, WhatsappLogo } from '@phosphor-icons/react';
+import { WarningCircle, Spinner, CaretLeft, CaretRight, CheckCircle, WhatsappLogo } from '@phosphor-icons/react';
 import { salaryApi } from '@/api/endpoints';
 import { usePayrollRecords } from '@/api/hooks';
 import { useQueryClient } from '@tanstack/react-query';
@@ -27,9 +27,6 @@ export default function SalaryPage() {
   const [errors, setErrors] = useState<ValidationError[] | null>(null);
   const [dispatching, setDispatching] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
-  
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [loadingPreviewId, setLoadingPreviewId] = useState<string | null>(null);
 
   const qc = useQueryClient();
   const { data: records, isLoading: recordsLoading } = usePayrollRecords(month, year);
@@ -66,6 +63,7 @@ export default function SalaryPage() {
   };
 
   const isDispatched = records?.some(r => r.dispatchedAt) ?? false;
+  const recordCount = records?.length ?? 0;
 
   const handleDispatch = async () => {
     setDispatching(true);
@@ -77,26 +75,6 @@ export default function SalaryPage() {
       toast.error('Failed to trigger dispatch');
     } finally {
       setDispatching(false);
-    }
-  };
-
-  const handlePreview = async (employeeId: string) => {
-    try {
-      setLoadingPreviewId(employeeId);
-      const blob = await salaryApi.previewPayslip(employeeId, month, year);
-      const url = window.URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
-      setPreviewUrl(url);
-    } catch {
-      toast.error('Failed to load payslip preview');
-    } finally {
-      setLoadingPreviewId(null);
-    }
-  };
-
-  const closePreview = () => {
-    if (previewUrl) {
-      window.URL.revokeObjectURL(previewUrl);
-      setPreviewUrl(null);
     }
   };
 
@@ -201,52 +179,27 @@ export default function SalaryPage() {
           <div className="flex-1 flex flex-col">
             <div className="flex items-start gap-3 bg-green-50 border-b border-green-200 p-5 shrink-0">
               <div className="p-2 bg-green-100 rounded-full shrink-0">
-                <FilePdf size={20} weight="fill" className="text-green-600" />
+                <CheckCircle size={20} weight="fill" className="text-green-600" />
               </div>
               <div>
                 <h3 className="text-sm font-bold text-green-800 uppercase tracking-wide">All Systems Go</h3>
                 <p className="text-xs text-green-700 mt-1 leading-relaxed">
-                  Every payroll record for {MONTHS[month - 1]} {year} is valid. You can preview the generated PDFs below before dispatching.
+                  Every payroll record for {MONTHS[month - 1]} {year} is valid and ready to dispatch.
                 </p>
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-0">
-              <table className="w-full text-left whitespace-nowrap">
-                <thead className="bg-slate-50 dark:bg-slate-900 text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 font-mono sticky top-0 border-b border-slate-200 dark:border-slate-700 shadow-sm z-10">
-                  <tr>
-                    <th className="px-5 py-3 font-semibold w-12 text-center">Sl. No.</th>
-                    <th className="px-5 py-3 font-semibold">EMP ID</th>
-                    <th className="px-5 py-3 font-semibold w-full">Name</th>
-                    <th className="px-5 py-3 font-semibold text-right">Net Salary</th>
-                    <th className="px-5 py-3 font-semibold text-center">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="text-xs text-slate-700 dark:text-slate-200 divide-y divide-slate-100">
-                  {records.map((rec, i) => (
-                    <tr key={rec.id} className="hover:bg-slate-50 dark:hover:bg-slate-700 dark:bg-slate-900 transition-colors">
-                      <td className="px-5 py-3 text-slate-400 font-mono text-center">{i + 1}</td>
-                      <td className="px-5 py-3 font-mono font-bold text-slate-900 dark:text-white">{rec.employeeId}</td>
-                      <td className="px-5 py-3 font-semibold">{rec.empNameSnapshot}</td>
-                      <td className="px-5 py-3 font-mono font-bold text-slate-900 dark:text-white text-right">₹{rec.actualFinalAmount?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                      <td className="px-5 py-2 text-center">
-                        <button
-                          onClick={() => handlePreview(rec.employeeId)}
-                          disabled={loadingPreviewId === rec.employeeId}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-500 dark:bg-slate-600 disabled:opacity-50 text-slate-700 dark:text-slate-200 font-bold uppercase tracking-wider text-[10px] border border-slate-200 dark:border-slate-700 rounded transition-colors"
-                        >
-                          {loadingPreviewId === rec.employeeId ? (
-                            <Spinner className="animate-spin" size={14} weight="bold" />
-                          ) : (
-                            <Eye size={14} weight="bold" />
-                          )}
-                          Preview PDF
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="flex-1 flex flex-col items-center justify-center py-16 px-6 text-center">
+              <p className="text-5xl font-black text-slate-900 dark:text-white tabular-nums">{recordCount}</p>
+              <p className="text-sm font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mt-2">
+                employee{recordCount !== 1 ? 's' : ''} ready
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                {MONTHS[month - 1]} {year} payroll validated
+              </p>
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-4 max-w-sm">
+                To preview an individual payslip, use the eye icon in Salary Directory.
+              </p>
             </div>
           </div>
         )}
@@ -256,7 +209,7 @@ export default function SalaryPage() {
           <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
             {isDispatched ? 'Process Completed' : errors?.length === 0 ? 'Ready to process' : 'Action required'}
           </div>
-          
+
           {isDispatched ? (
             <div className="flex items-center gap-2 px-4 py-2.5 bg-green-100 border border-green-200 text-green-800 font-bold uppercase tracking-wider text-[11px] rounded-md">
               <CheckCircle size={18} weight="fill" className="text-green-600" />
@@ -275,33 +228,6 @@ export default function SalaryPage() {
         </div>
       </div>
 
-      {/* PDF Preview Modal */}
-      {previewUrl && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 md:p-8">
-          <div className="bg-white dark:bg-slate-800 rounded shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 shrink-0">
-              <div className="flex items-center gap-2 text-slate-800 dark:text-slate-100">
-                <FilePdf size={20} weight="fill" className="text-red-500" />
-                <h3 className="font-bold uppercase tracking-wider text-sm">Payslip Preview</h3>
-              </div>
-              <button
-                onClick={closePreview}
-                className="p-1.5 text-slate-400 hover:text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-500 dark:bg-slate-600 rounded transition-colors"
-              >
-                <X size={18} weight="bold" />
-              </button>
-            </div>
-            <div className="flex-1 w-full bg-slate-200 dark:bg-slate-600 p-2">
-              <iframe
-                src={previewUrl}
-                className="w-full h-full rounded border border-slate-300 dark:border-slate-600 shadow-inner"
-                title="PDF Preview"
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Confirmation Modal */}
       {isConfirmModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-[2px] p-4">
@@ -313,16 +239,13 @@ export default function SalaryPage() {
               <div>
                 <h3 className="font-bold text-green-900 text-lg uppercase tracking-wide">Confirm Dispatch</h3>
                 <p className="text-sm text-green-700 mt-1 leading-relaxed">
-                  You are about to officially broadcast the {MONTHS[month - 1]} {year} payslips to all {records?.length || 0} employees via WhatsApp.
+                  You are about to send {MONTHS[month - 1]} {year} payslips to all {recordCount} employees via WhatsApp.
                 </p>
               </div>
             </div>
-            <div className="p-5 bg-white dark:bg-slate-800 space-y-4">
+            <div className="p-5 bg-white dark:bg-slate-800">
               <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                This action will instantly send the PDF documents directly to their registered mobile numbers. <strong className="text-slate-900 dark:text-white font-bold">This cannot be undone.</strong>
-              </p>
-              <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                Please ensure you have reviewed the preview PDFs and are ready to finalize the payroll for this period.
+                PDF payslips will be sent directly to each employee&apos;s registered mobile number. <strong className="text-slate-900 dark:text-white font-bold">This cannot be undone.</strong>
               </p>
             </div>
             <div className="p-4 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-3">

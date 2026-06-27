@@ -70,5 +70,6 @@ type Repository interface {
 	ListByPeriod(ctx context.Context, month, year int) ([]Record, error)
 	BulkInsert(ctx context.Context, records []Record) error
 	Delete(ctx context.Context, id string) error
+	DeleteByPeriod(ctx context.Context, month, year int) error
 	MarkAsDispatched(ctx context.Context, month, year int) error
 }
