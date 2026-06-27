@@ -26,7 +26,8 @@ export default function App() {
   }, [isDark]);
 
   return (
-    <QueryClientProvider client={queryClient}>
+    <div className={isDark ? 'dark' : ''}>
+      <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <Toaster
           position="bottom-right"
@@ -98,5 +99,6 @@ export default function App() {
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>
+    </div>
   );
 }

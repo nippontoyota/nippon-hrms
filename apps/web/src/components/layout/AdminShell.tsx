@@ -13,7 +13,8 @@ const sideNav = [
 
 export default function AdminShell() {
   const { clearAuth, isAuthenticated } = useAuthStore();
-  const { isDark, toggleTheme } = useThemeStore();
+  const isDark = useThemeStore((s) => s.isDark);
+  const toggleTheme = useThemeStore((s) => s.toggleTheme);
   const navigate = useNavigate();
   const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -85,7 +86,7 @@ export default function AdminShell() {
           </div>
           <div className="flex items-center gap-4">
             <button
-              onClick={toggleTheme}
+              onClick={() => toggleTheme()}
               className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors cursor-pointer"
               title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
             >
