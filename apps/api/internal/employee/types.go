@@ -13,6 +13,7 @@ type Employee struct {
 	MobileNumber              string    `json:"mobileNo"`
 	Level                     string    `json:"level"`
 	DOJ                       string    `json:"doj"`
+	DOA                       string    `json:"doa"`
 	YearsExperience           float64   `json:"yearsExperience"`
 	Branch                    string    `json:"branch"`
 	Designation               string    `json:"designation"`
@@ -37,6 +38,9 @@ type Employee struct {
 	AccountNumber             string    `json:"accountNumber"`
 	BankBranch                string    `json:"bankBranch"`
 	IFSCCode                  string    `json:"ifscCode"`
+	EPFNumber                 string    `json:"epfNumber"`
+	UAN                       string    `json:"uan"`
+	ESINumber                 string    `json:"esiNumber"`
 	Status                    string    `json:"status"`
 	CreatedAt                 time.Time `json:"createdAt"`
 	UpdatedAt                 time.Time `json:"updatedAt"`
@@ -58,6 +62,8 @@ type Repository interface {
 	VerifyIdentity(ctx context.Context, id, dob string) (*Employee, error)
 	UpdatePhone(ctx context.Context, id, newPhone string) error
 	BulkInsert(ctx context.Context, employees []Employee) error
+	BulkUpdateEPF(ctx context.Context, employees []Employee) error
+	ClearAllEPFFields(ctx context.Context) error
 	Delete(ctx context.Context, id string) error
 	DeleteAll(ctx context.Context) error
 }

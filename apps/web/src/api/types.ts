@@ -102,6 +102,13 @@ export interface PayrollRecord {
   id: string;
   employeeId: string;
   empNameSnapshot: string;
+  department?: string;
+  level?: string;
+  doj?: string;
+  doa?: string;
+  epfNumber?: string;
+  uan?: string;
+  esiNumber?: string;
   leaves: number;
   lop: number;
   days: number;
