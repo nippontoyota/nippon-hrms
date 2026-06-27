@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { WarningCircle, PaperPlaneTilt, Spinner, CaretLeft, CaretRight, FilePdf, Eye, X, CheckCircle, WhatsappLogo } from '@phosphor-icons/react';
+import { WarningCircle, Spinner, CaretLeft, CaretRight, FilePdf, Eye, X, CheckCircle, WhatsappLogo } from '@phosphor-icons/react';
 import { salaryApi } from '@/api/endpoints';
 import { usePayrollRecords } from '@/api/hooks';
 import { useQueryClient } from '@tanstack/react-query';
