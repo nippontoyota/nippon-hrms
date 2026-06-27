@@ -78,6 +78,63 @@ func (h *EmployeeHandler) BulkUpload(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (h *EmployeeHandler) BulkEPFUpload(w http.ResponseWriter, r *http.Request) {
+	defer func() {
+		if rec := recover(); rec != nil {
+			logger.Error("panic in BulkEPFUpload", "panic", rec)
+			respond.JSON(w, http.StatusInternalServerError, respond.Envelope{
+				Success: false,
+				Error:   &respond.APIError{Code: "PANIC", Message: fmt.Sprintf("Server panic: %v", rec)},
+			})
+		}
+	}()
+
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		respond.BadRequest(w, "failed to parse multipart form")
+		return
+	}
+
+	file, _, err := r.FormFile("file")
+	if err != nil {
+		respond.BadRequest(w, "missing 'file' field")
+		return
+	}
+	defer file.Close()
+
+	employees, errs, err := employee.ParseEPFExcel(file)
+	if err != nil {
+		logger.Error("epf excel parsing failed", "err", err.Error())
+		respond.JSON(w, http.StatusUnprocessableEntity, respond.Envelope{
+			Success: false,
+			Error:   &respond.APIError{Code: "PARSE_ERROR", Message: "failed to read excel file: " + err.Error()},
+		})
+		return
+	}
+
+	if len(employees) > 0 {
+		if err := h.repo.BulkUpdateEPF(r.Context(), employees); err != nil {
+			logger.Error("bulk update epf failed", "err", err.Error())
+			respond.JSON(w, http.StatusInternalServerError, respond.Envelope{
+				Success: false,
+				Error:   &respond.APIError{Code: "DB_ERROR", Message: "bulk update epf failed: " + err.Error()},
+			})
+			return
+		}
+	}
+
+	resp := employee.UploadResponse{
+		TotalProcessed: len(employees) + len(errs),
+		SuccessCount:   len(employees),
+		ErrorCount:     len(errs),
+		Errors:         errs,
+	}
+
+	respond.JSON(w, http.StatusOK, respond.Envelope{
+		Success: true,
+		Data:    resp,
+	})
+}
+
 func (h *EmployeeHandler) List(w http.ResponseWriter, r *http.Request) {
 	employees, err := h.repo.List(r.Context())
 	if err != nil {
