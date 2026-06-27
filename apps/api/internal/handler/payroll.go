@@ -4,12 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
 	"github.com/nippon-toyota/hrms/internal/payroll"
 	"github.com/nippon-toyota/hrms/pkg/logger"
 	"github.com/nippon-toyota/hrms/pkg/respond"
+	"github.com/xuri/excelize/v2"
 )
 
 // PayrollHandler provides HTTP endpoints for payroll management.
@@ -168,6 +170,16 @@ func (h *PayrollHandler) BulkUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Delete existing payroll records for this period before inserting new ones (replace behavior)
+	if err := h.repo.DeleteByPeriod(r.Context(), month, year); err != nil {
+		logger.Error("failed to delete existing payroll records for period", "month", month, "year", year, "err", err)
+		respond.JSON(w, http.StatusInternalServerError, respond.Envelope{
+			Success: false,
+			Error:   &respond.APIError{Code: "DB_ERROR", Message: "failed to clear existing payroll data: " + err.Error()},
+		})
+		return
+	}
+
 	if len(records) > 0 {
 		if err := h.repo.BulkInsert(r.Context(), records); err != nil {
 			logger.Error("payroll bulk insert failed", "err", err)
@@ -273,4 +285,99 @@ func (h *PayrollHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respond.OK(w, map[string]string{"message": "payroll record deleted"})
+}
+
+// ExportExcel generates and returns an Excel file with all payroll records for a period.
+func (h *PayrollHandler) ExportExcel(w http.ResponseWriter, r *http.Request) {
+	monthStr := r.URL.Query().Get("month")
+	yearStr := r.URL.Query().Get("year")
+
+	var month, year int
+	fmt.Sscanf(monthStr, "%d", &month)
+	fmt.Sscanf(yearStr, "%d", &year)
+
+	if month < 1 || month > 12 || year < 2000 {
+		respond.BadRequest(w, "invalid month or year query parameters")
+		return
+	}
+
+	records, err := h.repo.ListByPeriod(r.Context(), month, year)
+	if err != nil {
+		logger.Error("failed to list payroll records for export", "err", err)
+		respond.InternalError(w)
+		return
+	}
+	if records == nil {
+		records = []payroll.Record{}
+	}
+	payroll.SortRecordsByEmployeeID(records)
+
+	f := excelize.NewFile()
+	sheet := "Payroll"
+	f.SetSheetName("Sheet1", sheet)
+
+	headers := payroll.ExportHeaders
+
+	// Write headers
+	for i, h := range headers {
+		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
+		f.SetCellValue(sheet, cell, h)
+	}
+
+	// Write data — only payroll fields; UI columns like Preview are never exported
+	for rowIdx, rec := range records {
+		row := rowIdx + 2
+		for colIdx, val := range payroll.RecordToExportValues(rec) {
+			cell, _ := excelize.CoordinatesToCellName(colIdx+1, row)
+			f.SetCellValue(sheet, cell, val)
+		}
+	}
+
+	// Auto-size columns
+	for i := range headers {
+		col, _ := excelize.ColumnNumberToName(i + 1)
+		f.SetColWidth(sheet, col, col, 18)
+	}
+
+	timestamp := time.Now().Format("2006-01-02_15-04-05")
+	filename := fmt.Sprintf("SalaryDirectory_%s.xlsx", timestamp)
+
+	w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
+
+	if err := f.Write(w); err != nil {
+		logger.Error("failed to write excel file", "err", err)
+	}
+}
+
+// DownloadTemplate returns a CSV file with only column headers (no data).
+func (h *PayrollHandler) DownloadTemplate(w http.ResponseWriter, r *http.Request) {
+	monthStr := r.URL.Query().Get("month")
+	yearStr := r.URL.Query().Get("year")
+
+	var month, year int
+	fmt.Sscanf(monthStr, "%d", &month)
+	fmt.Sscanf(yearStr, "%d", &year)
+
+	if month < 1 || month > 12 || year < 2000 {
+		respond.BadRequest(w, "invalid month or year query parameters")
+		return
+	}
+
+	headers := payroll.ExportHeaders
+
+	timestamp := time.Now().Format("2006-01-02_15-04-05")
+	filename := fmt.Sprintf("SalaryDirectory_Template_%s.csv", timestamp)
+
+	w.Header().Set("Content-Type", "text/csv")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
+
+	// Write headers only — UI columns like Preview are never included
+	for i, h := range headers {
+		if i > 0 {
+			w.Write([]byte(","))
+		}
+		w.Write([]byte(h))
+	}
+	w.Write([]byte("\n"))
 }

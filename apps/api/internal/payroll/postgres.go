@@ -216,3 +216,8 @@ func (r *PostgresRepository) MarkAsDispatched(ctx context.Context, month, year i
 	_, err := r.db.Exec(ctx, "UPDATE payroll_records SET dispatched_at = CURRENT_TIMESTAMP WHERE month = $1 AND year = $2", month, year)
 	return err
 }
+
+func (r *PostgresRepository) DeleteByPeriod(ctx context.Context, month, year int) error {
+	_, err := r.db.Exec(ctx, "DELETE FROM payroll_records WHERE month = $1 AND year = $2", month, year)
+	return err
+}

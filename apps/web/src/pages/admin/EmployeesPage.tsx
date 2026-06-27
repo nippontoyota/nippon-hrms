@@ -4,9 +4,11 @@ import { Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { employeesApi, useEmployees, useDeleteEmployee } from '@/api/hooks';
 import { Employee } from '@/api/types';
-import { MagnifyingGlass, MicrosoftExcelLogo, Plus, PencilSimple, Trash, ArrowUp, ArrowDown, ArrowsDownUp, WhatsappLogo, FloppyDisk } from '@phosphor-icons/react';
+import { MagnifyingGlass, MicrosoftExcelLogo, Plus, PencilSimple, Trash, ArrowUp, ArrowDown, ArrowsDownUp, WhatsappLogo, FloppyDisk, DownloadSimple, FileCsv } from '@phosphor-icons/react';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import SendPayslipModal from '@/components/SendPayslipModal';
+import { downloadApiBlob, exportCsv } from '@/lib/format';
+import { EMPLOYEE_DIRECTORY_HEADERS } from '@/lib/exportColumns';
 
 type SortKey = 'employeeId' | 'name' | 'department' | 'doj' | 'branch' | 'designation';
 type SortDir = 'asc' | 'desc';
@@ -169,6 +171,26 @@ export default function EmployeesPage() {
     e.target.value = '';
   };
 
+  const handleExportExcel = async () => {
+    try {
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-').replace('T', '_');
+      await downloadApiBlob(
+        () => employeesApi.exportExcel(),
+        `EmployeeDirectory_${timestamp}.xlsx`,
+        'Failed to export to Excel',
+      );
+      toast.success('Employee directory exported to Excel');
+    } catch {
+      toast.error('Failed to export to Excel');
+    }
+  };
+
+  const handleDownloadTemplate = () => {
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-').replace('T', '_');
+    exportCsv(`EmployeeDirectory_Template_${timestamp}.csv`, [...EMPLOYEE_DIRECTORY_HEADERS], []);
+    toast.success('Template downloaded');
+  };
+
   const handleBulkDelete = () => {
     if (selectedIds.size === 0) return;
     openConfirm(
@@ -279,12 +301,22 @@ export default function EmployeesPage() {
                   <Trash size={16} weight="bold" /> Delete Selected ({selectedIds.size})
                 </button>
               )}
-              {(!employees || employees.length === 0) && (
-                <label className="btn-success btn-sm !px-4 !py-2 bg-green-700 hover:bg-green-800 text-white border-green-800 cursor-pointer flex items-center gap-2">
-                  <MicrosoftExcelLogo size={16} weight="bold" /> Import from Excel
-                  <input type="file" className="hidden" accept=".xlsx,.xls" onChange={handleFileUpload} />
-                </label>
-              )}
+              <label className="btn-success btn-sm !px-4 !py-2 bg-green-700 hover:bg-green-800 text-white border-green-800 cursor-pointer flex items-center gap-2">
+                <MicrosoftExcelLogo size={16} weight="bold" /> Import from Excel
+                <input type="file" className="hidden" accept=".xlsx,.xls" onChange={handleFileUpload} />
+              </label>
+              <button 
+                onClick={handleDownloadTemplate}
+                className="btn-sm !px-4 !py-2 bg-blue-700 hover:bg-blue-800 text-white border border-blue-800 cursor-pointer flex items-center gap-2 transition-colors"
+              >
+                <FileCsv size={16} weight="bold" /> Download Template
+              </button>
+              <button 
+                onClick={handleExportExcel}
+                className="btn-sm !px-4 !py-2 bg-purple-700 hover:bg-purple-800 text-white border border-purple-800 cursor-pointer flex items-center gap-2 transition-colors"
+              >
+                <DownloadSimple size={16} weight="bold" /> Export to Excel
+              </button>
               <Link to="/admin/employees/new" className="btn-primary btn-sm !px-4 !py-2">
                 <Plus size={16} weight="bold" /> Add Employee
               </Link>
