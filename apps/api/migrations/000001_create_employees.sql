@@ -1,21 +1,56 @@
--- 000001_create_employees_table.up.sql
+-- Enable UUID extension if not enabled
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
-CREATE TABLE employees (
-    id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    employee_code VARCHAR(20)  UNIQUE NOT NULL,
-    first_name    VARCHAR(100) NOT NULL,
-    last_name     VARCHAR(100) NOT NULL,
-    email         VARCHAR(255) UNIQUE NOT NULL,
-    phone         VARCHAR(20)  NOT NULL,
-    department    VARCHAR(100) NOT NULL,
-    designation   VARCHAR(100) NOT NULL,
-    status        VARCHAR(20)  NOT NULL DEFAULT 'active'
-                      CHECK (status IN ('active','inactive','on_leave')),
-    joined_at     DATE         NOT NULL,
-    created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-    updated_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+-- ─── EMPLOYEES (Master Data) ──────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS employees (
+    -- Profile
+    id VARCHAR(50) PRIMARY KEY, -- Maps to 'EMP ID'
+    name VARCHAR(255) NOT NULL,
+    department VARCHAR(255),
+    mobile_number VARCHAR(20) UNIQUE NOT NULL,
+    emp_level VARCHAR(50),
+    doj DATE,
+    doa DATE,
+    years_experience FLOAT,
+    branch VARCHAR(255),
+    designation VARCHAR(255),
+    zone VARCHAR(100),
+
+    -- Statutory IDs
+    epf_number VARCHAR(100),
+    uan VARCHAR(100),
+    esi_number VARCHAR(100),
+
+    -- Fixed Salary Structure
+    basic FLOAT DEFAULT 0,
+    da FLOAT DEFAULT 0,
+    revised_basic_da FLOAT DEFAULT 0,
+    hra FLOAT DEFAULT 0,
+    travel FLOAT DEFAULT 0,
+    hostel FLOAT DEFAULT 0,
+    children FLOAT DEFAULT 0,
+    total_salary FLOAT DEFAULT 0,
+    mobile FLOAT DEFAULT 0,
+    conveyance FLOAT DEFAULT 0,
+    wash_allowance FLOAT DEFAULT 0,
+    branch_allowance FLOAT DEFAULT 0,
+    special_allowance FLOAT DEFAULT 0,
+    training FLOAT DEFAULT 0,
+    total_allowances FLOAT DEFAULT 0,
+    total_salary_with_allowances FLOAT DEFAULT 0,
+
+    -- Banking Details
+    bank_name VARCHAR(255),
+    account_number VARCHAR(100),
+    bank_branch VARCHAR(255),
+    ifsc_code VARCHAR(50),
+
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_employees_status ON employees(status);
-CREATE INDEX idx_employees_phone  ON employees(phone);
+-- Indexes for fast lookup
+CREATE INDEX idx_employees_mobile ON employees(mobile_number);
+CREATE INDEX idx_employees_epf ON employees(epf_number);
+CREATE INDEX idx_employees_uan ON employees(uan);
+CREATE INDEX idx_employees_esi ON employees(esi_number);

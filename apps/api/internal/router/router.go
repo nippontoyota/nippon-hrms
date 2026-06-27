@@ -61,6 +61,7 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 				r.Get("/", employeeH.List)
 				r.Post("/", employeeH.Create)
 				r.Post("/upload", employeeH.BulkUpload)
+				r.Post("/epf-upload", employeeH.BulkEPFUpload)
 				r.Get("/export", employeeH.ExportExcel)
 				r.Get("/template", employeeH.DownloadTemplate)
 				r.Get("/{id}", employeeH.GetByID)
@@ -68,7 +69,7 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 				r.Delete("/{id}", employeeH.Delete)
 			})
 
-r.Route("/payroll", func(r chi.Router) {
+			r.Route("/payroll", func(r chi.Router) {
 				r.Get("/list", payrollH.List)
 				r.Post("/upload", payrollH.BulkUpload)
 				r.Post("/upload-preview", payrollH.BulkPreview)

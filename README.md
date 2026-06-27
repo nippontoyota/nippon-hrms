@@ -57,7 +57,7 @@ air                   # http://localhost:8080  (live-reload)
 | Frontend | `apps/web/` | `fe/` |
 | Backend | `apps/api/` | `be/` |
 
-Pull requests must target `develop`. `main` is protected.
+Pull requests target `main`. `main` is protected.
 
 ---
 

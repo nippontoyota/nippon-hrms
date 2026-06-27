@@ -4,18 +4,18 @@ import { persist } from 'zustand/middleware';
 interface ThemeState {
   isDark: boolean;
   toggleTheme: () => void;
+  setTheme: (isDark: boolean) => void;
 }
 
 export const useThemeStore = create<ThemeState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       isDark: false,
-
-      toggleTheme: () => set({ isDark: !get().isDark }),
+      toggleTheme: () => set((state) => ({ isDark: !state.isDark })),
+      setTheme: (isDark) => set({ isDark }),
     }),
     {
-      name: 'payslip-portal-theme',
-      partialize: (state) => ({ isDark: state.isDark }),
-    },
-  ),
+      name: 'nippon-theme',
+    }
+  )
 );

@@ -60,18 +60,26 @@ func (r *PostgresRepository) GetPayslip(ctx context.Context, employeeID string, 
 func (r *PostgresRepository) ListByPeriod(ctx context.Context, month, year int) ([]Record, error) {
 	query := `
 		SELECT 
-			id, employee_id, month, year, emp_name_snapshot, leaves, lop, days, absents,
-			basic, da, basic_da, hra, travel, children_hostel, children_education,
-			mobile, conveyance, branch_allowance, wash_allowance, special_allowance,
-			training, incentive, total_ear_with_incen, gross_sal_without_incentives,
-			gross_for_pt, pf, pf_3_67, pf_8_33, esi_0_75, esi_3_25, tds, sal_adv,
-			additional_deduction, loan, advance, lop_deduction,
-			company_statutory_contribution, reimb_medical, reimb_lta, zeta_meal_voucher,
-			reimb_travel, total_reimbursement, epf_er, net_incentive, total_deductions,
-			actual_final_amount, created_at, dispatched_at
-		FROM payroll_records
-		WHERE month = $1 AND year = $2
-		ORDER BY employee_id
+			pr.id, pr.employee_id, pr.month, pr.year, pr.emp_name_snapshot, pr.leaves, pr.lop, pr.days, pr.absents,
+			pr.basic, pr.da, pr.basic_da, pr.hra, pr.travel, pr.children_hostel, pr.children_education,
+			pr.mobile, pr.conveyance, pr.branch_allowance, pr.wash_allowance, pr.special_allowance,
+			pr.training, pr.incentive, pr.total_ear_with_incen, pr.gross_sal_without_incentives,
+			pr.gross_for_pt, pr.pf, pr.pf_3_67, pr.pf_8_33, pr.esi_0_75, pr.esi_3_25, pr.tds, pr.sal_adv,
+			pr.additional_deduction, pr.loan, pr.advance, pr.lop_deduction,
+			pr.company_statutory_contribution, pr.reimb_medical, pr.reimb_lta, pr.zeta_meal_voucher,
+			pr.reimb_travel, pr.total_reimbursement, pr.epf_er, pr.net_incentive, pr.total_deductions,
+			pr.actual_final_amount, pr.created_at, pr.dispatched_at,
+			COALESCE(e.department, '') as department,
+			COALESCE(e.emp_level, '') as level,
+			COALESCE(to_char(e.doj, 'YYYY-MM-DD'), '') as doj,
+			COALESCE(to_char(e.doa, 'YYYY-MM-DD'), '') as doa,
+			COALESCE(e.epf_number, '') as epf_number,
+			COALESCE(e.uan, '') as uan,
+			COALESCE(e.esi_number, '') as esi_number
+		FROM payroll_records pr
+		LEFT JOIN employees e ON pr.employee_id = e.id
+		WHERE pr.month = $1 AND pr.year = $2
+		ORDER BY pr.employee_id
 	`
 
 	rows, err := r.db.Query(ctx, query, month, year)
@@ -94,6 +102,7 @@ func (r *PostgresRepository) ListByPeriod(ctx context.Context, month, year int) 
 			&rec.CompanyStatutoryContribution, &rec.ReimbMedical, &rec.ReimbLTA, &rec.ZetaMealVoucher,
 			&rec.ReimbTravel, &rec.TotalReimbursement, &rec.EPFER, &rec.NetIncentive,
 			&rec.TotalDeductions, &rec.ActualFinalAmount, &rec.CreatedAt, &rec.DispatchedAt,
+			&rec.Department, &rec.Level, &rec.DOJ, &rec.DOA, &rec.EPFNumber, &rec.UAN, &rec.ESINumber,
 		); err != nil {
 			return nil, fmt.Errorf("scan error: %w", err)
 		}
