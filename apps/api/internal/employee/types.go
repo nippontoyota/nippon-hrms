@@ -13,6 +13,7 @@ type Employee struct {
 	MobileNumber              string    `json:"mobileNo"`
 	Level                     string    `json:"level"`
 	DOJ                       string    `json:"doj"`
+	DOA                       string    `json:"doa"`
 	YearsExperience           float64   `json:"yearsExperience"`
 	Branch                    string    `json:"branch"`
 	Designation               string    `json:"designation"`
@@ -37,6 +38,9 @@ type Employee struct {
 	AccountNumber             string    `json:"accountNumber"`
 	BankBranch                string    `json:"bankBranch"`
 	IFSCCode                  string    `json:"ifscCode"`
+	EPFNumber                 string    `json:"epfNumber"`
+	UAN                       string    `json:"uan"`
+	ESINumber                 string    `json:"esiNumber"`
 	Status                    string    `json:"status"`
 	CreatedAt                 time.Time `json:"createdAt"`
 	UpdatedAt                 time.Time `json:"updatedAt"`

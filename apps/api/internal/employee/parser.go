@@ -40,8 +40,8 @@ func ParseExcel(r io.Reader) ([]Employee, []string, error) {
 			continue // Skip header
 		}
 
-		// Pad row to 30 columns to handle trailing empty cells
-		for len(row) < 30 {
+		// Pad row to 34 columns to handle trailing empty cells (added EPF fields)
+		for len(row) < 34 {
 			row = append(row, "")
 		}
 
@@ -82,6 +82,10 @@ func ParseExcel(r io.Reader) ([]Employee, []string, error) {
 			BankBranch:                strings.TrimSpace(row[27]),
 			IFSCCode:                  strings.TrimSpace(row[28]),
 			Zone:                      strings.TrimSpace(row[29]),
+			DOA:                       strings.TrimSpace(row[30]),
+			EPFNumber:                 strings.TrimSpace(row[31]),
+			UAN:                       strings.TrimSpace(row[32]),
+			ESINumber:                 strings.TrimSpace(row[33]),
 			CreatedAt:                 time.Now(),
 			UpdatedAt:                 time.Now(),
 		})
