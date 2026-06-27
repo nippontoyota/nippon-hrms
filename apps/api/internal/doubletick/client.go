@@ -9,12 +9,13 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/textproto"
+	"strings"
 	"time"
 )
 
 const (
 	defaultBaseURL = "https://public.doubletick.io"
-	defaultTimeout = 15 * time.Second
+	defaultTimeout = 45 * time.Second
 )
 
 type Client struct {
@@ -53,13 +54,25 @@ func NewClient(cfg Config) *Client {
 
 func (c *Client) SendText(ctx context.Context, to, text string) (*Response, error) {
 	body := TextRequest{
-		Messages: []TextMessage{{
-			Content: TextContent{Text: text},
-			From:    c.fromNumber,
-			To:      to,
-		}},
+		From:    c.fromNumber,
+		To:      to,
+		Content: TextContent{Text: text},
 	}
 	return c.do(ctx, http.MethodPost, "/whatsapp/message/text", body)
+}
+
+// MarkMessageRead marks an inbound customer message as read (blue ticks) when a wamid is available.
+func (c *Client) MarkMessageRead(ctx context.Context, customerPhone, whatsAppMessageID string) error {
+	if whatsAppMessageID == "" || !strings.HasPrefix(whatsAppMessageID, "wamid.") {
+		return nil
+	}
+	body := MarkReadRequest{
+		From:      c.fromNumber,
+		To:        customerPhone,
+		MessageID: whatsAppMessageID,
+	}
+	_, err := c.do(ctx, http.MethodPost, "/whatsapp/message/read", body)
+	return err
 }
 
 func (c *Client) SendTemplate(
@@ -93,6 +106,45 @@ func (c *Client) SendDocument(ctx context.Context, to, mediaURL, filename, capti
 		},
 	}
 	return c.do(ctx, http.MethodPost, "/whatsapp/message/document", body)
+}
+
+// SendInteractiveButtons sends a WhatsApp interactive button message.
+func (c *Client) SendInteractiveButtons(
+	ctx context.Context,
+	to, header, body, footer string,
+	buttons []InteractiveButton,
+) (*Response, error) {
+	req := InteractiveButtonRequest{
+		From: c.fromNumber,
+		To:   to,
+		Content: InteractiveButtonContent{
+			Header:  header,
+			Body:    body,
+			Footer:  footer,
+			Buttons: buttons,
+		},
+	}
+	return c.do(ctx, http.MethodPost, "/whatsapp/message/interactive", req)
+}
+
+// SendInteractiveList sends a WhatsApp interactive list message.
+func (c *Client) SendInteractiveList(
+	ctx context.Context,
+	to, header, body, footer, buttonLabel string,
+	sections []InteractiveListSection,
+) (*Response, error) {
+	req := InteractiveListRequest{
+		From: c.fromNumber,
+		To:   to,
+		Content: InteractiveListContent{
+			Header:   header,
+			Body:     body,
+			Footer:   footer,
+			Button:   buttonLabel,
+			Sections: sections,
+		},
+	}
+	return c.do(ctx, http.MethodPost, "/whatsapp/message/interactive-list", req)
 }
 
 // UploadMedia uploads a file to DoubleTick and returns a hosted media URL usable in a document message.

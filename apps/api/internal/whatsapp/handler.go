@@ -5,7 +5,6 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"io"
 	"log/slog"
 	"net/http"
@@ -50,14 +49,17 @@ func (h *Handler) Webhook(w http.ResponseWriter, r *http.Request) {
 	respond.OK(w, map[string]string{"status": "received"})
 
 	go func() {
-		var wh doubletick.Webhook
-		if err := json.Unmarshal(raw, &wh); err != nil {
+		wh, process, err := doubletick.ParseWebhook(raw)
+		if err != nil {
 			slog.Error("whatsapp webhook: decode", "err", err, "raw", string(raw))
+			return
+		}
+		if !process {
 			return
 		}
 
 		ctx := context.Background()
-		if err := h.service.HandleWebhook(ctx, &wh); err != nil {
+		if err := h.service.HandleWebhook(ctx, wh); err != nil {
 			slog.Error("whatsapp webhook: handle", "err", err)
 		}
 	}()

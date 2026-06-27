@@ -57,6 +57,31 @@ func (r *PostgresRepository) GetPayslip(ctx context.Context, employeeID string, 
 	return &rec, nil
 }
 
+func (r *PostgresRepository) ListPeriodsByEmployee(ctx context.Context, employeeID string) ([]Period, error) {
+	query := `
+		SELECT DISTINCT month, year
+		FROM payroll_records
+		WHERE employee_id = $1
+		ORDER BY year DESC, month DESC
+		LIMIT 12
+	`
+	rows, err := r.db.Query(ctx, query, employeeID)
+	if err != nil {
+		return nil, fmt.Errorf("list periods: %w", err)
+	}
+	defer rows.Close()
+
+	var periods []Period
+	for rows.Next() {
+		var p Period
+		if err := rows.Scan(&p.Month, &p.Year); err != nil {
+			return nil, fmt.Errorf("scan period: %w", err)
+		}
+		periods = append(periods, p)
+	}
+	return periods, rows.Err()
+}
+
 func (r *PostgresRepository) ListByPeriod(ctx context.Context, month, year int) ([]Record, error) {
 	query := `
 		SELECT 

@@ -7,6 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/nippon-toyota/hrms/pkg/phone"
 )
 
 type PostgresRepository struct {
@@ -17,7 +18,11 @@ func NewPostgresRepository(db *pgxpool.Pool) *PostgresRepository {
 	return &PostgresRepository{db: db}
 }
 
-func (r *PostgresRepository) FindByPhone(ctx context.Context, phone string) (*Employee, error) {
+func (r *PostgresRepository) FindByPhone(ctx context.Context, rawPhone string) (*Employee, error) {
+	normalized := phone.NormalizeIndian(rawPhone)
+	if normalized == "" {
+		return nil, fmt.Errorf("employee not found")
+	}
 	query := `
 		SELECT 
 			id, name, COALESCE(department, ''), mobile_number, COALESCE(emp_level, ''),
@@ -29,10 +34,11 @@ func (r *PostgresRepository) FindByPhone(ctx context.Context, phone string) (*Em
 			total_salary_with_allowances, COALESCE(bank_name, ''), COALESCE(account_number, ''),
 			COALESCE(bank_branch, ''), COALESCE(ifsc_code, ''), created_at, updated_at
 		FROM employees
-		WHERE mobile_number = $1 LIMIT 1
+		WHERE RIGHT(REGEXP_REPLACE(mobile_number, '[^0-9]', '', 'g'), 10) = $1
+		LIMIT 1
 	`
 	var e Employee
-	err := r.db.QueryRow(ctx, query, phone).Scan(
+	err := r.db.QueryRow(ctx, query, normalized).Scan(
 		&e.ID, &e.Name, &e.Department, &e.MobileNumber, &e.Level, &e.DOJ, &e.YearsExperience,
 		&e.Branch, &e.Designation, &e.Zone, &e.Basic, &e.DA, &e.RevisedBasicDA, &e.HRA, &e.Travel,
 		&e.Hostel, &e.Children, &e.TotalSalary, &e.Mobile, &e.Conveyance, &e.WashAllowance,

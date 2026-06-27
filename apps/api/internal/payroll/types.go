@@ -57,6 +57,11 @@ type Record struct {
 	DispatchedAt                 *time.Time `json:"dispatchedAt"`
 }
 
+type Period struct {
+	Month int `json:"month"`
+	Year  int `json:"year"`
+}
+
 type UploadResponse struct {
 	TotalProcessed int      `json:"totalProcessed"`
 	SuccessCount   int      `json:"successCount"`
@@ -67,6 +72,7 @@ type UploadResponse struct {
 type Repository interface {
 	GetPayslip(ctx context.Context, employeeID string, month, year int) (*Record, error)
 
+	ListPeriodsByEmployee(ctx context.Context, employeeID string) ([]Period, error)
 	ListByPeriod(ctx context.Context, month, year int) ([]Record, error)
 	BulkInsert(ctx context.Context, records []Record) error
 	Delete(ctx context.Context, id string) error
