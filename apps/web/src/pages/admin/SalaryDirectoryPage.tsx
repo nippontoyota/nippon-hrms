@@ -377,8 +377,8 @@ export default function SalaryDirectoryPage() {
                   <Th col="reimbTravel" className="text-right">Reimbursement of Travel Expences</Th>
                   <Th col="totalReimbursement" className="text-right font-bold">Total Reimbursement</Th>
                   <Th col="netIncentive" className="text-right">Net Incentive</Th>
-                  <Th col="totalDeductions" className="text-right font-bold text-red-700 bg-red-50">Total Deductions</Th>
-                  <Th col="actualFinalAmount" className="text-right font-black text-green-700 bg-green-50 text-base">Actual Final Amount</Th>
+                  <Th col="totalDeductions" className="text-right font-bold !text-red-700 dark:!text-red-400 !bg-red-50 dark:!bg-red-950">Total Deductions</Th>
+                  <Th col="actualFinalAmount" className="text-right font-black !text-green-700 dark:!text-green-400 !bg-green-50 dark:!bg-green-950 text-sm">Actual Final Amount</Th>
                   <Th col="lopDeduction" className="text-right">LOP.1</Th>
                   <Th col="epfER" className="text-right">EPF ER</Th>
                   <Th col="grossForPT" className="text-right">Gross for PT</Th>
@@ -439,8 +439,8 @@ export default function SalaryDirectoryPage() {
                     <td className="text-right font-mono">{r.reimbTravel?.toFixed(2) || '0.00'}</td>
                     <td className="text-right font-mono font-bold">{r.totalReimbursement?.toFixed(2) || '0.00'}</td>
                     <td className="text-right font-mono">{r.netIncentive?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono font-bold text-red-700 bg-red-50">{r.totalDeductions?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono font-black text-green-700 bg-green-50 text-base">{r.actualFinalAmount?.toFixed(2) || '0.00'}</td>
+                    <td className="text-right font-mono font-bold !text-red-700 dark:!text-red-400 !bg-red-50 dark:!bg-red-950">{r.totalDeductions?.toFixed(2) || '0.00'}</td>
+                    <td className="text-right font-mono font-black !text-green-700 dark:!text-green-400 !bg-green-50 dark:!bg-green-950 text-sm">{r.actualFinalAmount?.toFixed(2) || '0.00'}</td>
                     <td className="text-right font-mono">{r.lopDeduction?.toFixed(2) || '0.00'}</td>
                     <td className="text-right font-mono">{r.epfER?.toFixed(2) || '0.00'}</td>
                     <td className="text-right font-mono">{r.grossForPT?.toFixed(2) || '0.00'}</td>
