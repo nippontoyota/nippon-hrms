@@ -55,7 +55,7 @@ export const seedAttendancePeriods: AttendancePeriod[] = [
     id: 'att-period-1',
     year: now.getFullYear(),
     month: now.getMonth() + 1,
-    recordCount: 16,
+    recordCount: 17,
     uploadedAt: '2026-06-05T09:00:00Z',
   },
 ];
@@ -156,6 +156,16 @@ export const seedDispatchLogs: DispatchLogEntry[] = [
     whatsappMessageId: 'wamid-002',
     sentAt: '2026-06-02T10:06:00Z',
   },
+  {
+    id: 'dl-3',
+    employeeId: '9001',
+    employeeName: 'Krishnanand G',
+    month: now.getMonth() + 1,
+    year: now.getFullYear(),
+    status: 'Sent',
+    whatsappMessageId: 'wamid-003',
+    sentAt: '2026-06-02T10:07:00Z',
+  },
 ];
 
 export const seedDispatchJobs: DispatchJob[] = [
@@ -165,8 +175,8 @@ export const seedDispatchJobs: DispatchJob[] = [
     year: now.getFullYear(),
     month: now.getMonth() + 1,
     status: 'COMPLETED',
-    total: 16,
-    sent: 14,
+    total: 17,
+    sent: 15,
     failed: 0,
     skipped: 2,
     items: [],

@@ -10,7 +10,10 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/textproto"
+	"strings"
 	"time"
+
+	"github.com/nippon-toyota/hrms/pkg/phone"
 )
 
 const (
@@ -57,10 +60,32 @@ func (c *Client) Configured() bool {
 	return c != nil && c.apiKey != "" && c.fromNumber != ""
 }
 
+func (c *Client) formatFrom() string {
+	return formatDoubleTickPhone(c.fromNumber)
+}
+
+func (c *Client) formatTo(to string) string {
+	return formatDoubleTickPhone(to)
+}
+
+func formatDoubleTickPhone(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return ""
+	}
+	if strings.HasPrefix(raw, "+") {
+		return raw
+	}
+	if e164 := phone.FormatWhatsAppE164(raw); e164 != "" {
+		return e164
+	}
+	return raw
+}
+
 func (c *Client) SendText(ctx context.Context, to, text string) (*Response, error) {
 	body := TextRequest{
-		From:    c.fromNumber,
-		To:      to,
+		From:    c.formatFrom(),
+		To:      c.formatTo(to),
 		Content: TextContent{Text: text},
 	}
 	return c.do(ctx, http.MethodPost, "/whatsapp/message/text", body)
@@ -72,8 +97,8 @@ func (c *Client) MarkMessageRead(ctx context.Context, customerPhone, whatsAppMes
 		return nil
 	}
 	body := MarkReadRequest{
-		From:      c.fromNumber,
-		To:        customerPhone,
+		From:      c.formatFrom(),
+		To:        c.formatTo(customerPhone),
 		MessageID: whatsAppMessageID,
 	}
 	_, err := c.do(ctx, http.MethodPost, "/whatsapp/message/read", body)
@@ -102,8 +127,8 @@ func (c *Client) SendTemplate(
 // SendDocument sends a WhatsApp document message pointing at a hosted media URL.
 func (c *Client) SendDocument(ctx context.Context, to, mediaURL, filename, caption string) (*Response, error) {
 	body := DocumentRequest{
-		From: c.fromNumber,
-		To:   to,
+		From: c.formatFrom(),
+		To:   c.formatTo(to),
 		Content: DocumentContent{
 			MediaURL: mediaURL,
 			Filename: filename,
@@ -120,8 +145,8 @@ func (c *Client) SendInteractiveButtons(
 	buttons []InteractiveButton,
 ) (*Response, error) {
 	req := InteractiveButtonRequest{
-		From: c.fromNumber,
-		To:   to,
+		From: c.formatFrom(),
+		To:   c.formatTo(to),
 		Content: InteractiveButtonContent{
 			Header:  header,
 			Body:    body,
@@ -139,8 +164,8 @@ func (c *Client) SendInteractiveList(
 	sections []InteractiveListSection,
 ) (*Response, error) {
 	req := InteractiveListRequest{
-		From: c.fromNumber,
-		To:   to,
+		From: c.formatFrom(),
+		To:   c.formatTo(to),
 		Content: InteractiveListContent{
 			Header:   header,
 			Body:     body,

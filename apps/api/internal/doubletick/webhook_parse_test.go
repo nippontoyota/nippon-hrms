@@ -61,3 +61,48 @@ func TestParseWebhook_legacyEnvelope(t *testing.T) {
 		t.Fatalf("body = %q", wh.Data.Body())
 	}
 }
+
+func TestParseWebhook_metaCloudText(t *testing.T) {
+	raw := []byte(`{"object":"whatsapp_business_account","entry":[{"changes":[{"value":{"messaging_product":"whatsapp","metadata":{"display_phone_number":"917594086900","phone_number_id":"1221328421060461"},"contacts":[{"wa_id":"918590215315"}],"messages":[{"from":"918590215315","id":"wamid.test","timestamp":"1782549903","type":"text","text":{"body":"Hi"}}]},"field":"messages"}]}]}`)
+
+	wh, ok, err := ParseWebhook(raw)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !ok || wh == nil {
+		t.Fatal("expected inbound webhook")
+	}
+	if wh.Data.From != "+918590215315" {
+		t.Fatalf("from = %q", wh.Data.From)
+	}
+	if wh.Data.Body() != "Hi" {
+		t.Fatalf("body = %q", wh.Data.Body())
+	}
+}
+
+func TestParseWebhook_metaCloudStatusIgnored(t *testing.T) {
+	raw := []byte(`{"object":"whatsapp_business_account","entry":[{"changes":[{"value":{"messaging_product":"whatsapp","metadata":{"display_phone_number":"917594086900"},"statuses":[{"id":"wamid.x","status":"delivered","timestamp":"1782549903"}]},"field":"messages"}]}]}`)
+
+	_, ok, err := ParseWebhook(raw)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if ok {
+		t.Fatal("expected meta status webhook to be ignored")
+	}
+}
+
+func TestParseWebhook_docsFormatTextNoType(t *testing.T) {
+	raw := []byte(`{"to":"917594086900","from":"918590215315","messageId":"abc","message":{"text":"hi"}}`)
+
+	wh, ok, err := ParseWebhook(raw)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !ok || wh == nil {
+		t.Fatal("expected inbound webhook")
+	}
+	if wh.Data.Body() != "hi" {
+		t.Fatalf("body = %q", wh.Data.Body())
+	}
+}

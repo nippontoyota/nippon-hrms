@@ -2,10 +2,18 @@ const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
 
-const mdPath = path.join(__dirname, 'getting-started-simple.md');
+const mdArg = process.argv[2];
+const pdfArg = process.argv[3];
+const mdBase = mdArg ? path.basename(mdArg, path.extname(mdArg)) : 'getting-started-simple';
+const mdPath = mdArg ? path.resolve(mdArg) : path.join(__dirname, 'getting-started-simple.md');
 const cssPath = path.join(__dirname, 'pdf-styles.css');
-const htmlPath = path.join(__dirname, 'getting-started-simple.html');
-const pdfPath = 'E:\\PayslipPortal-How-To-Run.pdf';
+const htmlPath = path.join(__dirname, `${mdBase}.html`);
+const pdfPath = pdfArg
+  ? path.resolve(pdfArg)
+  : 'E:\\PayslipPortal-How-To-Run.pdf';
+const docTitle = mdBase.includes('hosting')
+  ? 'Nippon Toyota Payslip Portal: How to Host Online'
+  : 'Nippon Toyota Payslip Portal: How to Run Everything';
 
 const md = fs.readFileSync(mdPath, 'utf8');
 const css = fs.readFileSync(cssPath, 'utf8');
@@ -139,7 +147,7 @@ const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Nippon Toyota Payslip Portal — How to Run Everything</title>
+  <title>${docTitle}</title>
   <style>${css}</style>
 </head>
 <body>

@@ -36,14 +36,32 @@ func shouldSkipInboundEcho(input, msgType string) bool {
 }
 
 // isInteractiveMenuEcho detects text echoes of interactive button/list replies.
-// WhatsApp often echoes the full multi-line body (welcome + button label), not just "Generate Pay".
+// WhatsApp often echoes the full multi-line body (welcome + option label), not just the selection.
 func isInteractiveMenuEcho(input string) bool {
 	lower := strings.ToLower(strings.TrimSpace(input))
 	if lower == "generate pay" || input == payloadGeneratePay {
 		return true
 	}
+	if lower == "request salary slip" || lower == "salary slip" || input == payloadRequestSalary {
+		return true
+	}
+	if lower == "request leave" || input == payloadRequestLeave {
+		return true
+	}
+	if strings.Contains(lower, "nippon hr connect") && strings.Contains(lower, "please tap a button") {
+		return true
+	}
 	if strings.Contains(lower, "generate pay") &&
-		(strings.Contains(lower, "payslip") || strings.Contains(lower, "nippon toyota")) {
+		(strings.Contains(lower, "payslip") || strings.Contains(lower, "nippon")) {
+		return true
+	}
+	if strings.Contains(lower, "request salary slip") && strings.Contains(lower, "nippon") {
+		return true
+	}
+	if strings.Contains(lower, "salary slip") && strings.Contains(lower, "nippon") {
+		return true
+	}
+	if strings.Contains(lower, "request leave") && strings.Contains(lower, "nippon") {
 		return true
 	}
 	return false

@@ -3,8 +3,9 @@ package whatsapp
 import "time"
 
 const (
-	payloadGeneratePay  = "generate_pay"
-	payloadRequestLeave = "request_leave"
+	payloadGeneratePay   = "generate_pay"
+	payloadRequestSalary = "request_salary_slip"
+	payloadRequestLeave  = "request_leave"
 )
 
 type State int
@@ -27,7 +28,6 @@ type Session struct {
 	LastPayslipSentAt  time.Time
 	UpdatedAt          time.Time
 
-	// Temporary fields for leave application
 	TempLeaveStart  string
 	TempLeaveEnd    string
 	TempLeaveReason string
@@ -37,6 +37,9 @@ func (s *Session) resetFlow() {
 	s.State = StateIdle
 	s.LastMenuSentAt = time.Time{}
 	s.LastPeriodPromptAt = time.Time{}
+	s.TempLeaveStart = ""
+	s.TempLeaveEnd = ""
+	s.TempLeaveReason = ""
 }
 
 func (s *Session) reset() {

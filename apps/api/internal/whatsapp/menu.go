@@ -2,6 +2,7 @@ package whatsapp
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/nippon-toyota/hrms/internal/doubletick"
 )
@@ -10,13 +11,15 @@ const msgNotEmployee = `[UNAUTHORIZED ACCESS]
 This number is not registered in the Nippon HR Connect Master Database. Please contact the HR Department to link your WhatsApp number.`
 
 func msgWelcome(name string) string {
-	if name != "" {
-		return fmt.Sprintf("Hi %s,\n\nWelcome to Nippon HR Connect.", name)
+	if strings.TrimSpace(name) != "" {
+		return fmt.Sprintf("Hi %s,\n\nWelcome to Nippon HR Connect.\n\nPlease tap a button below to proceed.", strings.TrimSpace(name))
 	}
-	return `Welcome to Nippon HR Connect.`
+	return `Welcome to Nippon HR Connect.
+
+Please tap a button below to proceed.`
 }
 
-const msgMainMenuBody = `Please select an option from the menu below to proceed.`
+const msgMainMenuBody = `Select an option to continue.`
 
 const msgNoPayslips = `No historical payslip records were found for your employee profile. Please consult HR for clarification.`
 
@@ -24,9 +27,11 @@ const msgPayslipNotFound = `No payroll data exists for the requested period. Ple
 
 const msgPayslipError = `A system error occurred while generating your official PDF payslip. Please try again or contact IT Support.`
 
-const msgPayslipAwaitMonthFallback = `Please specify the payslip month and year in MM/YYYY format.
+const msgPayslipAwaitMonth = `Please specify the payslip month and year in MM/YYYY format.
 
 Example: 06/2026`
+
+const msgPayslipInvalidPeriod = `Invalid date format. Please use MM/YYYY (e.g., 06/2026).`
 
 func msgPayslipAlreadySent(month, year int) string {
 	return fmt.Sprintf(
@@ -44,14 +49,8 @@ func msgPayslipCaption(name, monthStr string, year int) string {
 
 func mainMenuButtons() []doubletick.InteractiveButton {
 	return []doubletick.InteractiveButton{
-		{
-			ID:    payloadGeneratePay,
-			Title: "Request Salary Slip",
-		},
-		{
-			ID:    payloadRequestLeave,
-			Title: "Request Leave",
-		},
+		{ID: payloadRequestSalary, Title: "Salary Slip"},
+		{ID: payloadRequestLeave, Title: "Request Leave"},
 	}
 }
 
@@ -77,6 +76,7 @@ func msgLeaveConfirmPrompt(start, end, reason string, days int) string {
 const msgLeaveCreated = `*Leave Request Submitted*
 
 Your leave request has been submitted and is pending approval. Reply *Hi* for the main menu.`
+
 const msgLeaveCancelled = `*Action Terminated*
 
 Your leave application was discarded. Reply *Hi* for the main menu.`

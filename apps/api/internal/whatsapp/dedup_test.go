@@ -35,6 +35,17 @@ func TestDedupStore_textEchoAfterButton(t *testing.T) {
 	}
 }
 
+func TestDedupStore_periodInputAfterButton(t *testing.T) {
+	d := newDedupStore(0)
+
+	if d.isDuplicate("btn-1", "+911", payloadRequestSalary, "interactive") {
+		t.Fatal("first menu selection should not be duplicate")
+	}
+	if d.isDuplicate("txt-1", "+911", "06/2026", "text") {
+		t.Fatal("period input after menu selection should not be duplicate")
+	}
+}
+
 func TestDedupStore_payslipDelivery(t *testing.T) {
 	d := newDedupStore(0)
 
@@ -49,6 +60,24 @@ func TestDedupStore_payslipDelivery(t *testing.T) {
 	}
 	if d.isRecentPayslip("+911", 7, 2026) {
 		t.Fatal("different period should not be blocked")
+	}
+}
+
+func TestDedupStore_tryAcquirePayslip(t *testing.T) {
+	d := newDedupStore(0)
+
+	if acquired, silent := d.tryAcquirePayslip("+911", 6, 2026); !acquired || silent {
+		t.Fatal("first payslip acquire should succeed")
+	}
+	if acquired, silent := d.tryAcquirePayslip("+911", 6, 2026); acquired || !silent {
+		t.Fatal("in-flight payslip should be silently skipped")
+	}
+
+	d.releasePayslip("+911", 6, 2026)
+	d.markPayslipDelivered("+911", 6, 2026)
+
+	if acquired, silent := d.tryAcquirePayslip("+911", 6, 2026); acquired || !silent {
+		t.Fatal("recent payslip should be silently skipped")
 	}
 }
 

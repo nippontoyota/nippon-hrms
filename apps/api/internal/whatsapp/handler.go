@@ -55,6 +55,11 @@ func (h *Handler) Webhook(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if !process {
+			preview := string(raw)
+			if len(preview) > 300 {
+				preview = preview[:300] + "..."
+			}
+			slog.Info("whatsapp webhook ignored", "preview", preview)
 			return
 		}
 

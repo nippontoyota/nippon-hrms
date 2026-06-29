@@ -15,6 +15,9 @@ func ParseWebhook(raw []byte) (*Webhook, bool, error) {
 	if wh, ok := tryParsePayloadV01(raw); ok {
 		return wh, true, nil
 	}
+	if wh, ok := tryParseMetaCloud(raw); ok {
+		return wh, true, nil
+	}
 	if wh, ok := tryParseDocsFormat(raw); ok {
 		return wh, true, nil
 	}
@@ -85,18 +88,32 @@ func tryParseDocsFormat(raw []byte) (*Webhook, bool) {
 			InteractiveMessage json.RawMessage `json:"interactiveMessage,omitempty"`
 		} `json:"message"`
 	}
-	if err := json.Unmarshal(raw, &p); err != nil || p.From == "" || p.Message.Type == "" {
+	if err := json.Unmarshal(raw, &p); err != nil || p.From == "" {
+		return nil, false
+	}
+
+	msgType := strings.ToUpper(strings.TrimSpace(p.Message.Type))
+	if msgType == "" && strings.TrimSpace(p.Message.Text) != "" {
+		msgType = "TEXT"
+	}
+	if msgType == "" && strings.TrimSpace(p.Message.Payload) != "" {
+		msgType = "BUTTON"
+	}
+	if msgType == "" && len(p.Message.InteractiveMessage) > 0 {
+		msgType = "INTERACTIVE"
+	}
+	if msgType == "" {
 		return nil, false
 	}
 
 	data := MessageData{
-		MessageID: p.MessageID,
+		MessageID: firstNonEmpty(p.MessageID, p.From),
 		From:      normalizePhone(p.From),
 		To:        normalizePhone(p.To),
-		Type:      strings.ToLower(p.Message.Type),
+		Type:      strings.ToLower(msgType),
 	}
 
-	switch strings.ToUpper(p.Message.Type) {
+	switch msgType {
 	case "TEXT":
 		data.Text = &TextBody{Body: p.Message.Text}
 	case "BUTTON":
@@ -106,6 +123,9 @@ func tryParseDocsFormat(raw []byte) (*Webhook, bool) {
 		}
 	case "INTERACTIVE":
 		applyInteractiveReply(p.Message.InteractiveMessage, &data)
+		if data.Body() == "" {
+			return nil, false
+		}
 	default:
 		return nil, false
 	}
@@ -116,7 +136,119 @@ func tryParseDocsFormat(raw []byte) (*Webhook, bool) {
 	}, true
 }
 
+// tryParseMetaCloud handles Meta WhatsApp Cloud API payloads forwarded by DoubleTick.
+func tryParseMetaCloud(raw []byte) (*Webhook, bool) {
+	var envelope struct {
+		Object string `json:"object"`
+		Entry  []struct {
+			Changes []struct {
+				Value struct {
+					Metadata struct {
+						DisplayPhoneNumber string `json:"display_phone_number"`
+						PhoneNumberID      string `json:"phone_number_id"`
+					} `json:"metadata"`
+					Messages []struct {
+						From      string `json:"from"`
+						ID        string `json:"id"`
+						Type      string `json:"type"`
+						Text      *struct {
+							Body string `json:"body"`
+						} `json:"text,omitempty"`
+						Button *struct {
+							Text    string `json:"text"`
+							Payload string `json:"payload"`
+						} `json:"button,omitempty"`
+						Interactive *struct {
+							Type        string `json:"type"`
+							ButtonReply *struct {
+								ID    string `json:"id"`
+								Title string `json:"title"`
+							} `json:"button_reply,omitempty"`
+							ListReply *struct {
+								ID          string `json:"id"`
+								Title       string `json:"title"`
+								Description string `json:"description"`
+							} `json:"list_reply,omitempty"`
+						} `json:"interactive,omitempty"`
+					} `json:"messages"`
+					Statuses []json.RawMessage `json:"statuses"`
+				} `json:"value"`
+			} `json:"changes"`
+		} `json:"entry"`
+	}
+	if err := json.Unmarshal(raw, &envelope); err != nil || envelope.Object != "whatsapp_business_account" {
+		return nil, false
+	}
+
+	for _, entry := range envelope.Entry {
+		for _, change := range entry.Changes {
+			if len(change.Value.Messages) == 0 {
+				continue
+			}
+			msg := change.Value.Messages[0]
+			if msg.From == "" {
+				continue
+			}
+
+			data := MessageData{
+				MessageID: msg.ID,
+				From:      normalizePhone(msg.From),
+				To:        normalizePhone(change.Value.Metadata.DisplayPhoneNumber),
+				Type:      strings.ToLower(msg.Type),
+			}
+
+			switch strings.ToLower(msg.Type) {
+			case "text":
+				if msg.Text != nil {
+					data.Text = &TextBody{Body: msg.Text.Body}
+				}
+			case "button":
+				if msg.Button != nil {
+					data.Button = &ButtonBody{
+						Text:    msg.Button.Text,
+						Payload: firstNonEmpty(msg.Button.Payload, msg.Button.Text),
+					}
+				}
+			case "interactive":
+				if msg.Interactive != nil {
+					if msg.Interactive.ListReply != nil {
+						data.ListReply = &ListReplyBody{
+							ID:          msg.Interactive.ListReply.ID,
+							Title:       msg.Interactive.ListReply.Title,
+							Description: msg.Interactive.ListReply.Description,
+						}
+						data.Type = "interactive"
+					} else if msg.Interactive.ButtonReply != nil {
+						data.Button = &ButtonBody{
+							Text:    msg.Interactive.ButtonReply.Title,
+							Payload: firstNonEmpty(msg.Interactive.ButtonReply.ID, msg.Interactive.ButtonReply.Title),
+						}
+						data.Type = "interactive"
+					}
+				}
+			default:
+				continue
+			}
+
+			if data.Body() == "" && data.Text == nil {
+				continue
+			}
+
+			return &Webhook{Event: "message", Data: data}, true
+		}
+	}
+
+	return nil, false
+}
+
 func isIgnorableEvent(raw []byte) bool {
+	var meta struct {
+		Object string `json:"object"`
+	}
+	if err := json.Unmarshal(raw, &meta); err == nil && meta.Object == "whatsapp_business_account" {
+		return true
+	}
+
 	var status struct {
 		Status string `json:"status"`
 	}

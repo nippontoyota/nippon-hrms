@@ -1,6 +1,9 @@
 package whatsapp
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestShouldSkipInboundEcho_generatePayText(t *testing.T) {
 	if !shouldSkipInboundEcho("Generate Pay", "text") {
@@ -34,13 +37,25 @@ func TestShouldSkipInboundEcho_manualPeriod(t *testing.T) {
 }
 
 func TestIsGreeting(t *testing.T) {
-	for _, input := range []string{"Hi", "hello", "HEY", "start", "menu", "reset"} {
+	for _, input := range []string{"Hi", "hello", "HEY", "start", "menu", "reset", "Hi!", "hello.", "hello there", "hi there", "hey there"} {
 		if !isGreeting(input) {
 			t.Fatalf("expected %q to be a greeting", input)
 		}
 	}
-	if isGreeting("06/2026") {
-		t.Fatal("date input should not be a greeting")
+	for _, input := range []string{"06/2026", "history", "high five", "Hi Krishnanand G, welcome to Nippon HR Connect"} {
+		if isGreeting(input) {
+			t.Fatalf("expected %q not to be a greeting", input)
+		}
+	}
+}
+
+func TestMsgWelcomeFor(t *testing.T) {
+	want := "Hi Krishnanand G,\n\nWelcome to Nippon HR Connect.\n\nPlease tap a button below to proceed."
+	if got := msgWelcome("Krishnanand G"); got != want {
+		t.Fatalf("msgWelcome() = %q, want %q", got, want)
+	}
+	if got := msgWelcome(""); !strings.Contains(got, "Welcome to Nippon HR Connect") {
+		t.Fatalf("msgWelcome(\"\") = %q, want generic welcome", got)
 	}
 }
 
