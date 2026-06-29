@@ -16,6 +16,7 @@ import (
 	"github.com/nippon-toyota/hrms/internal/employee"
 	"github.com/nippon-toyota/hrms/internal/epf"
 	"github.com/nippon-toyota/hrms/internal/handler"
+	"github.com/nippon-toyota/hrms/internal/leave"
 	appMiddleware "github.com/nippon-toyota/hrms/internal/middleware"
 	"github.com/nippon-toyota/hrms/internal/payroll"
 	"github.com/nippon-toyota/hrms/internal/whatsapp"
@@ -42,6 +43,7 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 	empRepo := employee.NewPostgresRepository(pgPool)
 	epfRepo := epf.NewPostgresRepository(pgPool)
 	payrollRepo := payroll.NewPostgresRepository(pgPool)
+	leaveRepo := leave.NewPostgresRepository(pgPool)
 
 	payrollDispatcher := payroll.NewDispatcher(payrollRepo, empRepo, epfRepo, dtClient)
 	dispatchRepo := dispatch.NewPostgresRepository(pgPool)
@@ -58,12 +60,13 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 	)
 
 	sessionStore := whatsapp.NewInMemoryStore(0)
-	waSvc := whatsapp.NewService(dtClient, sessionStore, empRepo, epfRepo, payrollRepo)
+	waSvc := whatsapp.NewService(dtClient, sessionStore, empRepo, epfRepo, payrollRepo, leaveRepo)
 	waHandler := whatsapp.NewHandler(waSvc, cfg.DoubleTickWebhookSecret)
 
 	employeeH := handler.NewEmployeeHandler(empRepo)
 	epfH := handler.NewEpfHandler(epfRepo)
 	payrollH := handler.NewPayrollHandler(payrollRepo, payrollDispatcher, dispatchService)
+	leaveH := handler.NewLeaveHandler(leaveRepo, empRepo, dtClient)
 
 	r.Get("/health", handler.HealthHandler)
 
@@ -109,6 +112,12 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 				r.Delete("/{id}", payrollH.Delete)
 				r.Get("/export", payrollH.ExportExcel)
 				r.Get("/template", payrollH.DownloadTemplate)
+			})
+
+			r.Route("/leaves", func(r chi.Router) {
+				r.Get("/", leaveH.ListAll)
+				r.Get("/balances", leaveH.GetBalance)
+				r.Patch("/{id}", leaveH.UpdateStatus)
 			})
 		})
 	})

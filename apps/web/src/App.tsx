@@ -11,6 +11,7 @@ import EpfPage from '@/pages/admin/EpfPage';
 import EmployeeFormPage from '@/pages/admin/EmployeeFormPage';
 import SalaryPage from '@/pages/admin/SalaryPage';
 import SalaryDirectoryPage from '@/pages/admin/SalaryDirectoryPage';
+import LeaveDirectoryPage from '@/pages/admin/LeaveDirectoryPage';
 import SalaryPeriodPage from '@/pages/admin/SalaryPeriodPage';
 import DispatchJobPage from '@/pages/admin/DispatchJobPage';
 import { useThemeStore } from '@/stores/themeStore';
@@ -92,6 +93,7 @@ export default function App() {
             <Route path="employees/new" element={<EmployeeFormPage />} />
             <Route path="employees/:id/edit" element={<EmployeeFormPage />} />
             <Route path="epf" element={<EpfPage />} />
+            <Route path="leaves" element={<LeaveDirectoryPage />} />
             <Route path="salary" element={<SalaryPage />} />
             <Route path="salary-directory" element={<SalaryDirectoryPage />} />
             <Route path="salary/:periodId" element={<SalaryPeriodPage />} />

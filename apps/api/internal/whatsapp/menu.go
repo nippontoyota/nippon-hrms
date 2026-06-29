@@ -42,3 +42,23 @@ func generatePayButtons() []doubletick.InteractiveButton {
 		Title: "Generate Pay",
 	}}
 }
+
+const msgLeaveAwaitStart = `🏖️ *Leave Application*
+
+Please enter the *Start Date* for your leave (DD-MM-YYYY).
+Example: 01-07-2026`
+
+const msgLeaveAwaitEnd = `🗓️ Got it. Now enter the *End Date* (DD-MM-YYYY).
+Example: 05-07-2026`
+
+const msgLeaveAwaitReason = `📝 Please provide a brief *reason* for your leave.`
+
+func msgLeaveConfirmPrompt(start, end, reason string) string {
+	return fmt.Sprintf(
+		"Please confirm your leave details:\n\n*Start:* %s\n*End:* %s\n*Reason:* %s\n\nReply *yes* to submit or *no* to cancel.",
+		start, end, reason,
+	)
+}
+
+const msgLeaveCreated = `✅ Your leave application has been submitted and is pending manager approval. Reply *Hi* to return to the main menu.`
+const msgLeaveCancelled = `❌ Leave application cancelled. Reply *Hi* to return to the main menu.`

@@ -7,6 +7,8 @@ import type {
   EpfRecord,
   PayrollRecord,
   ImportResult,
+  LeaveRequest,
+  LeaveBalance,
 } from './types';
 
 export const employeesApi = {
@@ -105,4 +107,11 @@ export const dashboardApi = {
       } as DashboardStats;
     }
   }
+};
+
+export const leaveApi = {
+  list: () => api.get<LeaveRequest[]>('/leaves').then((r) => r.data),
+  getBalance: (employeeId: string) => api.get<LeaveBalance>(`/leaves/balances?employeeId=${employeeId}`).then((r) => r.data),
+  updateStatus: (id: string, status: 'approved' | 'rejected') => 
+    api.patch(`/leaves/${id}`, { status }).then((r) => r.data),
 };

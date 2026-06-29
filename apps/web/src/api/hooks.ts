@@ -4,6 +4,7 @@ import {
   employeesApi,
   epfApi,
   salaryApi,
+  leaveApi,
 } from './endpoints';
 import type { Employee } from './types';
 
@@ -91,4 +92,29 @@ export function usePayrollRecords(month: number, year: number) {
   });
 }
 
-export { employeesApi, epfApi, salaryApi };
+export function useLeaves() {
+  return useQuery({ queryKey: ['leaves'], queryFn: leaveApi.list });
+}
+
+export function useLeaveBalance(employeeId: string | undefined) {
+  return useQuery({
+    queryKey: ['leave-balance', employeeId],
+    queryFn: () => leaveApi.getBalance(employeeId!),
+    enabled: !!employeeId,
+  });
+}
+
+export function useUpdateLeaveStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: 'approved' | 'rejected' }) =>
+      leaveApi.updateStatus(id, status),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['leaves'] });
+      qc.invalidateQueries({ queryKey: ['leave-balance'] });
+      qc.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+export { employeesApi, epfApi, salaryApi, leaveApi };

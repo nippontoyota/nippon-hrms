@@ -11,6 +11,10 @@ type State int
 const (
 	StateIdle State = iota
 	StateAwaitPeriod
+	StateLeaveAwaitStart
+	StateLeaveAwaitEnd
+	StateLeaveAwaitReason
+	StateLeaveAwaitConfirm
 )
 
 type Session struct {
@@ -21,6 +25,11 @@ type Session struct {
 	LastPeriodPromptAt time.Time
 	LastPayslipSentAt  time.Time
 	UpdatedAt          time.Time
+
+	// Temporary fields for leave application
+	TempLeaveStart  string
+	TempLeaveEnd    string
+	TempLeaveReason string
 }
 
 func (s *Session) resetFlow() {
