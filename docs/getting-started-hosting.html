@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Nippon Toyota Payslip Portal: How to Host Online</title>
+  <style>body {
+  font-family: "Segoe UI", Calibri, Arial, sans-serif;
+  font-size: 11pt;
+  line-height: 1.5;
+  color: #1a1a1a;
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 24px 32px;
+}
+h1 {
+  font-size: 22pt;
+  color: #0f172a;
+  border-bottom: 3px solid #dc2626;
+  padding-bottom: 8px;
+  margin-top: 0;
+}
+h2 {
+  font-size: 15pt;
+  color: #1e293b;
+  margin-top: 28px;
+  page-break-after: avoid;
+}
+h3 {
+  font-size: 12pt;
+  color: #334155;
+  margin-top: 20px;
+  page-break-after: avoid;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0 20px;
+  font-size: 10pt;
+}
+th, td {
+  border: 1px solid #cbd5e1;
+  padding: 8px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+th {
+  background: #f1f5f9;
+  font-weight: 600;
+}
+code, pre {
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 9.5pt;
+  background: #f8fafc;
+}
+pre {
+  border: 1px solid #e2e8f0;
+  padding: 12px 14px;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+  page-break-inside: avoid;
+}
+blockquote {
+  border-left: 4px solid #f59e0b;
+  margin: 12px 0;
+  padding: 8px 16px;
+  background: #fffbeb;
+  color: #78350f;
+}
+hr {
+  border: none;
+  border-top: 1px solid #e2e8f0;
+  margin: 24px 0;
+}
+ul, ol {
+  padding-left: 22px;
+}
+li {
+  margin-bottom: 4px;
+}
+a {
+  color: #2563eb;
+  word-break: break-all;
+}
+@media print {
+  body { padding: 0; }
+  h2 { page-break-before: auto; }
+}
+</style>
+</head>
+<body>
+<h1>Nippon Toyota Payslip Portal</h1>
+<h2>How to Host It Online (Simple Guide)</h2>
+<p>This guide explains how to put the Payslip Portal on the internet so HR can use it from any browser, employees get WhatsApp messages, and you do <strong>not</strong> need a Cloudflare tunnel on your laptop anymore.</p>
+<p>You do <strong>not</strong> need to be a programmer to understand the plan. Your developer (or you, with patience) will do the technical steps. This document tells you <strong>what</strong> to set up and <strong>in what order</strong>.</p>
+<hr>
+<h2>Quick checklist (hosting go-live)</h2>
+<ul>
+<li>[ ] Production Supabase project ready (database + HR login users)</li>
+<li>[ ] API hosted online with a permanent URL (example: <code>https://api.yourcompany.com</code>)</li>
+<li>[ ] Website hosted online (example: <code>https://payslip.yourcompany.com</code>)</li>
+<li>[ ] All environment variables set on the host (secrets, not in Git)</li>
+<li>[ ] Database migrations run on production Supabase</li>
+<li>[ ] Developer updated CORS so the website can talk to the API</li>
+<li>[ ] Developer set up API forwarding from the website (so <code>/api</code> works)</li>
+<li>[ ] DoubleTick webhook points to <code>https://YOUR-API-URL/api/v1/whatsapp/webhook</code></li>
+<li>[ ] Meta payment method linked to your WhatsApp Business account</li>
+<li>[ ] End-to-end test: login, upload payroll, send payslip, WhatsApp reply</li>
+</ul>
+<hr>
+<h2>How to do each checklist item (simple steps)</h2>
+<p>Work through these in order. Tick each box when done.</p>
+<h3>1. Production Supabase project ready (database + HR login users)</h3>
+<p><strong>What this means:</strong> You have a live online database and HR people can log in. This is separate from your dev/test Supabase if you use one locally.</p>
+<p><strong>How to do it:</strong></p>
+<ol>
+<li>Go to https://supabase.com and sign in.</li>
+<li>Click <strong>New project</strong>. Name it something like <code>payslip-portal-prod</code>.</li>
+<li>Pick a region close to India (e.g. Mumbai/Singapore) and set a strong database password. Save the password somewhere safe.</li>
+<li>Wait until the project finishes creating (a few minutes).</li>
+<li>Go to <strong>Authentication</strong> → <strong>Users</strong> → <strong>Add user</strong> → <strong>Create new user</strong>.</li>
+<li>Add one account per HR person (email + password). These are the logins for the hosted website.</li>
+<li>From <strong>Settings</strong> → <strong>API</strong>, copy and save:</li>
+</ol>
+<p>   - Project URL</p>
+<p>   - anon public key</p>
+<ol>
+<li>From <strong>Settings</strong> → <strong>Database</strong>, copy the <strong>Connection string</strong> (URI). You will need it for Railway later.</li>
+</ol>
+<p><strong>Done when:</strong> Project exists, at least one HR user created, and you have URL + keys saved.</p>
+<hr>
+<h3>2. API hosted online with a permanent URL</h3>
+<p><strong>What this means:</strong> The Go backend runs on a server on the internet 24/7, not on your laptop. It has a URL anyone can reach, like <code>https://payslip-api-production.up.railway.app</code>.</p>
+<p><strong>How to do it:</strong></p>
+<ol>
+<li>Sign up at https://railway.app (or use Render if your team prefers).</li>
+<li>Click <strong>New Project</strong> → connect your GitHub repo (PayslipPortal).</li>
+<li>Add a service for the API. Point it at the <code>apps/api</code> folder.</li>
+<li>Set the start command (your developer may help):</li>
+</ol>
+<p>   - Build: <code>go build -o server ./cmd/server</code></p>
+<p>   - Start: <code>./server</code></p>
+<ol>
+<li>Click <strong>Deploy</strong> and wait until the status is green/running.</li>
+<li>Open <strong>Settings</strong> → <strong>Networking</strong> → <strong>Generate domain</strong>. Railway gives you a URL like <code>https://something.up.railway.app</code>.</li>
+<li>Test in a browser: open <code>https://YOUR-RAILWAY-URL/health</code>. You should see a success message.</li>
+</ol>
+<p><strong>Optional:</strong> Add a custom domain like <code>api-payslip.yourcompany.com</code> in Railway and point DNS to it.</p>
+<p><strong>Done when:</strong> <code>/health</code> works on a public URL and the service stays running without your laptop.</p>
+<hr>
+<h3>3. Website hosted online</h3>
+<p><strong>What this means:</strong> The HR dashboard (React app) is built and published so people open it in a browser from anywhere.</p>
+<p><strong>How to do it:</strong></p>
+<ol>
+<li>Sign up at https://vercel.com or https://pages.cloudflare.com.</li>
+<li><strong>Import</strong> your GitHub repo (same PayslipPortal project).</li>
+<li>Set the project root to <code>apps/web</code>.</li>
+<li>Build settings:</li>
+</ol>
+<p>   - Build command: <code>npm install &amp;&amp; npm run build</code></p>
+<p>   - Output folder: <code>dist</code></p>
+<ol>
+<li>Add build environment variables (from production Supabase):</li>
+</ol>
+<p>   - <code>VITE_SUPABASE_URL</code> = your production Project URL</p>
+<p>   - <code>VITE_SUPABASE_ANON_KEY</code> = your production anon key</p>
+<ol>
+<li>Click <strong>Deploy</strong>. Wait for the build to finish.</li>
+<li>You get a URL like <code>https://payslip-portal.vercel.app</code> or <code>https://something.pages.dev</code>.</li>
+<li>Open it in a browser. You should see the login page (login may not work fully until steps 6, 7, and Supabase URL config are done).</li>
+</ol>
+<p><strong>Optional:</strong> Connect a custom domain like <code>payslip.yourcompany.com</code>.</p>
+<p><strong>Done when:</strong> Login page loads on a public HTTPS URL.</p>
+<hr>
+<h3>4. All environment variables set on the host (secrets, not in Git)</h3>
+<p><strong>What this means:</strong> Passwords and API keys live in Railway/Vercel dashboards, never committed to GitHub.</p>
+<p><strong>How to do it:</strong></p>
+<p><strong>On Railway (API service)</strong> → <strong>Variables</strong>, add:</p>
+<table>
+<thead><tr><th>Variable</th><th>Where to get the value</th></tr></thead>
+<tbody>
+<tr><td><code>HOST</code></td><td><code>0.0.0.0</code></td></tr>
+<tr><td><code>PORT</code></td><td><code>8080</code> (or whatever Railway expects)</td></tr>
+<tr><td><code>APP_ENV</code></td><td><code>production</code></td></tr>
+<tr><td><code>DATABASE_URL</code></td><td>Supabase → Settings → Database → connection URI</td></tr>
+<tr><td><code>JWT_SECRET</code></td><td>Make up a long random string (32+ characters). New for production.</td></tr>
+<tr><td><code>SUPABASE_URL</code></td><td>Supabase → Settings → API → Project URL</td></tr>
+<tr><td><code>SUPABASE_ANON_KEY</code></td><td>Supabase → Settings → API → anon public key</td></tr>
+<tr><td><code>DOUBLETICK_API_KEY</code></td><td>DoubleTick → Settings → Developer → API key</td></tr>
+<tr><td><code>WABA_PHONE_NUMBER_ID</code></td><td>Your business WhatsApp number, country code, no plus (e.g. <code>917594086900</code>)</td></tr>
+<tr><td><code>DOUBLETICK_WEBHOOK_SECRET</code></td><td>Pick a strong secret; same value goes in DoubleTick webhook settings</td></tr>
+</tbody></table>
+<p><strong>On Vercel/Cloudflare (website)</strong> → Environment variables:</p>
+<table>
+<thead><tr><th>Variable</th><th>Value</th></tr></thead>
+<tbody>
+<tr><td><code>VITE_SUPABASE_URL</code></td><td>Production Supabase Project URL</td></tr>
+<tr><td><code>VITE_SUPABASE_ANON_KEY</code></td><td>Production anon key</td></tr>
+</tbody></table>
+<p>After changing variables, <strong>redeploy</strong> both API and website.</p>
+<p><strong>Done when:</strong> No secrets are in GitHub; both platforms show all variables filled in.</p>
+<hr>
+<h3>5. Database migrations run on production Supabase</h3>
+<p><strong>What this means:</strong> All tables (employees, payroll, leaves, etc.) exist in the production database.</p>
+<p><strong>How to do it:</strong></p>
+<ol>
+<li>On your PC, open the folder <code>E:\Projects\NipponToyota\PayslipPortal\apps\api\migrations\</code>.</li>
+<li>In Supabase (production project), open <strong>SQL Editor</strong>.</li>
+<li>Open each <code>.sql</code> file below, copy all text, paste into SQL Editor, click <strong>Run</strong>. Do them <strong>one at a time, in order</strong>:</li>
+</ol>
+<table>
+<thead><tr><th>Order</th><th>File</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><code>000001_create_employees.sql</code></td></tr>
+<tr><td>2</td><td><code>000002_create_leaves.sql</code></td></tr>
+<tr><td>3</td><td><code>000003_create_whatsapp.sql</code></td></tr>
+<tr><td>4</td><td><code>000004_drop_epf_employee_columns.sql</code></td></tr>
+<tr><td>5</td><td><code>000005_create_epf_records.sql</code></td></tr>
+<tr><td>6</td><td><code>000008_create_dispatch_jobs.sql</code></td></tr>
+</tbody></table>
+<ol>
+<li>Skip test seed files (<code>000006</code>, <code>000007</code>) in real production unless you want sample data.</li>
+</ol>
+<p><strong>Done when:</strong> SQL Editor runs each file without errors and the <strong>Table Editor</strong> shows tables like <code>employees</code>, <code>payroll_records</code>, etc.</p>
+<hr>
+<h3>6. Developer updated CORS so the website can talk to the API</h3>
+<p><strong>What this means:</strong> The API only accepts browser requests from allowed website addresses. Right now it only allows <code>localhost</code>. Your live website URL must be added.</p>
+<p><strong>How to do it (developer):</strong></p>
+<ol>
+<li>Open <code>apps/api/internal/router/router.go</code> in the code.</li>
+<li>Find <code>AllowedOrigins</code>. It currently lists <code>http://localhost:5173</code>.</li>
+<li>Add your hosted website URL, for example:</li>
+</ol>
+<p>   - <code>https://payslip.yourcompany.com</code></p>
+<p>   - or <code>https://payslip-portal.vercel.app</code> (your real Vercel URL)</p>
+<ol>
+<li>Commit, push, and redeploy the API on Railway.</li>
+</ol>
+<p><strong>How you know it worked:</strong> Website loads and the Employees page shows data without CORS errors in the browser console (F12 → Console).</p>
+<p><strong>Done when:</strong> HR dashboard pages load data from the API on the hosted URL.</p>
+<hr>
+<h3>7. Developer set up API forwarding from the website (so <code>/api</code> works)</h3>
+<p><strong>What this means:</strong> On your laptop, <code>/api</code> secretly forwards to <code>localhost:8080</code>. Online, the website host must forward <code>/api</code> to your Railway API URL.</p>
+<p><strong>How to do it (developer):</strong></p>
+<p><strong>If using Vercel:</strong> Create <code>apps/web/vercel.json</code>:</p>
+<pre><code>{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://YOUR-RAILWAY-API-URL/api/:path*"
+    }
+  ]
+}</code></pre>
+<p>Replace <code>YOUR-RAILWAY-API-URL</code> with your real API host (no trailing slash).</p>
+<p><strong>If using Cloudflare Pages:</strong> Set up a similar rewrite/proxy rule in Pages settings or <code>_redirects</code> / Functions (developer chooses per Cloudflare docs).</p>
+<p>Commit, push, redeploy the website.</p>
+<p><strong>How you know it worked:</strong> Log in on the hosted site. If employee list loads, forwarding works.</p>
+<p><strong>Done when:</strong> Browser calls go to <code>https://your-website.com/api/v1/...</code> and reach Railway successfully.</p>
+<hr>
+<h3>8. DoubleTick webhook points to your production API</h3>
+<p><strong>What this means:</strong> When an employee sends a WhatsApp message, DoubleTick notifies your <strong>hosted</strong> API, not a laptop tunnel.</p>
+<p><strong>How to do it:</strong></p>
+<ol>
+<li>Log into DoubleTick dashboard.</li>
+<li>Go to <strong>Webhooks</strong> or <strong>Integration settings</strong> (exact menu name may vary).</li>
+<li>Set webhook URL to:</li>
+</ol>
+<p>   ```</p>
+<p>   https://YOUR-RAILWAY-API-URL/api/v1/whatsapp/webhook</p>
+<p>   ```</p>
+<p>   Example:</p>
+<p>   ```</p>
+<p>   https://payslip-api-production.up.railway.app/api/v1/whatsapp/webhook</p>
+<p>   ```</p>
+<ol>
+<li>Set the <strong>webhook secret</strong> to the same string as <code>DOUBLETICK_WEBHOOK_SECRET</code> in Railway.</li>
+<li>Save. Redeploy API if you just added the secret.</li>
+</ol>
+<p><strong>How you know it worked:</strong> Send <strong>Hi</strong> from an employee phone to the business WhatsApp number. The bot replies. Railway logs show incoming webhook activity.</p>
+<p><strong>Done when:</strong> Inbound WhatsApp works without Cloudflare tunnel on any laptop.</p>
+<hr>
+<h3>9. Meta payment method linked to your WhatsApp Business account</h3>
+<p><strong>What this means:</strong> Meta (Facebook) can bill your WhatsApp account for template messages. DoubleTick wallet balance alone is not enough. Without Meta payment, sends fail with "Business eligibility payment issue."</p>
+<p><strong>How to do it:</strong></p>
+<ol>
+<li>Go to https://business.facebook.com</li>
+<li><strong>Settings</strong> (gear) → <strong>Accounts</strong> → <strong>WhatsApp accounts</strong></li>
+<li>Click your business number (e.g. the one ending in your WABA ID)</li>
+<li>Open <strong>Payment settings</strong> (or three dots → Payment settings)</li>
+<li>Click <strong>Add payment method</strong> if none is linked</li>
+<li>Add a credit/debit card. Make sure it is linked to <strong>this WhatsApp account</strong>, not only to Business Manager in general</li>
+<li>Set it as <strong>default</strong> for this WABA</li>
+<li>Check <strong>Business info</strong>: timezone and currency (INR) are set</li>
+</ol>
+<p><strong>How you know it worked:</strong> Send a test template from DoubleTick or the API. Message delivers to a phone and wallet shows a utility charge (~₹0.11), not a payment error.</p>
+<p><strong>Done when:</strong> Template messages deliver and DoubleTick chat history does not show "Business eligibility payment issue."</p>
+<hr>
+<h3>10. End-to-end test: login, upload payroll, send payslip, WhatsApp reply</h3>
+<p><strong>What this means:</strong> The whole system works together on production URLs before HR relies on it.</p>
+<p><strong>How to do it (run through this list on the hosted site):</strong></p>
+<table>
+<thead><tr><th>Step</th><th>Action</th><th>Pass?</th></tr></thead>
+<tbody>
+<tr><td>A</td><td>Open your website URL. Log in with an HR Supabase user.</td><td>Dashboard appears</td></tr>
+<tr><td>B</td><td>Go to <strong>Employees</strong>. List loads (or empty list, no error).</td><td></td></tr>
+<tr><td>C</td><td>Upload or add test employee data if needed.</td><td>Saves OK</td></tr>
+<tr><td>D</td><td>Go to <strong>Salary</strong> / payroll. Upload payroll for a month.</td><td>Records appear</td></tr>
+<tr><td>E</td><td>Preview one payslip PDF.</td><td>PDF opens</td></tr>
+<tr><td>F</td><td>Send payslip to one employee with a valid mobile number.</td><td>PDF arrives on WhatsApp</td></tr>
+<tr><td>G</td><td>From that employee phone, send <strong>Hi</strong> to the business WhatsApp number.</td><td>Bot menu replies</td></tr>
+<tr><td>H</td><td>Check DoubleTick wallet after a template send.</td><td>Utility charge, not failed</td></tr>
+</tbody></table>
+<p><strong>Done when:</strong> All steps pass on production. Tell HR the website URL and turn off dependence on local laptops/tunnels.</p>
+<hr>
+<h2>Local vs hosted: what changes?</h2>
+<table>
+<thead><tr><th>When running on your laptop</th><th>When fully hosted</th></tr></thead>
+<tbody>
+<tr><td>Website at <code>localhost:5173</code></td><td>Website at a real URL like <code>https://payslip.yourcompany.com</code></td></tr>
+<tr><td>API at <code>localhost:8080</code></td><td>API at a real URL like <code>https://api.yourcompany.com</code></td></tr>
+<tr><td>Cloudflare tunnel needed for WhatsApp</td><td><strong>No tunnel.</strong> DoubleTick talks to your API URL directly</td></tr>
+<tr><td>Only you can open the site</td><td>HR team opens the site from office or home</td></tr>
+<tr><td><code>.env</code> files on your PC</td><td>Secrets stored in Railway / Vercel / Cloudflare dashboard</td></tr>
+</tbody></table>
+<p><strong>What stays the same:</strong></p>
+<ul>
+<li><strong>Supabase</strong> (database + login) stays on supabase.com</li>
+<li><strong>DoubleTick</strong> (WhatsApp) stays on doubletick.io</li>
+<li>The same Go API and React website code, just built and deployed</li>
+</ul>
+<hr>
+<h2>The full picture (hosted)</h2>
+<p>Think of five online pieces:</p>
+<table>
+<thead><tr><th>Piece</th><th>What it does</th><th>Where to host</th></tr></thead>
+<tbody>
+<tr><td><strong>Website</strong></td><td>HR dashboard in the browser</td><td>Cloudflare Pages, Vercel, or Netlify (static hosting)</td></tr>
+<tr><td><strong>API</strong></td><td>Backend: database, PDFs, WhatsApp logic</td><td>Railway or Render (runs the Go server 24/7)</td></tr>
+<tr><td><strong>Supabase</strong></td><td>PostgreSQL database + HR authentication</td><td>supabase.com (already cloud)</td></tr>
+<tr><td><strong>DoubleTick</strong></td><td>Send/receive WhatsApp</td><td>doubletick.io (already cloud)</td></tr>
+<tr><td><strong>Domain (optional)</strong></td><td>Pretty URLs instead of random Railway names</td><td>Cloudflare, GoDaddy, Namecheap, etc.</td></tr>
+</tbody></table>
+<p><strong>Traffic flow:</strong></p>
+<ol>
+<li>HR opens <code>https://payslip.yourcompany.com</code> in Chrome.</li>
+<li>Website loads from Cloudflare Pages (or similar).</li>
+<li>When HR clicks something, the browser calls <code>/api/v1/...</code> which forwards to your hosted API.</li>
+<li>API reads/writes Supabase and sends WhatsApp via DoubleTick.</li>
+<li>When an employee replies on WhatsApp, DoubleTick calls your API webhook URL on the internet.</li>
+</ol>
+<p><strong>No laptop needs to stay on.</strong> The API runs on Railway (or similar) all the time.</p>
+<hr>
+<h2>Recommended setup for this project</h2>
+<p>This matches how the project was designed (single Go server, Supabase, simple ops):</p>
+<table>
+<thead><tr><th>Service</th><th>Suggested provider</th><th>Why</th></tr></thead>
+<tbody>
+<tr><td>API</td><td><strong>Railway</strong> (railway.app)</td><td>Easy Go deploy, always on, fits team ADR notes</td></tr>
+<tr><td>Website</td><td><strong>Cloudflare Pages</strong> or <strong>Vercel</strong></td><td>Free/cheap static hosting, fast globally</td></tr>
+<tr><td>Database + auth</td><td><strong>Supabase</strong> (production project)</td><td>Already used by the app</td></tr>
+<tr><td>WhatsApp</td><td><strong>DoubleTick</strong></td><td>Already integrated</td></tr>
+<tr><td>DNS</td><td><strong>Cloudflare</strong> (if you own a domain)</td><td>One place for website + optional API subdomain</td></tr>
+</tbody></table>
+<p>You can use Render instead of Railway, or Netlify instead of Vercel. The steps are similar.</p>
+<p><strong>Rough monthly cost (ballpark):</strong></p>
+<ul>
+<li>Supabase: free tier or ~$25/month for production scale</li>
+<li>Railway API: ~$5 to $20/month depending on usage</li>
+<li>Website hosting: often free on Cloudflare Pages / Vercel</li>
+<li>DoubleTick wallet + Meta WhatsApp conversation fees: pay per template/message (utility ~₹0.11 each in India)</li>
+<li>Domain: ~₹500 to ₹1500/year if you buy one</li>
+</ul>
+<hr>
+<h2>Part 1: Before you deploy (decisions)</h2>
+<h3>1. Production vs development</h3>
+<p>Use <strong>separate</strong> environments:</p>
+<table>
+<thead><tr><th></th><th>Development</th><th>Production</th></tr></thead>
+<tbody>
+<tr><td>Supabase</td><td>Dev project (what you use locally)</td><td><strong>New</strong> production project</td></tr>
+<tr><td>API URL</td><td>localhost or dev Railway app</td><td><code>api.yourcompany.com</code></td></tr>
+<tr><td>Website URL</td><td>localhost:5173</td><td><code>payslip.yourcompany.com</code></td></tr>
+<tr><td>DoubleTick</td><td>Can share one WABA</td><td>Same WABA, webhook points to <strong>production</strong> API</td></tr>
+</tbody></table>
+<p>Never point production DoubleTick webhook at someone's laptop tunnel.</p>
+<h3>2. Domain names (optional but recommended)</h3>
+<p>Examples:</p>
+<ul>
+<li>Website: <code>payslip.nippontoyota.com</code> or <code>hr.nippontoyota.com</code></li>
+<li>API: <code>api-payslip.nippontoyota.com</code> or <code>payslip-api.nippontoyota.com</code></li>
+</ul>
+<p>If you skip a custom domain, Railway and Vercel give you free URLs like <code>something.up.railway.app</code>. Those work, but URLs change if you recreate services, and they look less professional.</p>
+<h3>3. Who does what</h3>
+<table>
+<thead><tr><th>Task</th><th>Who</th></tr></thead>
+<tbody>
+<tr><td>Create Railway / Vercel accounts</td><td>You or IT</td></tr>
+<tr><td>Buy/configure domain</td><td>You or IT</td></tr>
+<tr><td>Push code, set env vars, CORS, API proxy</td><td>Developer</td></tr>
+<tr><td>Run SQL migrations on Supabase</td><td>Developer or you (SQL Editor)</td></tr>
+<tr><td>Create HR login users in Supabase</td><td>You (HR admin)</td></tr>
+<tr><td>Set DoubleTick webhook + Meta billing</td><td>You + DoubleTick/Meta admin</td></tr>
+<tr><td>Final testing</td><td>You + developer</td></tr>
+</tbody></table>
+<hr>
+<h2>Part 2: Set up production Supabase</h2>
+<h3>Step 1: Create a production project</h3>
+<ol>
+<li>Go to https://supabase.com</li>
+<li>Create a <strong>new</strong> project (do not reuse dev data for real employee records unless intentional)</li>
+<li>Pick a strong database password and save it in a password manager</li>
+</ol>
+<h3>Step 2: Run database migrations</h3>
+<p>Same as local setup. In <strong>SQL Editor</strong>, run each file from <code>apps\api\migrations\</code> <strong>in order</strong>:</p>
+<table>
+<thead><tr><th>Order</th><th>File</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><code>000001_create_employees.sql</code></td></tr>
+<tr><td>2</td><td><code>000002_create_leaves.sql</code></td></tr>
+<tr><td>3</td><td><code>000003_create_whatsapp.sql</code></td></tr>
+<tr><td>4</td><td><code>000004_drop_epf_employee_columns.sql</code></td></tr>
+<tr><td>5</td><td><code>000005_create_epf_records.sql</code></td></tr>
+<tr><td>6</td><td><code>000008_create_dispatch_jobs.sql</code></td></tr>
+<tr><td>7</td><td><em>(Optional)</em> <code>000006_seed_epf_sample_data.sql</code></td></tr>
+<tr><td>8</td><td><em>(Optional)</em> <code>000007_seed_krishnanand_test_user.sql</code></td></tr>
+</tbody></table>
+<p>Skip test seed files in real production if you do not want fake employees.</p>
+<h3>Step 3: Create HR users</h3>
+<ol>
+<li>Supabase → <strong>Authentication</strong> → <strong>Users</strong> → <strong>Add user</strong></li>
+<li>Create accounts for each HR person who will log in</li>
+<li>They use this email/password on the hosted website login page</li>
+</ol>
+<h3>Step 4: Copy keys for later</h3>
+<p>From <strong>Settings → API</strong>:</p>
+<ul>
+<li>Project URL</li>
+<li>anon public key</li>
+</ul>
+<p>From <strong>Settings → Database</strong>:</p>
+<ul>
+<li>Connection string (URI format) for <code>DATABASE_URL</code></li>
+</ul>
+<h3>Step 5: Allow your hosted website to log in</h3>
+<p>Supabase → <strong>Authentication</strong> → <strong>URL Configuration</strong>:</p>
+<ul>
+<li><strong>Site URL:</strong> <code>https://payslip.yourcompany.com</code> (your real website URL)</li>
+<li><strong>Redirect URLs:</strong> add the same URL and <code>https://payslip.yourcompany.com/**</code></li>
+</ul>
+<p>Without this, login may fail on the hosted site.</p>
+<hr>
+<h2>Part 3: Host the API (Railway example)</h2>
+<p>Your developer deploys the Go app from the <code>apps/api</code> folder.</p>
+<h3>Step 1: Create Railway project</h3>
+<ol>
+<li>Sign up at https://railway.app</li>
+<li><strong>New Project</strong> → <strong>Deploy from GitHub repo</strong> (connect your PayslipPortal repository)</li>
+<li>Set the <strong>root directory</strong> or <strong>Dockerfile/start command</strong> to build the API:</li>
+</ol>
+<p>   - Build: <code>go build -o server ./cmd/server</code></p>
+<p>   - Start: <code>./server</code></p>
+<p>   - Working directory: <code>apps/api</code></p>
+<p>(Railway auto-detects Go in many cases if you point it at <code>apps/api</code>.)</p>
+<h3>Step 2: Set environment variables on Railway</h3>
+<p>In Railway → your API service → <strong>Variables</strong>, add everything from local <code>apps/api/.env</code>:</p>
+<pre><code>HOST=0.0.0.0
+PORT=8080
+APP_ENV=production
+
+DATABASE_URL=postgresql://...   (production Supabase connection string)
+JWT_SECRET=long-random-secret-at-least-32-characters
+
+SUPABASE_URL=https://YOUR-PROD-PROJECT.supabase.co
+SUPABASE_ANON_KEY=your-prod-anon-key
+
+DOUBLETICK_API_KEY=your-key
+WABA_PHONE_NUMBER_ID=917594086900
+DOUBLETICK_WEBHOOK_SECRET=strong-secret-matching-doubletick</code></pre>
+<p><strong>Important:</strong> Railway sets <code>PORT</code> automatically in some setups. The Go app reads <code>PORT</code> from env (default 8080). Use Railway's assigned port if their docs say to bind to <code>$PORT</code>.</p>
+<p>Generate a <strong>new</strong> <code>JWT_SECRET</code> for production. Do not copy the dev placeholder.</p>
+<h3>Step 3: Get your public API URL</h3>
+<p>After deploy, Railway gives a URL like:</p>
+<pre><code>https://payslip-api-production.up.railway.app</code></pre>
+<p>Test it: open <code>https://YOUR-RAILWAY-URL/health</code> in a browser. You should see a success JSON response.</p>
+<h3>Step 4: Custom domain for API (optional)</h3>
+<p>Railway → <strong>Settings</strong> → <strong>Custom Domain</strong> → add <code>api-payslip.yourcompany.com</code></p>
+<p>In Cloudflare DNS, add a CNAME record pointing to Railway's target.</p>
+<hr>
+<h2>Part 4: Code change: allow your website to call the API (CORS)</h2>
+<p><strong>Developer task.</strong> Today the API only trusts <code>http://localhost:5173</code>. For production, add your website URL.</p>
+<p>File: <code>apps/api/internal/router/router.go</code></p>
+<p>The <code>AllowedOrigins</code> list must include your hosted website, for example:</p>
+<pre><code>https://payslip.yourcompany.com</code></pre>
+<p>Redeploy the API after this change.</p>
+<p>Without CORS, the website loads but API calls fail in the browser.</p>
+<hr>
+<h2>Part 5: Host the website (Cloudflare Pages or Vercel)</h2>
+<p>The website is a static React app built with Vite.</p>
+<h3>Step 1: Build settings</h3>
+<table>
+<thead><tr><th>Setting</th><th>Value</th></tr></thead>
+<tbody>
+<tr><td>Root directory</td><td><code>apps/web</code></td></tr>
+<tr><td>Build command</td><td><code>npm install &amp;&amp; npm run build</code></td></tr>
+<tr><td>Output directory</td><td><code>dist</code></td></tr>
+</tbody></table>
+<h3>Step 2: Environment variables (build time)</h3>
+<p>Set in Cloudflare Pages / Vercel dashboard:</p>
+<pre><code>VITE_SUPABASE_URL=https://YOUR-PROD-PROJECT.supabase.co
+VITE_SUPABASE_ANON_KEY=your-prod-anon-key</code></pre>
+<p>These are baked in at build time. Rebuild after changing them.</p>
+<h3>Step 3: Forward <code>/api</code> requests to your hosted API</h3>
+<p>The website code calls <code>/api/v1/...</code> (relative path). On your laptop, Vite proxies that to localhost. <strong>Online, you need a rewrite rule.</strong></p>
+<p><strong>Developer task.</strong> Example for <strong>Vercel</strong> (<code>apps/web/vercel.json</code>):</p>
+<pre><code>{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://YOUR-RAILWAY-API-URL/api/:path*"
+    }
+  ]
+}</code></pre>
+<p>Example for <strong>Cloudflare Pages</strong> (<code>apps/web/public/_redirects</code> or Pages Functions): same idea, proxy <code>/api/*</code> to your Railway URL.</p>
+<p>Replace <code>YOUR-RAILWAY-API-URL</code> with your real API host (no trailing slash).</p>
+<p>Redeploy the website after adding this file.</p>
+<h3>Step 4: Custom domain for website</h3>
+<p>Point <code>payslip.yourcompany.com</code> to Cloudflare Pages or Vercel per their DNS instructions.</p>
+<h3>Step 5: Test the website</h3>
+<ol>
+<li>Open <code>https://payslip.yourcompany.com</code></li>
+<li>Log in with a Supabase HR user</li>
+<li>Open <strong>Employees</strong> page. Data should load (proves website → API → database works)</li>
+</ol>
+<hr>
+<h2>Part 6: Configure DoubleTick (production webhook)</h2>
+<p><strong>You no longer need Cloudflare tunnel on a laptop.</strong></p>
+<h3>Step 1: Set the webhook URL</h3>
+<p>In DoubleTick dashboard → <strong>Webhooks</strong> (or integration settings):</p>
+<pre><code>https://YOUR-API-URL/api/v1/whatsapp/webhook</code></pre>
+<p>Examples:</p>
+<ul>
+<li>Railway: <code>https://payslip-api-production.up.railway.app/api/v1/whatsapp/webhook</code></li>
+<li>Custom domain: <code>https://api-payslip.yourcompany.com/api/v1/whatsapp/webhook</code></li>
+</ul>
+<h3>Step 2: Webhook secret</h3>
+<p>Set <code>DOUBLETICK_WEBHOOK_SECRET</code> in Railway to the <strong>same</strong> value as in DoubleTick.</p>
+<p>Restart/redeploy the API after setting it.</p>
+<h3>Step 3: Meta payment (required for templates)</h3>
+<p>Template messages fail with <strong>"Business eligibility payment issue"</strong> if Meta has no valid payment method on the WhatsApp Business account.</p>
+<p>Fix in <strong>Meta Business Manager</strong>:</p>
+<ol>
+<li>business.facebook.com → <strong>Settings</strong> → <strong>WhatsApp accounts</strong></li>
+<li>Select your WABA (<code>917594086900</code> or your number)</li>
+<li><strong>Payment settings</strong> → add/link a credit card to <strong>this</strong> WhatsApp account</li>
+<li>Confirm timezone, currency (INR), and tax info</li>
+</ol>
+<p>DoubleTick wallet balance (₹555) is separate from Meta billing. <strong>Both</strong> may matter.</p>
+<h3>Step 4: Test WhatsApp inbound</h3>
+<ol>
+<li>From a phone registered as an employee in the database, send <strong>Hi</strong> to the business WhatsApp number</li>
+<li>Bot should reply with the menu</li>
+<li>Check Railway logs if nothing happens (webhook not reaching API)</li>
+</ol>
+<h3>Step 5: Test payslip send</h3>
+<ol>
+<li>Log into hosted website</li>
+<li>Send a payslip to one employee with payroll data</li>
+<li>Confirm PDF arrives on WhatsApp</li>
+</ol>
+<hr>
+<h2>Part 7: Security checklist (production)</h2>
+<ul>
+<li>[ ] All secrets in Railway/Vercel/Supabase dashboards, <strong>never</strong> in Git</li>
+<li>[ ] <code>.env</code> and <code>.env.local</code> stay git-ignored (already configured)</li>
+<li>[ ] New strong <code>JWT_SECRET</code> for production</li>
+<li>[ ] <code>DOUBLETICK_WEBHOOK_SECRET</code> set (signature verification enabled)</li>
+<li>[ ] Supabase: restrict who has project access</li>
+<li>[ ] HR users only via Supabase Auth (no shared passwords)</li>
+<li>[ ] HTTPS everywhere (Railway/Vercel provide this automatically)</li>
+<li>[ ] Optional: IP allowlist on Railway if you want extra lockdown (usually not needed)</li>
+</ul>
+<hr>
+<h2>Part 8: Team development after go-live</h2>
+<table>
+<thead><tr><th>Work type</th><th>Where to develop</th></tr></thead>
+<tbody>
+<tr><td>Leave system, UI, REST APIs</td><td>Local laptops against <strong>dev</strong> Supabase</td></tr>
+<tr><td>Live WhatsApp testing</td><td><strong>Production</strong> or <strong>staging</strong> API URL only</td></tr>
+<tr><td>Two developers</td><td>Use one <strong>staging</strong> API URL for shared webhook, or take turns updating DoubleTick webhook</td></tr>
+</tbody></table>
+<p>Do <strong>not</strong> point production DoubleTick webhook at a developer's laptop tunnel while HR is using the live system.</p>
+<p><strong>Optional staging environment:</strong> Second Railway app + second Supabase project + subdomain <code>staging-payslip.yourcompany.com</code>. DoubleTick webhook can switch to staging when testing big WhatsApp changes.</p>
+<hr>
+<h2>Part 9: Go-live test plan</h2>
+<p>Run through this on the <strong>hosted</strong> URLs:</p>
+<table>
+<thead><tr><th>Test</th><th>How</th><th>Pass?</th></tr></thead>
+<tbody>
+<tr><td>API health</td><td>Visit <code>https://YOUR-API-URL/health</code></td><td>OK response</td></tr>
+<tr><td>Website loads</td><td>Visit <code>https://YOUR-WEBSITE-URL</code></td><td>Login page shows</td></tr>
+<tr><td>Login</td><td>Supabase HR user</td><td>Dashboard opens</td></tr>
+<tr><td>Database</td><td>Employees list</td><td>No errors</td></tr>
+<tr><td>Upload payroll</td><td>Salary section</td><td>Records save</td></tr>
+<tr><td>Preview PDF</td><td>Preview one payslip</td><td>PDF opens</td></tr>
+<tr><td>Send payslip</td><td>Send to one employee</td><td>WhatsApp PDF received</td></tr>
+<tr><td>WhatsApp inbound</td><td>Employee sends Hi</td><td>Bot menu reply</td></tr>
+<tr><td>Template billing</td><td>DoubleTick wallet after template send</td><td>Utility category, charge appears</td></tr>
+<tr><td>Two HR users</td><td>Both log in separately</td><td>Both work</td></tr>
+</tbody></table>
+<hr>
+<h2>Part 10: Common problems</h2>
+<h3>Website loads but every page shows errors</h3>
+<ul>
+<li>Check CORS: production website URL must be in <code>AllowedOrigins</code></li>
+<li>Check API rewrite: <code>/api/v1</code> must forward to Railway URL</li>
+<li>Open browser DevTools → Network tab → look for red failed <code>/api</code> calls</li>
+</ul>
+<h3>Login fails on hosted site only</h3>
+<ul>
+<li>Supabase <strong>Site URL</strong> and <strong>Redirect URLs</strong> must include your production website URL</li>
+<li><code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> must match production Supabase project</li>
+</ul>
+<h3>API crashes on Railway</h3>
+<ul>
+<li>Check <code>DATABASE_URL</code> (production Supabase, correct password encoding in URI)</li>
+<li>Check <code>JWT_SECRET</code> is set</li>
+<li>Read Railway <strong>Deploy logs</strong></li>
+</ul>
+<h3>WhatsApp sends fail</h3>
+<ul>
+<li><code>DOUBLETICK_API_KEY</code> and <code>WABA_PHONE_NUMBER_ID</code> correct on Railway</li>
+<li>Meta payment method linked to WABA (not just DoubleTick wallet)</li>
+</ul>
+<h3>WhatsApp inbound does nothing</h3>
+<ul>
+<li>DoubleTick webhook URL must be production API + <code>/api/v1/whatsapp/webhook</code></li>
+<li><code>DOUBLETICK_WEBHOOK_SECRET</code> must match DoubleTick dashboard</li>
+<li>API must be running (Railway service not sleeping/crashed)</li>
+</ul>
+<h3>Works locally, broken online</h3>
+<p>Almost always: missing CORS, missing <code>/api</code> rewrite, or wrong Supabase env vars on the host.</p>
+<hr>
+<h2>Part 11: Summary: order of operations</h2>
+<p>Do these in order:</p>
+<ol>
+<li>Create <strong>production Supabase</strong> + run migrations + HR users</li>
+<li>Deploy <strong>API to Railway</strong> with all env vars</li>
+<li>Developer adds <strong>CORS</strong> + redeploy API</li>
+<li>Deploy <strong>website</strong> with Supabase env vars + <strong>API rewrite</strong></li>
+<li>Add <strong>custom domains</strong> (optional)</li>
+<li>Set <strong>DoubleTick webhook</strong> to production API URL</li>
+<li>Fix <strong>Meta WABA payment</strong> if templates fail</li>
+<li>Run <strong>go-live test plan</strong></li>
+<li>Tell HR the URL and turn off reliance on local laptops</li>
+</ol>
+<p>Once this is done, the Payslip Portal runs 24/7 without your computer, without Cloudflare tunnel, and your whole team (including a developer building the leave system) can share one stable webhook URL on staging or production.</p>
+<hr>
+<h2>Need help?</h2>
+<p>Give your developer or vendor:</p>
+<ol>
+<li>This guide</li>
+<li>Your domain name (if any)</li>
+<li>Access to GitHub, Railway, Supabase, DoubleTick, Meta Business Manager</li>
+</ol>
+<p>For support tickets, include: which URL fails, screenshot of error, and Railway/Supabase log snippet.</p>
+<hr>
+<p><em>Nippon Toyota Payslip Portal. Internal use only.</em></p>
+</body>
+</html>

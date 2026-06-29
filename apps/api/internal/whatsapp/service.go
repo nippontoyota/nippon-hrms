@@ -58,8 +58,6 @@ func (s *Service) HandleWebhook(ctx context.Context, wh *doubletick.Webhook) err
 	from := wh.Data.From
 	input := strings.TrimSpace(wh.Data.Body())
 
-	// Removed MarkMessageRead since it's throwing a 404 from DoubleTick and is non-essential.
-
 	var handleErr error
 	s.phoneLock.run(from, func() {
 		handleErr = s.handleWebhookLocked(ctx, from, input, wh.Data.Type, wh.Data.MessageID)
@@ -125,10 +123,34 @@ const (
 
 var greetingWords = []string{"hi", "hello", "hey", "start", "menu", "reset"}
 
-func isGreeting(input string) bool {
+var greetingPhrasePrefixes = []string{"hi", "hello", "hey"}
+
+func normalizeGreetingInput(input string) string {
 	word := strings.ToLower(strings.TrimSpace(input))
+	return strings.TrimRight(word, "!.?,")
+}
+
+func isGreeting(input string) bool {
+	trimmed := strings.TrimSpace(input)
+	word := normalizeGreetingInput(trimmed)
 	for _, g := range greetingWords {
 		if word == g {
+			return true
+		}
+	}
+	if len(trimmed) > 40 {
+		return false
+	}
+	parts := strings.Fields(word)
+	if len(parts) < 2 || len(parts) > 4 {
+		return false
+	}
+	for _, g := range greetingPhrasePrefixes {
+		if parts[0] != g {
+			continue
+		}
+		switch parts[1] {
+		case "there", "again", "hr", "bot":
 			return true
 		}
 	}
@@ -136,31 +158,35 @@ func isGreeting(input string) bool {
 }
 
 func (s *Service) handleIdle(ctx context.Context, sess *Session, from, input string) error {
-	if input == payloadGeneratePay || input == "1" || strings.ToLower(input) == "payslip" || strings.ToLower(input) == "salary slip" || strings.ToLower(input) == "request salary slip" {
-		s.ensureEmployee(ctx, sess, from)
-		if sess.EmployeeID == "" {
-			sess.resetFlow()
-			s.sessions.Set(from, sess)
-			return s.sendText(ctx, from, msgNotEmployee)
-		}
-		sess.State = StateAwaitPeriod
-		s.sessions.Set(from, sess)
-		return s.sendPeriodPrompt(ctx, sess, from)
+	switch normalizeMenuSelection(input) {
+	case payloadGeneratePay, payloadRequestSalary:
+		return s.beginPayslipFlow(ctx, sess, from)
+	case payloadRequestLeave:
+		return s.beginLeaveFlow(ctx, sess, from)
 	}
 
-	if input == payloadRequestLeave || input == "2" || strings.ToLower(input) == "leave" || strings.ToLower(input) == "request leave" {
-		s.ensureEmployee(ctx, sess, from)
-		if sess.EmployeeID == "" {
-			sess.resetFlow()
-			s.sessions.Set(from, sess)
-			return s.sendText(ctx, from, msgNotEmployee)
-		}
-		sess.State = StateLeaveAwaitStart
-		s.sessions.Set(from, sess)
-		return s.sendText(ctx, from, msgLeaveAwaitStart)
+	lower := strings.ToLower(strings.TrimSpace(input))
+	switch lower {
+	case "1", "payslip", "salary slip":
+		return s.beginPayslipFlow(ctx, sess, from)
+	case "2", "leave":
+		return s.beginLeaveFlow(ctx, sess, from)
 	}
 
-	if !isGreeting(input) && !sess.LastMenuSentAt.IsZero() && time.Since(sess.LastMenuSentAt) < menuCooldown {
+	if looksLikePeriodAttempt(input) {
+		if month, year, ok := parseMMYYYY(input); ok {
+			s.ensureEmployee(ctx, sess, from)
+			if sess.EmployeeID == "" {
+				sess.resetFlow()
+				s.sessions.Set(from, sess)
+				return s.sendText(ctx, from, msgNotEmployee)
+			}
+			return s.deliverPayslip(ctx, sess, from, month, year)
+		}
+		return s.sendText(ctx, from, msgPayslipInvalidPeriod)
+	}
+
+	if !sess.LastMenuSentAt.IsZero() && time.Since(sess.LastMenuSentAt) < menuCooldown {
 		slog.Info("whatsapp menu cooldown", "from", from)
 		return nil
 	}
@@ -171,20 +197,48 @@ func (s *Service) handleIdle(ctx context.Context, sess *Session, from, input str
 	}
 
 	empName := ""
-	s.ensureEmployee(ctx, sess, from)
-	if sess.EmployeeID != "" {
-		emp, _ := s.empRepo.GetByID(ctx, sess.EmployeeID)
-		if emp != nil {
-			empName = emp.Name
+	if isGreeting(input) {
+		s.ensureEmployee(ctx, sess, from)
+		if sess.EmployeeID != "" {
+			if emp, err := s.empRepo.GetByID(ctx, sess.EmployeeID); err == nil && emp != nil {
+				empName = emp.Name
+			}
 		}
 	}
 
-	if err := s.sendMainMenuButtons(ctx, from, empName); err != nil {
+	if err := s.sendMainMenu(ctx, from, empName); err != nil {
 		return err
 	}
 	sess.LastMenuSentAt = time.Now()
 	s.sessions.Set(from, sess)
 	return nil
+}
+
+func (s *Service) beginPayslipFlow(ctx context.Context, sess *Session, from string) error {
+	s.ensureEmployee(ctx, sess, from)
+	if sess.EmployeeID == "" {
+		sess.resetFlow()
+		s.sessions.Set(from, sess)
+		return s.sendText(ctx, from, msgNotEmployee)
+	}
+	sess.State = StateAwaitPeriod
+	s.sessions.Set(from, sess)
+	return s.sendPeriodPrompt(ctx, sess, from)
+}
+
+func (s *Service) beginLeaveFlow(ctx context.Context, sess *Session, from string) error {
+	s.ensureEmployee(ctx, sess, from)
+	if sess.EmployeeID == "" {
+		sess.resetFlow()
+		s.sessions.Set(from, sess)
+		return s.sendText(ctx, from, msgNotEmployee)
+	}
+	sess.TempLeaveStart = ""
+	sess.TempLeaveEnd = ""
+	sess.TempLeaveReason = ""
+	sess.State = StateLeaveAwaitStart
+	s.sessions.Set(from, sess)
+	return s.sendText(ctx, from, msgLeaveAwaitStart)
 }
 
 func (s *Service) handleAwaitPeriod(ctx context.Context, sess *Session, from, input string) error {
@@ -194,13 +248,14 @@ func (s *Service) handleAwaitPeriod(ctx context.Context, sess *Session, from, in
 		return s.handleIdle(ctx, sess, from, input)
 	}
 
-	if input == payloadGeneratePay {
+	switch normalizeMenuSelection(input) {
+	case payloadGeneratePay, payloadRequestSalary:
 		return s.sendPeriodPrompt(ctx, sess, from)
 	}
 
 	month, year, ok := parseMMYYYY(input)
 	if !ok {
-		return s.sendPeriodPrompt(ctx, sess, from)
+		return s.sendText(ctx, from, msgPayslipInvalidPeriod)
 	}
 
 	return s.deliverPayslip(ctx, sess, from, month, year)
@@ -211,7 +266,7 @@ func (s *Service) sendPeriodPrompt(ctx context.Context, sess *Session, from stri
 		slog.Info("whatsapp period prompt cooldown", "from", from)
 		return nil
 	}
-	if err := s.sendText(ctx, from, msgPayslipAwaitMonthFallback); err != nil {
+	if err := s.sendText(ctx, from, msgPayslipAwaitMonth); err != nil {
 		return err
 	}
 	sess.LastPeriodPromptAt = time.Now()
@@ -244,10 +299,15 @@ func (s *Service) deliverPayslip(ctx context.Context, sess *Session, from string
 		return s.sendText(ctx, from, msgNotEmployee)
 	}
 
-	if s.dedup.isRecentPayslip(from, month, year) {
-		slog.Info("whatsapp payslip delivery skipped duplicate", "from", from, "month", month, "year", year)
+	acquired, silent := s.dedup.tryAcquirePayslip(from, month, year)
+	if !acquired {
+		if silent {
+			slog.Info("whatsapp payslip delivery skipped duplicate", "from", from, "month", month, "year", year)
+			return nil
+		}
 		return s.sendText(ctx, from, msgPayslipAlreadySent(month, year))
 	}
+	defer s.dedup.releasePayslip(from, month, year)
 
 	record, err := s.payrollRepo.GetPayslip(ctx, sess.EmployeeID, month, year)
 	if err != nil {
@@ -256,8 +316,6 @@ func (s *Service) deliverPayslip(ctx context.Context, sess *Session, from string
 		s.sessions.Set(from, sess)
 		return s.sendText(ctx, from, msgPayslipNotFound)
 	}
-
-	s.dedup.markPayslipDelivered(from, month, year)
 
 	emp, err := s.empRepo.GetByID(ctx, sess.EmployeeID)
 	if err != nil {
@@ -268,7 +326,6 @@ func (s *Service) deliverPayslip(ctx context.Context, sess *Session, from string
 	pdfBytes, err := payroll.GeneratePayslipPDF(emp, record, s.lookupEpf(ctx, sess.EmployeeID))
 	if err != nil {
 		slog.Error("pdf generation failed", "err", err)
-		s.dedup.clearPayslipDelivery(from, month, year)
 		sess.State = StateAwaitPeriod
 		s.sessions.Set(from, sess)
 		return s.sendText(ctx, from, msgPayslipError)
@@ -278,7 +335,6 @@ func (s *Service) deliverPayslip(ctx context.Context, sess *Session, from string
 	mediaURL, err := s.dt.UploadMedia(ctx, pdfBytes, filename, "application/pdf")
 	if err != nil {
 		slog.Error("media upload failed", "err", err)
-		s.dedup.clearPayslipDelivery(from, month, year)
 		sess.State = StateAwaitPeriod
 		s.sessions.Set(from, sess)
 		return s.sendText(ctx, from, msgPayslipError)
@@ -293,25 +349,26 @@ func (s *Service) deliverPayslip(ctx context.Context, sess *Session, from string
 
 	if _, err := s.dt.SendDocument(ctx, from, mediaURL, filename, caption); err != nil {
 		slog.Error("document send failed", "err", err)
-		s.dedup.clearPayslipDelivery(from, month, year)
 		sess.State = StateAwaitPeriod
 		s.sessions.Set(from, sess)
 		return s.sendText(ctx, from, msgPayslipError)
 	}
 
+	s.dedup.markPayslipDelivered(from, month, year)
 	sess.LastPayslipSentAt = time.Now()
 	sess.resetFlow()
 	s.sessions.Set(from, sess)
 	return nil
 }
 
-func (s *Service) sendMainMenuButtons(ctx context.Context, to, name string) error {
+func (s *Service) sendMainMenu(ctx context.Context, to, name string) error {
 	body := msgWelcome(name) + "\n\n" + msgMainMenuBody
 	_, err := s.dt.SendInteractiveButtons(ctx, to, "", body, "", mainMenuButtons())
 	if err != nil {
 		slog.Warn("interactive button send failed, falling back to text", "err", err)
-		return s.sendText(ctx, to, body+"\n\nReply *Request Salary Slip* or *Request Leave* to continue.")
+		return s.sendText(ctx, to, body+"\n\nReply *Salary Slip* or *Request Leave*.")
 	}
+	slog.Info("whatsapp menu sent", "to", to, "type", "buttons")
 	return nil
 }
 
@@ -338,13 +395,13 @@ func (s *Service) handleLeaveAwaitStart(ctx context.Context, sess *Session, from
 	if parsed.Before(today) {
 		return s.sendText(ctx, from, "Hmm, it looks like you entered a date in the past. Please enter a valid start date from today onwards.")
 	}
-	
+
 	maxDate := today.AddDate(0, 0, 30)
 	if parsed.After(maxDate) {
 		return s.sendText(ctx, from, "Leave applications can only be scheduled up to 30 days in advance from today. Please select an earlier start date.")
 	}
 
-	sess.TempLeaveStart = parsed.Format("2006-01-02") // Internal format is still YYYY-MM-DD
+	sess.TempLeaveStart = parsed.Format("2006-01-02")
 	sess.State = StateLeaveAwaitEnd
 	s.sessions.Set(from, sess)
 	return s.sendText(ctx, from, msgLeaveAwaitEnd)
@@ -375,7 +432,7 @@ func (s *Service) handleLeaveAwaitEnd(ctx context.Context, sess *Session, from, 
 		return s.sendText(ctx, from, "Leave applications can only be scheduled up to 30 days in advance from today. Please select an earlier end date.")
 	}
 
-	sess.TempLeaveEnd = endDate.Format("2006-01-02") // internal format
+	sess.TempLeaveEnd = endDate.Format("2006-01-02")
 	sess.State = StateLeaveAwaitReason
 	s.sessions.Set(from, sess)
 	return s.sendText(ctx, from, msgLeaveAwaitReason)
@@ -391,8 +448,7 @@ func (s *Service) handleLeaveAwaitReason(ctx context.Context, sess *Session, fro
 	sess.TempLeaveReason = input
 	sess.State = StateLeaveAwaitConfirm
 	s.sessions.Set(from, sess)
-	
-	// Convert internal dates back to display format for confirmation
+
 	sDate, _ := time.Parse("2006-01-02", sess.TempLeaveStart)
 	eDate, _ := time.Parse("2006-01-02", sess.TempLeaveEnd)
 	days := int(eDate.Sub(sDate).Hours()/24) + 1
@@ -427,7 +483,7 @@ func (s *Service) handleLeaveAwaitConfirm(ctx context.Context, sess *Session, fr
 
 	req := &leave.LeaveRequest{
 		EmployeeID: sess.EmployeeID,
-		Type:       leave.TypeCasual, // Defaulting to casual for whatsapp flow for now
+		Type:       leave.TypeCasual,
 		FromDate:   sess.TempLeaveStart,
 		ToDate:     sess.TempLeaveEnd,
 		Days:       days,

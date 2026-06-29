@@ -654,5 +654,46 @@
       "zone": "South"
     },
     "createdAt": "2025-01-15T10:00:00Z"
+  },
+  {
+    "id": "emp-17",
+    "employeeId": "9001",
+    "name": "Krishnanand G",
+    "department": "IT",
+    "mobileNo": "8590215315",
+    "level": "M1",
+    "doj": "2020-01-15",
+    "tenureYears": "6.4",
+    "branch": "Head Office",
+    "designation": "Software Engineer",
+    "status": "Active",
+    "reportingManagerName": "Rajesh Kumar",
+    "reportingManagerPhone": "9876543210",
+    "ctcStructure": {
+      "Basic": 15200,
+      "DA": 3000,
+      "Revised Basic+DA": 18200,
+      "HRA": 3250,
+      "Travel": 2750,
+      "Hostel": 2500,
+      "Children": 1850,
+      "Total Salary": 28550,
+      "Mobile": 500,
+      "Convy": 0,
+      "Wash Allo": 0,
+      "Bran. Allo": 0,
+      "Spl All": 0,
+      "Training": 0,
+      "Total Allowances": 500,
+      "Total salary With Allowances": 29050
+    },
+    "bankDetails": {
+      "bank": "Federal",
+      "accountNo": "10340100900100",
+      "bankBranch": "THRIKKAKKARA",
+      "ifscCode": "FDRL0001034",
+      "zone": "HO"
+    },
+    "createdAt": "2025-01-15T10:00:00Z"
   }
 ]
