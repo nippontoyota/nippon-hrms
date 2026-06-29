@@ -42,15 +42,18 @@ export default function PreviewPayslipModal({ open, employeeId, employeeName, mo
     }
   }, [open, employeeId, month, year]);
 
-  if (!open) return null;
-
-  const pdfUrl = pdfBlob ? URL.createObjectURL(pdfBlob) : null;
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    return () => {
-      if (pdfUrl) URL.revokeObjectURL(pdfUrl);
-    };
-  }, [pdfUrl]);
+    if (pdfBlob) {
+      const url = URL.createObjectURL(pdfBlob);
+      setPdfUrl(url);
+      return () => URL.revokeObjectURL(url);
+    }
+    setPdfUrl(null);
+  }, [pdfBlob]);
+
+  if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">

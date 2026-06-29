@@ -11,6 +11,7 @@ import (
 	"github.com/nippon-toyota/hrms/internal/doubletick"
 	"github.com/nippon-toyota/hrms/internal/employee"
 	"github.com/nippon-toyota/hrms/internal/epf"
+	"github.com/nippon-toyota/hrms/internal/leave"
 	"github.com/nippon-toyota/hrms/internal/payroll"
 )
 
@@ -22,9 +23,10 @@ type Service struct {
 	empRepo     employee.Repository
 	epfRepo     epf.Repository
 	payrollRepo payroll.Repository
+	leaveRepo   leave.Repository
 }
 
-func NewService(dt *doubletick.Client, sessions SessionStore, empRepo employee.Repository, epfRepo epf.Repository, payrollRepo payroll.Repository) *Service {
+func NewService(dt *doubletick.Client, sessions SessionStore, empRepo employee.Repository, epfRepo epf.Repository, payrollRepo payroll.Repository, leaveRepo leave.Repository) *Service {
 	return &Service{
 		dt:          dt,
 		sessions:    sessions,
@@ -33,6 +35,7 @@ func NewService(dt *doubletick.Client, sessions SessionStore, empRepo employee.R
 		empRepo:     empRepo,
 		epfRepo:     epfRepo,
 		payrollRepo: payrollRepo,
+		leaveRepo:   leaveRepo,
 	}
 }
 
@@ -88,6 +91,14 @@ func (s *Service) handleWebhookLocked(ctx context.Context, from, input, msgType,
 	switch sess.State {
 	case StateAwaitPeriod:
 		err = s.handleAwaitPeriod(ctx, sess, from, input)
+	case StateLeaveAwaitStart:
+		err = s.handleLeaveAwaitStart(ctx, sess, from, input)
+	case StateLeaveAwaitEnd:
+		err = s.handleLeaveAwaitEnd(ctx, sess, from, input)
+	case StateLeaveAwaitReason:
+		err = s.handleLeaveAwaitReason(ctx, sess, from, input)
+	case StateLeaveAwaitConfirm:
+		err = s.handleLeaveAwaitConfirm(ctx, sess, from, input)
 	default:
 		err = s.handleIdle(ctx, sess, from, input)
 	}
@@ -129,7 +140,7 @@ func isGreeting(input string) bool {
 }
 
 func (s *Service) handleIdle(ctx context.Context, sess *Session, from, input string) error {
-	if input == payloadGeneratePay {
+	if input == payloadGeneratePay || input == "1" || strings.ToLower(input) == "payslip" {
 		s.ensureEmployee(ctx, sess, from)
 		if sess.EmployeeID == "" {
 			sess.resetFlow()
@@ -139,6 +150,18 @@ func (s *Service) handleIdle(ctx context.Context, sess *Session, from, input str
 		sess.State = StateAwaitPeriod
 		s.sessions.Set(from, sess)
 		return s.sendPeriodPrompt(ctx, sess, from)
+	}
+
+	if input == "2" || strings.ToLower(input) == "leave" {
+		s.ensureEmployee(ctx, sess, from)
+		if sess.EmployeeID == "" {
+			sess.resetFlow()
+			s.sessions.Set(from, sess)
+			return s.sendText(ctx, from, msgNotEmployee)
+		}
+		sess.State = StateLeaveAwaitStart
+		s.sessions.Set(from, sess)
+		return s.sendText(ctx, from, msgLeaveAwaitStart)
 	}
 
 	if !isGreeting(input) && !sess.LastMenuSentAt.IsZero() && time.Since(sess.LastMenuSentAt) < menuCooldown {
@@ -289,4 +312,99 @@ func (s *Service) sendGeneratePayButton(ctx context.Context, to string) error {
 func (s *Service) sendText(ctx context.Context, to, text string) error {
 	_, err := s.dt.SendText(ctx, to, text)
 	return err
+}
+
+func (s *Service) handleLeaveAwaitStart(ctx context.Context, sess *Session, from, input string) error {
+	if isGreeting(input) || input == "0" {
+		sess.resetFlow()
+		s.sessions.Set(from, sess)
+		return s.handleIdle(ctx, sess, from, input)
+	}
+
+	parsed, err := time.Parse("02-01-2006", input)
+	if err != nil {
+		return s.sendText(ctx, from, "❌ Invalid date format. Please use DD-MM-YYYY (e.g., 01-07-2026).")
+	}
+
+	sess.TempLeaveStart = parsed.Format("2006-01-02") // Internal format is still YYYY-MM-DD
+	sess.State = StateLeaveAwaitEnd
+	s.sessions.Set(from, sess)
+	return s.sendText(ctx, from, msgLeaveAwaitEnd)
+}
+
+func (s *Service) handleLeaveAwaitEnd(ctx context.Context, sess *Session, from, input string) error {
+	if isGreeting(input) || input == "0" {
+		sess.resetFlow()
+		s.sessions.Set(from, sess)
+		return s.handleIdle(ctx, sess, from, input)
+	}
+
+	endDate, err := time.Parse("02-01-2006", input)
+	if err != nil {
+		return s.sendText(ctx, from, "❌ Invalid date format. Please use DD-MM-YYYY (e.g., 05-07-2026).")
+	}
+
+	startDate, _ := time.Parse("2006-01-02", sess.TempLeaveStart)
+	if endDate.Before(startDate) {
+		return s.sendText(ctx, from, "❌ End date cannot be before start date. Please enter a valid end date.")
+	}
+
+	sess.TempLeaveEnd = endDate.Format("2006-01-02") // internal format
+	sess.State = StateLeaveAwaitReason
+	s.sessions.Set(from, sess)
+	return s.sendText(ctx, from, msgLeaveAwaitReason)
+}
+
+func (s *Service) handleLeaveAwaitReason(ctx context.Context, sess *Session, from, input string) error {
+	if isGreeting(input) || input == "0" {
+		sess.resetFlow()
+		s.sessions.Set(from, sess)
+		return s.handleIdle(ctx, sess, from, input)
+	}
+
+	sess.TempLeaveReason = input
+	sess.State = StateLeaveAwaitConfirm
+	s.sessions.Set(from, sess)
+	
+	// Convert internal dates back to display format for confirmation
+	sDate, _ := time.Parse("2006-01-02", sess.TempLeaveStart)
+	eDate, _ := time.Parse("2006-01-02", sess.TempLeaveEnd)
+	return s.sendText(ctx, from, msgLeaveConfirmPrompt(sDate.Format("02-01-2006"), eDate.Format("02-01-2006"), sess.TempLeaveReason))
+}
+
+func (s *Service) handleLeaveAwaitConfirm(ctx context.Context, sess *Session, from, input string) error {
+	input = strings.ToLower(strings.TrimSpace(input))
+	if input == "no" || input == "cancel" || input == "0" {
+		sess.resetFlow()
+		s.sessions.Set(from, sess)
+		return s.sendText(ctx, from, msgLeaveCancelled)
+	}
+	if input != "yes" && input != "confirm" && input != "submit" {
+		return s.sendText(ctx, from, "Please reply *yes* to submit or *no* to cancel.")
+	}
+
+	startDate, _ := time.Parse("2006-01-02", sess.TempLeaveStart)
+	endDate, _ := time.Parse("2006-01-02", sess.TempLeaveEnd)
+	days := int(endDate.Sub(startDate).Hours()/24) + 1
+
+	req := &leave.LeaveRequest{
+		EmployeeID: sess.EmployeeID,
+		Type:       leave.TypeCasual, // Defaulting to casual for whatsapp flow for now
+		FromDate:   sess.TempLeaveStart,
+		ToDate:     sess.TempLeaveEnd,
+		Days:       days,
+		Reason:     sess.TempLeaveReason,
+		Status:     leave.StatusPending,
+	}
+
+	if err := s.leaveRepo.Create(ctx, req); err != nil {
+		slog.Error("failed to create leave request", "err", err, "emp", sess.EmployeeID)
+		sess.resetFlow()
+		s.sessions.Set(from, sess)
+		return s.sendText(ctx, from, "⚠️ Sorry, there was a system error while submitting your leave application. Please try again or contact HR.")
+	}
+
+	sess.resetFlow()
+	s.sessions.Set(from, sess)
+	return s.sendText(ctx, from, msgLeaveCreated)
 }

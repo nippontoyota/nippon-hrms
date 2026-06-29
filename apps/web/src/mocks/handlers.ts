@@ -160,7 +160,7 @@ export const handlers = [
     }));
     return HttpResponse.json({
       employeeCount: employees.filter((e) => e.status === 'Active').length,
-      pendingLeaveRequests: leaveRequests.filter((l) => l.status === 'Pending').length,
+      pendingLeaveRequests: leaveRequests.filter((l) => l.status === 'pending').length,
       pendingDispatchJobs: dispatchJobs.filter((j) => j.status === 'PENDING' || j.status === 'RUNNING').length,
       attendancePeriods: attendancePeriods.length,
       latestPeriod,
@@ -368,15 +368,15 @@ export const handlers = [
   http.get('/api/admin/logs/leave', () => HttpResponse.json(leaveRequests)),
 
   http.patch('/api/admin/logs/leave/:id', async ({ params, request }) => {
-    const body = (await request.json()) as { status: 'Approved' | 'Rejected' };
+    const body = (await request.json()) as { status: 'approved' | 'rejected' };
     const leave = leaveRequests.find((l) => l.id === params.id);
     if (!leave) return HttpResponse.json({ message: 'Not found' }, { status: 404 });
-    if (leave.status !== 'Pending') {
+    if (leave.status !== 'pending') {
       return HttpResponse.json({ message: 'Leave request already decided' }, { status: 400 });
     }
     leave.status = body.status;
-    leave.decidedAt = new Date().toISOString();
-    leave.approverName = 'HR Admin';
+    leave.reviewedAt = new Date().toISOString();
+    leave.reviewedBy = 'HR Admin';
     return HttpResponse.json(leave);
   }),
 

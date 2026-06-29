@@ -4,10 +4,13 @@ import { Users, ArrowsClockwise, Envelope, Warning, ArrowRight } from '@phosphor
 
 function KPI({ label, value, subtext, icon: Icon }: { label: string; value: string | number; subtext: string; icon: any }) {
   return (
-    <div className="card !p-4">
-      <div className="flex justify-between items-start mb-2">
+    <div 
+      className="card !p-5 relative overflow-hidden group hover:shadow-md transition-shadow"
+    >
+      <div className="absolute top-0 left-0 w-1 h-full bg-slate-200 dark:bg-slate-700 group-hover:bg-[#eb0a1e] transition-colors" />
+      <div className="flex justify-between items-start mb-3">
         <p className="font-semibold text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400">{label}</p>
-        <Icon size={20} weight="duotone" className="text-slate-400 dark:text-slate-500" />
+        <Icon size={20} className="text-slate-400 group-hover:text-[#eb0a1e] transition-colors" />
       </div>
       <p className="font-mono text-3xl font-bold text-slate-900 dark:text-white leading-none mb-1">{value}</p>
       <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">{subtext}</p>
@@ -19,7 +22,9 @@ export default function DashboardPage() {
   const { data: stats, isLoading } = useDashboard();
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div 
+      className="space-y-8 max-w-7xl mx-auto"
+    >
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-headline font-bold text-slate-900 dark:text-white tracking-tight">HR Overview</h1>
         <Link to="/admin/salary" className="btn-primary">
@@ -33,7 +38,9 @@ export default function DashboardPage() {
           <p className="text-slate-500 dark:text-slate-400 font-mono text-[10px] uppercase tracking-widest">Aggregating telemetry...</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div 
+          className="grid grid-cols-1 md:grid-cols-4 gap-5"
+        >
           <KPI 
             label="Dealership Headcount" 
             value={stats?.employeeCount ?? 0} 
@@ -66,7 +73,9 @@ export default function DashboardPage() {
           <h2 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest">Recent Payroll Batches</h2>
           <button className="text-[10px] font-bold text-[#eb0a1e] uppercase tracking-wider hover:underline">View all</button>
         </div>
-        <div className="table-wrapper">
+        <div 
+          className="table-wrapper"
+        >
           <table className="table-dense">
             <thead>
               <tr>
@@ -79,7 +88,7 @@ export default function DashboardPage() {
             </thead>
             <tbody>
               <tr>
-                <td colSpan={5} className="text-center p-4 text-slate-500 font-mono">NO RECORDS FOUND</td>
+                <td colSpan={5} className="text-center p-6 text-slate-500 font-mono text-xs tracking-widest">NO RECORDS FOUND</td>
               </tr>
             </tbody>
           </table>

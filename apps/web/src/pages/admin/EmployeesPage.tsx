@@ -261,6 +261,13 @@ export default function EmployeesPage() {
         onClose={() => setPayslipTarget(null)}
       />
       {/* Top action bar */}
+      <div className="flex items-center gap-3 border-b border-slate-200 dark:border-slate-700 pb-3">
+        <h2 className="text-lg font-bold text-slate-900 dark:text-white uppercase tracking-wide">Employee Directory</h2>
+        <span className="text-xs font-mono text-slate-500 dark:text-slate-400">
+          {filtered.length} records
+        </span>
+      </div>
+
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3 flex-1 min-w-[300px]">
           <div className="relative w-full max-w-[500px]">
@@ -379,7 +386,7 @@ export default function EmployeesPage() {
                   <th className="sticky right-0 z-10 bg-slate-100 dark:bg-slate-700 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.05)] border-l border-slate-300 dark:border-slate-600">Actions</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {filtered.map((e, index) => {
                   const isEditing = editingId === e.id;
                   

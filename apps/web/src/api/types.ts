@@ -217,22 +217,7 @@ export interface AttendanceRecord {
   weeklyOffs: number;
 }
 
-export type LeaveStatus = 'Pending' | 'Approved' | 'Rejected';
 
-export interface LeaveRequest {
-  id: string;
-  employeeId: string;
-  employeeName: string;
-  leaveType: string;
-  fromDate: string;
-  toDate: string;
-  reason: string;
-  status: LeaveStatus;
-  approverPhone: string;
-  approverName?: string;
-  appliedAt: string;
-  decidedAt?: string;
-}
 
 export interface FeedbackResponse {
   id: string;
@@ -297,4 +282,32 @@ export interface DispatchJobSummary {
   failed: number;
   skipped: number;
   createdAt: string;
+}
+
+export type LeaveStatus = 'pending' | 'approved' | 'rejected';
+export type LeaveType = 'casual' | 'sick' | 'annual' | 'maternity' | 'paternity';
+
+export interface LeaveRequest {
+  id: string;
+  employeeId: string;
+  type: LeaveType;
+  fromDate: string;
+  toDate: string;
+  days: number;
+  reason: string;
+  status: LeaveStatus;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  createdAt: string;
+  employee?: Employee;
+}
+
+export interface LeaveBalance {
+  employeeId: string;
+  month: number;
+  year: number;
+  totalCasual: number;
+  usedCasual: number;
+  totalSick: number;
+  usedSick: number;
 }

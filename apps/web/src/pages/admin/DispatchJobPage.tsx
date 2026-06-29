@@ -52,7 +52,7 @@ export default function DispatchJobPage() {
     if (!job || (job.status !== 'PENDING' && job.status !== 'RUNNING')) return;
     const timer = setInterval(loadJob, 2000);
     return () => clearInterval(timer);
-  }, [job?.status, loadJob]);
+  }, [job, loadJob]);
 
   const handleRetry = async () => {
     if (!jobId) return;
