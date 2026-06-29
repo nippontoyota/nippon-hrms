@@ -2,11 +2,9 @@ import { useState, useMemo } from 'react';
 import { useLeaves, useUpdateLeaveStatus, useLeaveBalance } from '@/api/hooks';
 import toast from 'react-hot-toast';
 import {
-  CalendarBlank,
   CheckCircle,
   XCircle,
   MagnifyingGlass,
-  Info,
   Clock,
 } from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -156,7 +154,7 @@ export default function LeaveDirectoryPage() {
                     <td colSpan={6} className="py-8 text-center text-slate-500">No leave requests found.</td>
                   </tr>
                 ) : (
-                  filteredLeaves.map((l, index) => (
+                  filteredLeaves.map((l) => (
                     <tr 
                       key={l.id}
                       className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
