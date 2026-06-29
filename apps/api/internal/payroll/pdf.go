@@ -76,9 +76,6 @@ func money(v float64) string {
 
 func newPayslipView(emp *employee.Employee, rec *Record, epfRec *epf.Record) PayslipView {
 	name := rec.EmpNameSnapshot
-	if emp != nil && emp.Name != "" {
-		name = emp.Name
-	}
 
 	v := PayslipView{
 		FormCode:    "FORM XIII [RULE 29(2)]",
