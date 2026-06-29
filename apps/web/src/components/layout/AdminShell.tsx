@@ -20,7 +20,7 @@ export default function AdminShell() {
   const isDark = useThemeStore((s) => s.isDark);
   const toggleTheme = useThemeStore((s) => s.toggleTheme);
   const navigate = useNavigate();
-  const [isCollapsed, setIsCollapsed] = useState(true);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   useEffect(() => {
     if (!accessToken) return;
