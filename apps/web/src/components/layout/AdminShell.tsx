@@ -51,7 +51,7 @@ export default function AdminShell() {
           <img src="/nippon-logo.png" alt="Toyota Logo" className={`object-contain opacity-80 transition-all duration-300 ${isCollapsed ? 'h-5' : 'h-8'}`} />
         </div>
 
-        <nav className="flex-1 overflow-y-auto custom-scrollbar py-4 space-y-2 overflow-x-hidden">
+        <nav className="flex-1 py-4 space-y-2">
           {sideNav.map((item) => (
             <NavLink
               key={item.to}
