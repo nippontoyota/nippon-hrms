@@ -34,3 +34,34 @@ func TestDedupStore_textEchoAfterButton(t *testing.T) {
 		t.Fatal("text echo after button should be duplicate")
 	}
 }
+
+func TestDedupStore_payslipDelivery(t *testing.T) {
+	d := newDedupStore(0)
+
+	if d.isRecentPayslip("+911", 6, 2026) {
+		t.Fatal("first payslip request should not be recent")
+	}
+
+	d.markPayslipDelivered("+911", 6, 2026)
+
+	if !d.isRecentPayslip("+911", 6, 2026) {
+		t.Fatal("same payslip period should be recent within cooldown")
+	}
+	if d.isRecentPayslip("+911", 7, 2026) {
+		t.Fatal("different period should not be blocked")
+	}
+}
+
+func TestDedupStore_clearPayslipDelivery(t *testing.T) {
+	d := newDedupStore(0)
+
+	d.markPayslipDelivered("+911", 6, 2026)
+	if !d.isRecentPayslip("+911", 6, 2026) {
+		t.Fatal("payslip should be marked recent")
+	}
+
+	d.clearPayslipDelivery("+911", 6, 2026)
+	if d.isRecentPayslip("+911", 6, 2026) {
+		t.Fatal("payslip mark should be cleared after failure")
+	}
+}

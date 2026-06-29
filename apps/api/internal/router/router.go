@@ -2,6 +2,7 @@ package router
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/nippon-toyota/hrms/internal/config"
 	"github.com/nippon-toyota/hrms/internal/db"
+	"github.com/nippon-toyota/hrms/internal/dispatch"
 	"github.com/nippon-toyota/hrms/internal/doubletick"
 	"github.com/nippon-toyota/hrms/internal/employee"
 	"github.com/nippon-toyota/hrms/internal/epf"
@@ -42,6 +44,18 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 	payrollRepo := payroll.NewPostgresRepository(pgPool)
 
 	payrollDispatcher := payroll.NewDispatcher(payrollRepo, empRepo, epfRepo, dtClient)
+	dispatchRepo := dispatch.NewPostgresRepository(pgPool)
+	dispatchService := dispatch.NewService(
+		dispatchRepo,
+		payrollRepo,
+		empRepo,
+		epfRepo,
+		payrollDispatcher,
+		dispatch.RunnerConfig{
+			Workers:   cfg.DispatchWorkers,
+			ItemDelay: time.Duration(cfg.DispatchItemDelay) * time.Millisecond,
+		},
+	)
 
 	sessionStore := whatsapp.NewInMemoryStore(0)
 	waSvc := whatsapp.NewService(dtClient, sessionStore, empRepo, epfRepo, payrollRepo)
@@ -49,7 +63,7 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 
 	employeeH := handler.NewEmployeeHandler(empRepo)
 	epfH := handler.NewEpfHandler(epfRepo)
-	payrollH := handler.NewPayrollHandler(payrollRepo, payrollDispatcher)
+	payrollH := handler.NewPayrollHandler(payrollRepo, payrollDispatcher, dispatchService)
 
 	r.Get("/health", handler.HealthHandler)
 
@@ -88,6 +102,9 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 				r.Get("/preview", payrollH.PreviewPDF)
 				r.Post("/validate", payrollH.Validate)
 				r.Post("/dispatch", payrollH.Dispatch)
+				r.Get("/dispatch/{jobId}", payrollH.GetDispatchJob)
+				r.Get("/dispatch/{jobId}/items", payrollH.ListDispatchJobItems)
+				r.Post("/dispatch/{jobId}/retry-failed", payrollH.RetryFailedDispatch)
 				r.Post("/send", payrollH.SendPayslip)
 				r.Delete("/{id}", payrollH.Delete)
 				r.Get("/export", payrollH.ExportExcel)

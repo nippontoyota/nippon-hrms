@@ -176,7 +176,7 @@ export default function EpfRecordsSection() {
   };
 
   return (
-    <div className="space-y-4 mt-12">
+    <div className="space-y-4">
       <ConfirmDialog
         open={confirmDialog.open}
         title={confirmDialog.title}
@@ -188,7 +188,7 @@ export default function EpfRecordsSection() {
       />
 
       <div className="flex items-center gap-3 border-b border-slate-200 dark:border-slate-700 pb-3">
-        <h2 className="text-lg font-bold text-slate-900 dark:text-white uppercase tracking-wide">EPF Compliance</h2>
+        <h2 className="text-lg font-bold text-slate-900 dark:text-white uppercase tracking-wide">EPF Records</h2>
         <span className="text-xs font-mono text-slate-500 dark:text-slate-400">
           {records?.length ?? 0} records
         </span>

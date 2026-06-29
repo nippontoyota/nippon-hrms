@@ -9,7 +9,6 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import SendPayslipModal from '@/components/SendPayslipModal';
 import { downloadApiBlob, exportCsv } from '@/lib/format';
 import { EMPLOYEE_DIRECTORY_HEADERS } from '@/lib/exportColumns';
-import EpfRecordsSection from '@/components/EpfRecordsSection';
 
 type SortKey = 'employeeId' | 'name' | 'department' | 'doj' | 'branch' | 'designation';
 type SortDir = 'asc' | 'desc';
@@ -439,8 +438,12 @@ export default function EmployeesPage() {
                           <>
                             <div className="relative group/btn inline-flex items-center justify-center">
                               <button
+                                type="button"
                                 className="text-green-600 hover:text-green-700 inline-flex cursor-pointer transition-colors"
-                                onClick={() => setPayslipTarget({ id: e.id, employeeId: e.employeeId, name: e.name, mobileNo: e.mobileNo })}
+                                onClick={(ev) => {
+                                  ev.stopPropagation();
+                                  setPayslipTarget({ id: e.id, employeeId: e.employeeId, name: e.name, mobileNo: e.mobileNo });
+                                }}
                                 disabled={!!editingId}
                               >
                                 <WhatsappLogo size={16} weight="duotone" className={editingId ? 'opacity-30' : ''} />
@@ -492,8 +495,6 @@ export default function EmployeesPage() {
           </div>
         )}
       </div>
-
-      <EpfRecordsSection />
     </div>
   );
 }

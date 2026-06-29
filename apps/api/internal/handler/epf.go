@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/nippon-toyota/hrms/internal/epf"
+	"github.com/nippon-toyota/hrms/pkg/downloadname"
 	"github.com/nippon-toyota/hrms/pkg/logger"
 	"github.com/nippon-toyota/hrms/pkg/respond"
 	"github.com/xuri/excelize/v2"
@@ -170,8 +170,7 @@ func (h *EpfHandler) ExportExcel(w http.ResponseWriter, r *http.Request) {
 		f.SetColWidth(sheet, col, col, 16)
 	}
 
-	timestamp := time.Now().Format("2006-01-02_15-04-05")
-	filename := fmt.Sprintf("EPFDirectory_%s.xlsx", timestamp)
+	filename := downloadname.EpfExport()
 
 	w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
@@ -182,8 +181,7 @@ func (h *EpfHandler) ExportExcel(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *EpfHandler) DownloadTemplate(w http.ResponseWriter, r *http.Request) {
-	timestamp := time.Now().Format("2006-01-02_15-04-05")
-	filename := fmt.Sprintf("EPFDirectory_Template_%s.csv", timestamp)
+	filename := downloadname.EpfImportTemplate()
 
 	w.Header().Set("Content-Type", "text/csv")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))

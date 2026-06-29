@@ -163,7 +163,7 @@ export interface PayrollRecord {
   dispatchedAt?: string | null;
 }
 
-export type DispatchItemStatus = 'PENDING' | 'SENT' | 'FAILED' | 'SKIPPED';
+export type DispatchItemStatus = 'PENDING' | 'RUNNING' | 'SENT' | 'FAILED' | 'SKIPPED';
 export type DispatchJobStatus = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED';
 
 export interface DispatchJobItem {
@@ -176,7 +176,7 @@ export interface DispatchJobItem {
 
 export interface DispatchJob {
   id: string;
-  periodId: string;
+  periodId?: string;
   year: number;
   month: number;
   status: DispatchJobStatus;
@@ -184,8 +184,9 @@ export interface DispatchJob {
   sent: number;
   failed: number;
   skipped: number;
-  items: DispatchJobItem[];
+  items?: DispatchJobItem[];
   createdAt: string;
+  completedAt?: string;
 }
 
 export interface HolidayFile {

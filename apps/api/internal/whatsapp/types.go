@@ -4,7 +4,6 @@ import "time"
 
 const (
 	payloadGeneratePay = "generate_pay"
-	periodIDPrefix     = "payslip_"
 )
 
 type State int
@@ -15,14 +14,19 @@ const (
 )
 
 type Session struct {
-	Phone      string
-	State      State
-	EmployeeID string
-	UpdatedAt  time.Time
+	Phone              string
+	State              State
+	EmployeeID         string
+	LastMenuSentAt     time.Time
+	LastPeriodPromptAt time.Time
+	LastPayslipSentAt  time.Time
+	UpdatedAt          time.Time
 }
 
 func (s *Session) resetFlow() {
 	s.State = StateIdle
+	s.LastMenuSentAt = time.Time{}
+	s.LastPeriodPromptAt = time.Time{}
 }
 
 func (s *Session) reset() {

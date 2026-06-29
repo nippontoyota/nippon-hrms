@@ -9,6 +9,7 @@ import (
 	"github.com/nippon-toyota/hrms/internal/doubletick"
 	"github.com/nippon-toyota/hrms/internal/employee"
 	"github.com/nippon-toyota/hrms/internal/epf"
+	"github.com/nippon-toyota/hrms/pkg/phone"
 )
 
 type Dispatcher struct {
@@ -36,6 +37,31 @@ func (d *Dispatcher) lookupEpf(ctx context.Context, employeeID string) *epf.Reco
 		return nil
 	}
 	return rec
+}
+
+func (d *Dispatcher) ensureWhatsApp() error {
+	if d.dtClient == nil || !d.dtClient.Configured() {
+		return fmt.Errorf("WhatsApp (DoubleTick) is not configured")
+	}
+	return nil
+}
+
+func payslipCaption(monthStr string, year int, empName string) string {
+	return fmt.Sprintf("📄 *Payslip - %s %d*\n\nDear %s,\n\nPlease find attached your payslip for the month of %s %d.\n\nFor any discrepancies, please reach out to HR.", monthStr, year, empName, monthStr, year)
+}
+
+func (d *Dispatcher) sendPayslipDocument(ctx context.Context, to, filename, caption string, pdfBytes []byte) error {
+	if err := d.ensureWhatsApp(); err != nil {
+		return err
+	}
+	mediaURL, err := d.dtClient.UploadMedia(ctx, pdfBytes, filename, "application/pdf")
+	if err != nil {
+		return fmt.Errorf("media upload failed: %w", err)
+	}
+	if _, err := d.dtClient.SendDocument(ctx, to, mediaURL, filename, caption); err != nil {
+		return fmt.Errorf("whatsapp send failed: %w", err)
+	}
+	return nil
 }
 
 type ValidationError struct {
@@ -93,73 +119,69 @@ func (d *Dispatcher) ValidatePayroll(ctx context.Context, month, year int) ([]Va
 	return validationErrs, nil
 }
 
-// DispatchPayslips generates and sends the payslip PDF to every employee with a record for the period.
+// DispatchPayslips is deprecated; bulk dispatch is handled by internal/dispatch.Service.
 func (d *Dispatcher) DispatchPayslips(ctx context.Context, month, year int) error {
-	records, err := d.repo.ListByPeriod(ctx, month, year)
-	if err != nil {
-		return fmt.Errorf("list payroll records: %w", err)
-	}
-
-	slog.Info("dispatching payslips", "month", month, "year", year, "count", len(records))
-
-	if err := d.repo.MarkAsDispatched(ctx, month, year); err != nil {
-		slog.Error("failed to mark records as dispatched", "month", month, "year", year, "err", err)
-	}
-
-	go func() {
-		bgCtx := context.Background()
-		monthStr := time.Month(month).String()
-
-		sent := 0
-		for i := range records {
-			rec := records[i]
-
-			emp, err := d.empRepo.GetByID(bgCtx, rec.EmployeeID)
-			if err != nil {
-				slog.Error("dispatch: employee lookup failed", "emp", rec.EmployeeID, "err", err)
-				continue
-			}
-			if emp.MobileNumber == "" {
-				slog.Warn("dispatch: employee has no mobile number", "emp", rec.EmployeeID)
-				continue
-			}
-
-			pdfBytes, err := GeneratePayslipPDF(emp, &rec, d.lookupEpf(bgCtx, rec.EmployeeID))
-			if err != nil {
-				slog.Error("dispatch: pdf gen failed", "emp", rec.EmployeeID, "err", err)
-				continue
-			}
-
-			filename := fmt.Sprintf("payslip_%s_%02d_%d.pdf", rec.EmployeeID, month, year)
-			mediaURL, err := d.dtClient.UploadMedia(bgCtx, pdfBytes, filename, "application/pdf")
-			if err != nil {
-				slog.Error("dispatch: media upload failed", "emp", rec.EmployeeID, "err", err)
-				continue
-			}
-
-			caption := fmt.Sprintf("📄 *Payslip - %s %d*\n\nDear %s,\n\nPlease find attached your payslip for the month of %s %d.\n\nFor any discrepancies, please reach out to HR.", monthStr, year, emp.Name, monthStr, year)
-			if _, err := d.dtClient.SendDocument(bgCtx, emp.MobileNumber, mediaURL, filename, caption); err != nil {
-				slog.Error("dispatch: doubletick send failed", "emp", rec.EmployeeID, "err", err)
-				continue
-			}
-
-			sent++
-			slog.Info("dispatch: payslip sent", "emp", rec.EmployeeID)
-		}
-		slog.Info("dispatch: completed", "sent", sent, "total", len(records))
-	}()
-
-	return nil
+	return fmt.Errorf("use dispatch job service")
 }
 
-// SendSinglePayslip generates and sends the payslip for a single employee for a given period.
+// DeliverPayslip generates and sends a payslip for a payroll record.
+func (d *Dispatcher) DeliverPayslip(ctx context.Context, emp *employee.Employee, rec *Record, epfRec *epf.Record, month, year int) error {
+	if emp.MobileNumber == "" {
+		return fmt.Errorf("no mobile number")
+	}
+	to := phone.FormatWhatsAppE164(emp.MobileNumber)
+	if to == "" {
+		return fmt.Errorf("invalid mobile number")
+	}
+
+	pdfBytes, err := GeneratePayslipPDF(emp, rec, epfRec)
+	if err != nil {
+		return fmt.Errorf("pdf generation failed: %w", err)
+	}
+
+	monthStr := time.Month(month).String()
+	filename := fmt.Sprintf("payslip_%s_%02d_%d.pdf", rec.EmployeeID, month, year)
+	caption := payslipCaption(monthStr, year, emp.Name)
+
+	return d.sendPayslipDocumentWithRetry(ctx, to, filename, caption, pdfBytes)
+}
+
+func (d *Dispatcher) sendPayslipDocumentWithRetry(ctx context.Context, to, filename, caption string, pdfBytes []byte) error {
+	var lastErr error
+	for attempt := 0; attempt < 3; attempt++ {
+		if attempt > 0 {
+			time.Sleep(time.Duration(attempt) * 500 * time.Millisecond)
+		}
+		lastErr = d.sendPayslipDocument(ctx, to, filename, caption, pdfBytes)
+		if lastErr == nil {
+			return nil
+		}
+		if !doubletick.IsTransient(lastErr) {
+			return lastErr
+		}
+	}
+	return lastErr
+}
+
+// EnsureWhatsAppConfigured returns an error if DoubleTick is not configured.
+func (d *Dispatcher) EnsureWhatsAppConfigured() error {
+	return d.ensureWhatsApp()
+}
 func (d *Dispatcher) SendSinglePayslip(ctx context.Context, employeeID string, month, year int) error {
+	if err := d.ensureWhatsApp(); err != nil {
+		return err
+	}
+
 	emp, err := d.empRepo.GetByID(ctx, employeeID)
 	if err != nil {
 		return fmt.Errorf("employee not found: %w", err)
 	}
 	if emp.MobileNumber == "" {
 		return fmt.Errorf("employee %s has no mobile number registered", employeeID)
+	}
+	to := phone.FormatWhatsAppE164(emp.MobileNumber)
+	if to == "" {
+		return fmt.Errorf("employee %s has an invalid mobile number", employeeID)
 	}
 
 	rec, err := d.repo.GetPayslip(ctx, employeeID, month, year)
@@ -174,22 +196,13 @@ func (d *Dispatcher) SendSinglePayslip(ctx context.Context, employeeID string, m
 
 	monthStr := time.Month(month).String()
 	filename := fmt.Sprintf("payslip_%s_%02d_%d.pdf", employeeID, month, year)
-	caption := fmt.Sprintf("📄 *Payslip - %s %d*\n\nDear %s,\n\nPlease find attached your payslip for the month of %s %d.\n\nFor any discrepancies, please reach out to HR.", monthStr, year, emp.Name, monthStr, year)
+	caption := payslipCaption(monthStr, year, emp.Name)
 
-	go func() {
-		bgCtx := context.Background()
-		mediaURL, err := d.dtClient.UploadMedia(bgCtx, pdfBytes, filename, "application/pdf")
-		if err != nil {
-			slog.Error("send single: media upload failed", "emp", employeeID, "err", err)
-			return
-		}
-		if _, err := d.dtClient.SendDocument(bgCtx, emp.MobileNumber, mediaURL, filename, caption); err != nil {
-			slog.Error("send single: doubletick send failed", "emp", employeeID, "err", err)
-			return
-		}
-		slog.Info("send single: payslip sent", "emp", employeeID)
-	}()
+	if err := d.sendPayslipDocument(ctx, to, filename, caption, pdfBytes); err != nil {
+		return err
+	}
 
+	slog.Info("send single: payslip sent", "emp", employeeID)
 	return nil
 }
 

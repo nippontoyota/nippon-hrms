@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Nippon Toyota Payslip Portal — How to Run Everything</title>
+  <style>body {
+  font-family: "Segoe UI", Calibri, Arial, sans-serif;
+  font-size: 11pt;
+  line-height: 1.5;
+  color: #1a1a1a;
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 24px 32px;
+}
+h1 {
+  font-size: 22pt;
+  color: #0f172a;
+  border-bottom: 3px solid #dc2626;
+  padding-bottom: 8px;
+  margin-top: 0;
+}
+h2 {
+  font-size: 15pt;
+  color: #1e293b;
+  margin-top: 28px;
+  page-break-after: avoid;
+}
+h3 {
+  font-size: 12pt;
+  color: #334155;
+  margin-top: 20px;
+  page-break-after: avoid;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0 20px;
+  font-size: 10pt;
+}
+th, td {
+  border: 1px solid #cbd5e1;
+  padding: 8px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+th {
+  background: #f1f5f9;
+  font-weight: 600;
+}
+code, pre {
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 9.5pt;
+  background: #f8fafc;
+}
+pre {
+  border: 1px solid #e2e8f0;
+  padding: 12px 14px;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+  page-break-inside: avoid;
+}
+blockquote {
+  border-left: 4px solid #f59e0b;
+  margin: 12px 0;
+  padding: 8px 16px;
+  background: #fffbeb;
+  color: #78350f;
+}
+hr {
+  border: none;
+  border-top: 1px solid #e2e8f0;
+  margin: 24px 0;
+}
+ul, ol {
+  padding-left: 22px;
+}
+li {
+  margin-bottom: 4px;
+}
+a {
+  color: #2563eb;
+  word-break: break-all;
+}
+@media print {
+  body { padding: 0; }
+  h2 { page-break-before: auto; }
+}
+</style>
+</head>
+<body>
+<h1>Nippon Toyota Payslip Portal</h1>
+<h2>How to Run Everything (Simple Guide)</h2>
+<p>This guide explains how to run the full Payslip Portal on your computer — the HR website, the backend server, the database, WhatsApp (DoubleTick), and the Cloudflare tunnel that connects WhatsApp to your laptop.</p>
+<p>You do <strong>not</strong> need to be a programmer to follow this. Take it one step at a time.</p>
+<hr>
+<h2>Quick checklist (print this page)</h2>
+<p>Use this every time you sit down to work:</p>
+<ul>
+<li>[ ] <strong>Step A</strong> — API server is running (Terminal 1)</li>
+<li>[ ] <strong>Step B</strong> — Web dashboard is running (Terminal 2)</li>
+<li>[ ] <strong>Step C</strong> — Cloudflare tunnel is running (Terminal 3) — <em>only needed for WhatsApp</em></li>
+<li>[ ] Open <strong>http://localhost:5173</strong> in your browser and log in</li>
+<li>[ ] DoubleTick webhook points to your current tunnel URL (if you restarted the tunnel, update it)</li>
+</ul>
+<hr>
+<h2>What is this project?</h2>
+<p>Think of it as four pieces working together:</p>
+<table>
+<thead><tr><th>Piece</th><th>What it does</th><th>Where it runs</th></tr></thead>
+<tbody>
+<tr><td><strong>Web dashboard</strong></td><td>HR staff log in, upload employees, upload payroll, send payslips</td><td>Your browser at <code>http://localhost:5173</code></td></tr>
+<tr><td><strong>API (backend)</strong></td><td>The brain — saves data, builds PDF payslips, talks to WhatsApp</td><td>Your computer at <code>http://localhost:8080</code></td></tr>
+<tr><td><strong>Supabase</strong></td><td>Online database + login system</td><td>On the internet (supabase.com)</td></tr>
+<tr><td><strong>DoubleTick</strong></td><td>Sends and receives WhatsApp messages for the company</td><td>On the internet (doubletick.io)</td></tr>
+</tbody></table>
+<p><strong>Why do you need a Cloudflare tunnel?</strong></p>
+<p>When an employee sends a WhatsApp message, DoubleTick needs to tell <em>your</em> API about it. But DoubleTick lives on the internet — it cannot reach <code>localhost</code> on your laptop. A Cloudflare tunnel gives you a temporary public web address (like <code>https://something.trycloudflare.com</code>) that forwards traffic to your API on port 8080.</p>
+<hr>
+<h2>Part 1 — One-time setup</h2>
+<p>Do these steps once (or whenever you set up a new computer).</p>
+<h3>1. Install these programs</h3>
+<p>Download and install each of these on your Windows PC:</p>
+<ol>
+<li><strong>Node.js (LTS version)</strong> — from https://nodejs.org  </li>
+</ol>
+<p>   Used to run the HR website.</p>
+<ol>
+<li><strong>Go (version 1.26 or newer)</strong> — from https://go.dev/dl/  </li>
+</ol>
+<p>   Used to run the backend API.</p>
+<ol>
+<li><strong>Git</strong> — from https://git-scm.com  </li>
+</ol>
+<p>   Used to get the project code (you may already have this).</p>
+<ol>
+<li><strong>Cloudflare Tunnel (cloudflared)</strong> — from  </li>
+</ol>
+<p>   https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/  </p>
+<p>   Used to expose your API to the internet for WhatsApp.</p>
+<p><strong>Optional:</strong> <strong>Air</strong> — a tool that restarts the API automatically when you change code.  </p>
+<p>Install with: <code>go install github.com/air-verse/air@latest</code></p>
+<h3>2. Get the project code</h3>
+<p>Open <strong>PowerShell</strong> or <strong>Command Prompt</strong> and go to the project folder:</p>
+<pre><code>cd E:\Projects\NipponToyota\PayslipPortal</code></pre>
+<p>If you do not have the code yet, ask your team for the repository location and clone it first.</p>
+<h3>3. Set up Supabase (database + login)</h3>
+<p>Supabase is a free online service that stores your employee data and handles HR login.</p>
+<p>#### 3a. Create or open your project</p>
+<ol>
+<li>Go to https://supabase.com and sign in.</li>
+<li>Open your team's project (or create a new one if starting fresh).</li>
+</ol>
+<p>#### 3b. Create the database tables</p>
+<p>The project includes SQL files that create all needed tables. You run them <strong>by hand</strong> in Supabase — there is no automatic installer.</p>
+<ol>
+<li>In Supabase, open <strong>SQL Editor</strong> (left menu).</li>
+<li>Open each file below from the folder <code>apps\api\migrations\</code> on your computer.</li>
+<li>Copy the contents, paste into the SQL Editor, and click <strong>Run</strong>.</li>
+<li>Run them <strong>in this exact order</strong>:</li>
+</ol>
+<table>
+<thead><tr><th>Order</th><th>File name</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><code>000001_create_employees.sql</code></td></tr>
+<tr><td>2</td><td><code>000002_create_leaves.sql</code></td></tr>
+<tr><td>3</td><td><code>000003_create_whatsapp.sql</code></td></tr>
+<tr><td>4</td><td><code>000004_drop_epf_employee_columns.sql</code></td></tr>
+<tr><td>5</td><td><code>000005_create_epf_records.sql</code></td></tr>
+<tr><td>6</td><td><code>000008_create_dispatch_jobs.sql</code></td></tr>
+<tr><td>7</td><td><em>(Optional test data)</em> <code>000006_seed_epf_sample_data.sql</code></td></tr>
+<tr><td>8</td><td><em>(Optional test user)</em> <code>000007_seed_krishnanand_test_user.sql</code></td></tr>
+</tbody></table>
+<p>If a file says "already exists," that is usually fine — move on to the next one.</p>
+<p>#### 3c. Create an HR login user</p>
+<ol>
+<li>In Supabase, go to <strong>Authentication</strong> → <strong>Users</strong>.</li>
+<li>Click <strong>Add user</strong> → <strong>Create new user</strong>.</li>
+<li>Enter an email and password (for example <code>hr@yourcompany.com</code>).</li>
+<li>Remember these — you will use them to log into the Payslip Portal website.</li>
+</ol>
+<p>#### 3d. Copy your Supabase keys</p>
+<p>You will need these values in the next section. Find them in Supabase under <strong>Settings</strong> → <strong>API</strong>:</p>
+<table>
+<thead><tr><th>What to copy</th><th>Where it goes later</th></tr></thead>
+<tbody>
+<tr><td><strong>Project URL</strong> (looks like <code>https://xxxxx.supabase.co</code>)</td><td><code>SUPABASE_URL</code> and <code>VITE_SUPABASE_URL</code></td></tr>
+<tr><td><strong>anon public</strong> key</td><td><code>SUPABASE_ANON_KEY</code> and <code>VITE_SUPABASE_ANON_KEY</code></td></tr>
+</tbody></table>
+<p>Also go to <strong>Settings</strong> → <strong>Database</strong> and copy the <strong>Connection string</strong> (URI format). This becomes <code>DATABASE_URL</code>.  </p>
+<p>If it asks for a password, use the database password you set when creating the project.</p>
+<hr>
+<h3>4. Configure the API (backend)</h3>
+<p>Create a file called <code>.env</code> inside the folder <code>apps\api\</code>.</p>
+<p>You can copy this template and fill in your real values:</p>
+<pre><code>HOST=0.0.0.0
+PORT=8080
+APP_ENV=development
+
+DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@db.YOUR_PROJECT.supabase.co:5432/postgres
+JWT_SECRET=pick-a-long-random-password-here-at-least-32-characters
+
+SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+SUPABASE_ANON_KEY=your-anon-key-here
+
+DOUBLETICK_API_KEY=your-doubletick-api-key
+WABA_PHONE_NUMBER_ID=919876543210
+DOUBLETICK_WEBHOOK_SECRET=your-webhook-secret</code></pre>
+<p><strong>What each important line means:</strong></p>
+<ul>
+<li><strong>DATABASE_URL</strong> — How the API connects to Supabase's database. <strong>Required.</strong> The API will not start without it.</li>
+<li><strong>JWT_SECRET</strong> — A secret password the server uses internally. <strong>Required.</strong> Make it long and random.</li>
+<li><strong>SUPABASE_URL</strong> and <strong>SUPABASE_ANON_KEY</strong> — Used to verify HR login. <strong>Required for the dashboard to load data.</strong></li>
+<li><strong>DOUBLETICK_API_KEY</strong> — Your DoubleTick API key. <strong>Required to send WhatsApp messages.</strong></li>
+<li><strong>WABA_PHONE_NUMBER_ID</strong> — Your company's WhatsApp business phone number, with country code, <strong>no plus sign</strong>. Example for India: <code>919876543210</code>. <strong>Required to send WhatsApp messages.</strong></li>
+<li><strong>DOUBLETICK_WEBHOOK_SECRET</strong> — A secret you choose and also enter in DoubleTick's dashboard. <strong>Required for WhatsApp messages to reach your API securely.</strong></li>
+</ul>
+<blockquote><p><strong>Tip:</strong> Never share these values publicly or commit them to Git. The <code>.env</code> file stays on your computer only.</p></blockquote>
+<hr>
+<h3>5. Configure the web dashboard (frontend)</h3>
+<ol>
+<li>Go to the folder <code>apps\web\</code>.</li>
+<li>Copy the file <code>.env.local.example</code> and rename the copy to <code>.env.local</code>.</li>
+<li>Edit <code>.env.local</code> and fill in:</li>
+</ol>
+<pre><code>VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key-here</code></pre>
+<p>Use the <strong>same</strong> Project URL and anon key as in the API config above.</p>
+<p>The website automatically talks to the API through a built-in connection — you do not need to set a separate API address.</p>
+<hr>
+<h3>6. Install project dependencies</h3>
+<p>Open a terminal in the project root folder and run:</p>
+<p><strong>For the website:</strong></p>
+<pre><code>cd E:\Projects\NipponToyota\PayslipPortal
+npm install</code></pre>
+<p><strong>For the API:</strong></p>
+<pre><code>cd E:\Projects\NipponToyota\PayslipPortal\apps\api
+go mod download</code></pre>
+<p>Wait for both to finish. This only needs to be done once (or after the team updates dependencies).</p>
+<hr>
+<h3>7. Configure DoubleTick (WhatsApp)</h3>
+<p>Log into your DoubleTick dashboard (https://doubletick.io or your team's DoubleTick portal).</p>
+<p>You need three things from DoubleTick:</p>
+<ol>
+<li><strong>API Key</strong> → put in <code>DOUBLETICK_API_KEY</code> in <code>apps\api\.env</code></li>
+<li><strong>WhatsApp business number</strong> → put in <code>WABA_PHONE_NUMBER_ID</code> (country code + number, no <code>+</code>)</li>
+<li><strong>Webhook secret</strong> → pick a strong random string, put the same value in both:</li>
+</ol>
+<p>   - <code>DOUBLETICK_WEBHOOK_SECRET</code> in <code>apps\api\.env</code></p>
+<p>   - The webhook secret field in DoubleTick's dashboard</p>
+<p>The <strong>webhook URL</strong> is set in the next section (after you start the Cloudflare tunnel), because the URL changes each time unless you set up a permanent tunnel.</p>
+<hr>
+<h2>Part 2 — Every time you work (3 terminals)</h2>
+<p>You need <strong>three separate terminal windows</strong> open. Think of them as three workers that must stay running.</p>
+<h3>Terminal 1 — Start the API (backend)</h3>
+<pre><code>cd E:\Projects\NipponToyota\PayslipPortal\apps\api
+go run .\cmd\server</code></pre>
+<p><strong>Or</strong>, if you installed Air:</p>
+<pre><code>cd E:\Projects\NipponToyota\PayslipPortal\apps\api
+air</code></pre>
+<p><strong>How you know it worked:</strong> You should see a message like <code>nippon-hrms api starting</code> on port 8080.</p>
+<p><strong>Quick test:</strong> Open a browser and go to http://localhost:8080/health — you should see a success response.</p>
+<p>Leave this terminal open. Do not close it.</p>
+<hr>
+<h3>Terminal 2 — Start the web dashboard</h3>
+<pre><code>cd E:\Projects\NipponToyota\PayslipPortal
+npm run dev</code></pre>
+<p><strong>How you know it worked:</strong> It will show a local address, usually http://localhost:5173</p>
+<p><strong>Quick test:</strong> Open http://localhost:5173 in your browser. Log in with the Supabase email and password you created in Part 1.</p>
+<p>Leave this terminal open.</p>
+<hr>
+<h3>Terminal 3 — Start the Cloudflare tunnel (for WhatsApp)</h3>
+<p>This step is <strong>only needed when you want WhatsApp to work</strong> (employees messaging the bot, or HR sending payslips via WhatsApp).</p>
+<pre><code>cloudflared tunnel --url http://localhost:8080</code></pre>
+<p><strong>How you know it worked:</strong> After a few seconds, it prints a line with a URL like:</p>
+<pre><code>https://random-words-here.trycloudflare.com</code></pre>
+<p><strong>Copy that full URL.</strong> You will need it in two places:</p>
+<ol>
+<li><strong>DoubleTick webhook URL</strong> — set this in the DoubleTick dashboard:</li>
+</ol>
+<p>   ```</p>
+<p>   https://YOUR-TUNNEL-URL.trycloudflare.com/api/v1/whatsapp/webhook</p>
+<p>   ```</p>
+<p>   Replace <code>YOUR-TUNNEL-URL</code> with the actual URL cloudflared gave you.</p>
+<ol>
+<li><strong>Quick test</strong> — open this in your browser:</li>
+</ol>
+<p>   ```</p>
+<p>   https://YOUR-TUNNEL-URL.trycloudflare.com/health</p>
+<p>   ```</p>
+<p>   You should see the same success response as http://localhost:8080/health</p>
+<p>Leave this terminal open while testing WhatsApp.</p>
+<blockquote><p><strong>Important:</strong> The free trycloudflare.com URL <strong>changes every time</strong> you restart the tunnel. If you close Terminal 3 and open it again, you must update the webhook URL in DoubleTick with the new address.</p></blockquote>
+<hr>
+<h2>Part 3 — Test that everything works</h2>
+<table>
+<thead><tr><th>What to test</th><th>How</th><th>Good result</th></tr></thead>
+<tbody>
+<tr><td>API is alive</td><td>Visit http://localhost:8080/health</td><td>Success / OK response</td></tr>
+<tr><td>Website works</td><td>Visit http://localhost:5173 and log in</td><td>Dashboard appears</td></tr>
+<tr><td>Database connected</td><td>Go to Employees page in the dashboard</td><td>Employee list loads (may be empty)</td></tr>
+<tr><td>Tunnel works</td><td>Visit https://YOUR-TUNNEL/health</td><td>Same OK as local health</td></tr>
+<tr><td>WhatsApp inbound</td><td>From a phone number registered as an employee, send "Hi" to the business WhatsApp number</td><td>Bot replies with a menu</td></tr>
+<tr><td>Send a payslip</td><td>In the dashboard, go to Salary, pick a month with payroll data, send a payslip to one employee</td><td>PDF arrives on that employee's WhatsApp</td></tr>
+</tbody></table>
+<p><strong>Test employee (if you ran migration 000007):</strong></p>
+<ul>
+<li>Employee ID: <strong>9001</strong></li>
+<li>Name: Krishnanand G</li>
+<li>Mobile: <strong>8590215315</strong></li>
+</ul>
+<p>That phone number must be registered in the employees table for WhatsApp self-service to work.</p>
+<hr>
+<h2>Part 4 — Common problems and fixes</h2>
+<h3>The API crashes immediately when I start it</h3>
+<ul>
+<li>Check that <code>apps\api\.env</code> exists.</li>
+<li>Make sure <code>DATABASE_URL</code> is filled in correctly (copy fresh from Supabase).</li>
+<li>Make sure <code>JWT_SECRET</code> is filled in (any long random string).</li>
+</ul>
+<h3>I can log in but pages show errors or "unauthorized"</h3>
+<ul>
+<li>The Supabase URL and anon key in <code>apps\api\.env</code> must <strong>match</strong> the ones in <code>apps\web\.env.local</code>.</li>
+<li>Restart both the API (Terminal 1) and the website (Terminal 2) after changing env files.</li>
+</ul>
+<h3>WhatsApp messages are not sending (payslip dispatch fails)</h3>
+<ul>
+<li>Check <code>DOUBLETICK_API_KEY</code> and <code>WABA_PHONE_NUMBER_ID</code> in <code>apps\api\.env</code>.</li>
+<li>The phone number format must include country code with <strong>no</strong> <code>+</code> sign (example: <code>919876543210</code>).</li>
+<li>Restart the API after changing <code>.env</code>.</li>
+</ul>
+<h3>Employees message WhatsApp but nothing happens / no bot reply</h3>
+<ul>
+<li>Is Terminal 3 (Cloudflare tunnel) still running?</li>
+<li>Is the webhook URL in DoubleTick correct? It must end with <code>/api/v1/whatsapp/webhook</code></li>
+<li>Does the webhook URL match the <strong>current</strong> tunnel URL? (It changes when you restart the tunnel.)</li>
+<li>Does <code>DOUBLETICK_WEBHOOK_SECRET</code> in <code>.env</code> match what is in DoubleTick's dashboard?</li>
+<li>Is the employee's phone number registered in the employees table?</li>
+</ul>
+<h3>The tunnel URL keeps changing</h3>
+<p>This is normal with the free quick tunnel. Each time you run <code>cloudflared tunnel --url ...</code>, you get a new URL. Update DoubleTick's webhook each time, or ask your technical team about setting up a <strong>named permanent tunnel</strong> (advanced, not covered here).</p>
+<h3>I changed <code>.env</code> but nothing changed</h3>
+<p>Always <strong>restart the API</strong> (stop Terminal 1 with Ctrl+C, then start it again) after editing environment files. The website also needs a restart after changing <code>.env.local</code>.</p>
+<hr>
+<h2>Part 5 — Daily workflow summary</h2>
+<p><strong>Every working session:</strong></p>
+<ol>
+<li>Open Terminal 1 → start API (<code>go run .\cmd\server</code>)</li>
+<li>Open Terminal 2 → start website (<code>npm run dev</code>)</li>
+<li>Open Terminal 3 → start tunnel (<code>cloudflared tunnel --url http://localhost:8080</code>) — if using WhatsApp</li>
+<li>Update DoubleTick webhook if the tunnel URL changed</li>
+<li>Open http://localhost:5173 and work normally</li>
+</ol>
+<p><strong>When you are done:</strong></p>
+<ul>
+<li>Press <strong>Ctrl+C</strong> in each terminal to stop the servers.</li>
+<li>The website and API stop immediately.</li>
+<li>WhatsApp will stop receiving messages until you start everything again.</li>
+</ul>
+<hr>
+<h2>Where things live in the project</h2>
+<table>
+<thead><tr><th>Folder / file</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td><code>apps\web\</code></td><td>HR dashboard (React website)</td></tr>
+<tr><td><code>apps\api\</code></td><td>Backend server (Go)</td></tr>
+<tr><td><code>apps\api\.env</code></td><td>Backend secrets and settings</td></tr>
+<tr><td><code>apps\web\.env.local</code></td><td>Website settings (Supabase login)</td></tr>
+<tr><td><code>apps\api\migrations\</code></td><td>Database setup SQL files</td></tr>
+<tr><td>Web address</td><td>http://localhost:5173</td></tr>
+<tr><td>API address</td><td>http://localhost:8080</td></tr>
+<tr><td>WhatsApp webhook path</td><td><code>/api/v1/whatsapp/webhook</code></td></tr>
+</tbody></table>
+<hr>
+<h2>Need help?</h2>
+<p>If something still does not work after trying the fixes above, note down:</p>
+<ol>
+<li>Which step failed</li>
+<li>The exact error message (screenshot helps)</li>
+<li>Whether all three terminals are running</li>
+</ol>
+<p>Share that with your technical team.</p>
+<hr>
+<p><em>Nippon Toyota Payslip Portal — Internal use only</em></p>
+</body>
+</html>

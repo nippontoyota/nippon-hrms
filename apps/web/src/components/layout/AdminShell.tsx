@@ -1,23 +1,33 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Navigate, Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { SquaresFour, Users, Money, House, SignOut, ListDashes, List, Sun, Moon } from '@phosphor-icons/react';
+import { SquaresFour, Users, IdentificationCard, Money, House, SignOut, ListDashes, List, Sun, Moon } from '@phosphor-icons/react';
 import { useAuthStore } from '@/stores/authStore';
 import { useThemeStore } from '@/stores/themeStore';
+import { refreshAccessToken } from '@/lib/authRefresh';
 
 const sideNav = [
   { to: '/admin', icon: SquaresFour, label: 'HR Overview', end: true },
   { to: '/admin/employees', icon: Users, label: 'Employee Directory' },
+  { to: '/admin/epf', icon: IdentificationCard, label: 'EPF Records' },
   { to: '/admin/salary-directory', icon: ListDashes, label: 'Salary Directory' },
   { to: '/admin/salary', icon: Money, label: 'Process Payroll' },
 ];
 
 export default function AdminShell() {
-  const { clearAuth, isAuthenticated } = useAuthStore();
+  const { clearAuth, isAuthenticated, accessToken } = useAuthStore();
   const isDark = useThemeStore((s) => s.isDark);
   const toggleTheme = useThemeStore((s) => s.toggleTheme);
   const navigate = useNavigate();
   const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  useEffect(() => {
+    if (!accessToken) return;
+    const timer = setInterval(() => {
+      refreshAccessToken().catch(() => {});
+    }, 10 * 60 * 1000);
+    return () => clearInterval(timer);
+  }, [accessToken]);
 
   if (!isAuthenticated()) {
     return <Navigate to="/login" replace />;

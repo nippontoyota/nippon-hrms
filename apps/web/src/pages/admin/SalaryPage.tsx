@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { WarningCircle, Spinner, CaretLeft, CaretRight, CheckCircle, WhatsappLogo } from '@phosphor-icons/react';
 import { salaryApi } from '@/api/endpoints';
@@ -29,6 +30,7 @@ export default function SalaryPage() {
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
 
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const { data: records, isLoading: recordsLoading } = usePayrollRecords(month, year);
 
   const isNextMonthDisabled = year === currentYear && month === currentMonth;
@@ -68,9 +70,11 @@ export default function SalaryPage() {
   const handleDispatch = async () => {
     setDispatching(true);
     try {
-      await salaryApi.dispatch(month, year);
-      toast.success('Dispatch initiated successfully!');
+      const { jobId } = await salaryApi.dispatch(month, year);
+      toast.success('Dispatch started');
       qc.invalidateQueries({ queryKey: ['payrollRecords', month, year] });
+      setIsConfirmModalOpen(false);
+      navigate(`/admin/salary/dispatch/${jobId}`);
     } catch {
       toast.error('Failed to trigger dispatch');
     } finally {

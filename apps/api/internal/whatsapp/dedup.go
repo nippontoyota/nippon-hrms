@@ -1,19 +1,22 @@
 package whatsapp
 
 import (
+	"fmt"
 	"strings"
 	"sync"
 	"time"
 )
 
 type dedupStore struct {
-	mu               sync.Mutex
-	ttl              time.Duration
-	echoWindow       time.Duration
-	actionWindow     time.Duration
-	byMessageID      map[string]time.Time
-	byAction         map[string]time.Time
-	lastStructuredAt map[string]time.Time
+	mu                 sync.Mutex
+	ttl                time.Duration
+	echoWindow         time.Duration
+	actionWindow       time.Duration
+	payslipWindow      time.Duration
+	byMessageID        map[string]time.Time
+	byAction           map[string]time.Time
+	lastStructuredAt   map[string]time.Time
+	byPayslipDelivery  map[string]time.Time
 }
 
 func newDedupStore(ttl time.Duration) *dedupStore {
@@ -21,12 +24,14 @@ func newDedupStore(ttl time.Duration) *dedupStore {
 		ttl = 5 * time.Minute
 	}
 	return &dedupStore{
-		ttl:              ttl,
-		echoWindow:       time.Second,
-		actionWindow:     3 * time.Second,
-		byMessageID:      make(map[string]time.Time),
-		byAction:         make(map[string]time.Time),
-		lastStructuredAt: make(map[string]time.Time),
+		ttl:               ttl,
+		echoWindow:        time.Second,
+		actionWindow:      3 * time.Second,
+		payslipWindow:     1 * time.Minute,
+		byMessageID:       make(map[string]time.Time),
+		byAction:          make(map[string]time.Time),
+		lastStructuredAt:  make(map[string]time.Time),
+		byPayslipDelivery: make(map[string]time.Time),
 	}
 }
 
@@ -64,6 +69,34 @@ func (d *dedupStore) isDuplicate(messageID, phone, input, msgType string) bool {
 	return false
 }
 
+func (d *dedupStore) isRecentPayslip(phone string, month, year int) bool {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	now := time.Now()
+	key := payslipDeliveryKey(phone, month, year)
+	if seenAt, ok := d.byPayslipDelivery[key]; ok && now.Sub(seenAt) < d.payslipWindow {
+		return true
+	}
+	return false
+}
+
+func (d *dedupStore) markPayslipDelivered(phone string, month, year int) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.byPayslipDelivery[payslipDeliveryKey(phone, month, year)] = time.Now()
+}
+
+func (d *dedupStore) clearPayslipDelivery(phone string, month, year int) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	delete(d.byPayslipDelivery, payslipDeliveryKey(phone, month, year))
+}
+
+func payslipDeliveryKey(phone string, month, year int) string {
+	return fmt.Sprintf("%s|%d|%d", phone, month, year)
+}
+
 func (d *dedupStore) evict(now time.Time) {
 	for id, seenAt := range d.byMessageID {
 		if now.Sub(seenAt) > d.ttl {
@@ -78,6 +111,11 @@ func (d *dedupStore) evict(now time.Time) {
 	for phone, seenAt := range d.lastStructuredAt {
 		if now.Sub(seenAt) > d.echoWindow {
 			delete(d.lastStructuredAt, phone)
+		}
+	}
+	for key, seenAt := range d.byPayslipDelivery {
+		if now.Sub(seenAt) > d.payslipWindow {
+			delete(d.byPayslipDelivery, key)
 		}
 	}
 }

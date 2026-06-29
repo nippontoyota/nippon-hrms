@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/nippon-toyota/hrms/internal/employee"
+	"github.com/nippon-toyota/hrms/pkg/downloadname"
 	"github.com/nippon-toyota/hrms/pkg/logger"
 	"github.com/nippon-toyota/hrms/pkg/respond"
 	"github.com/xuri/excelize/v2"
@@ -233,8 +233,7 @@ func (h *EmployeeHandler) ExportExcel(w http.ResponseWriter, r *http.Request) {
 		f.SetColWidth(sheet, col, col, 18)
 	}
 
-	timestamp := time.Now().Format("2006-01-02_15-04-05")
-	filename := fmt.Sprintf("EmployeeDirectory_%s.xlsx", timestamp)
+	filename := downloadname.EmployeeExport()
 
 	w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
@@ -254,8 +253,7 @@ func (h *EmployeeHandler) DownloadTemplate(w http.ResponseWriter, r *http.Reques
 		"totalSalaryWithAllowances", "bankName", "accountNumber", "bankBranch", "ifscCode", "zone",
 	}
 
-	timestamp := time.Now().Format("2006-01-02_15-04-05")
-	filename := fmt.Sprintf("EmployeeDirectory_Template_%s.csv", timestamp)
+	filename := downloadname.EmployeeImportTemplate()
 
 	w.Header().Set("Content-Type", "text/csv")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))

@@ -1,3 +1,11 @@
+export function getApiErrorMessage(err: unknown, fallback = 'Something went wrong. Please try again.'): string {
+  const axiosErr = err as {
+    response?: { data?: { error?: { message?: string } } };
+    message?: string;
+  };
+  return axiosErr.response?.data?.error?.message || axiosErr.message || fallback;
+}
+
 export function formatCurrency(n: number) {
   return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
 }

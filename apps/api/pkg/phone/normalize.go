@@ -20,3 +20,12 @@ func NormalizeIndian(raw string) string {
 	}
 	return s
 }
+
+// FormatWhatsAppE164 returns an Indian mobile number in +91XXXXXXXXXX form for WhatsApp APIs.
+func FormatWhatsAppE164(raw string) string {
+	digits := NormalizeIndian(raw)
+	if len(digits) != 10 {
+		return ""
+	}
+	return "+91" + digits
+}
