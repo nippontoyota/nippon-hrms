@@ -58,9 +58,7 @@ func (s *Service) HandleWebhook(ctx context.Context, wh *doubletick.Webhook) err
 	from := wh.Data.From
 	input := strings.TrimSpace(wh.Data.Body())
 
-	if err := s.dt.MarkMessageRead(ctx, from, wh.Data.MessageID); err != nil {
-		slog.Warn("whatsapp mark read failed", "from", from, "messageId", wh.Data.MessageID, "err", err)
-	}
+	// Removed MarkMessageRead since it's throwing a 404 from DoubleTick and is non-essential.
 
 	var handleErr error
 	s.phoneLock.run(from, func() {
@@ -110,11 +108,9 @@ func (s *Service) handleWebhookLocked(ctx context.Context, from, input, msgType,
 }
 
 func (s *Service) ensureEmployee(ctx context.Context, sess *Session, from string) {
-	if sess.EmployeeID != "" {
-		return
-	}
 	emp, err := s.empRepo.FindByPhone(ctx, from)
 	if err != nil || emp == nil {
+		sess.EmployeeID = ""
 		return
 	}
 	sess.EmployeeID = emp.ID
@@ -140,7 +136,7 @@ func isGreeting(input string) bool {
 }
 
 func (s *Service) handleIdle(ctx context.Context, sess *Session, from, input string) error {
-	if input == payloadGeneratePay || input == "1" || strings.ToLower(input) == "payslip" {
+	if input == payloadGeneratePay || input == "1" || strings.ToLower(input) == "payslip" || strings.ToLower(input) == "salary slip" || strings.ToLower(input) == "request salary slip" {
 		s.ensureEmployee(ctx, sess, from)
 		if sess.EmployeeID == "" {
 			sess.resetFlow()
@@ -152,7 +148,7 @@ func (s *Service) handleIdle(ctx context.Context, sess *Session, from, input str
 		return s.sendPeriodPrompt(ctx, sess, from)
 	}
 
-	if input == "2" || strings.ToLower(input) == "leave" {
+	if input == payloadRequestLeave || input == "2" || strings.ToLower(input) == "leave" || strings.ToLower(input) == "request leave" {
 		s.ensureEmployee(ctx, sess, from)
 		if sess.EmployeeID == "" {
 			sess.resetFlow()
@@ -174,7 +170,16 @@ func (s *Service) handleIdle(ctx context.Context, sess *Session, from, input str
 		return nil
 	}
 
-	if err := s.sendGeneratePayButton(ctx, from); err != nil {
+	empName := ""
+	s.ensureEmployee(ctx, sess, from)
+	if sess.EmployeeID != "" {
+		emp, _ := s.empRepo.GetByID(ctx, sess.EmployeeID)
+		if emp != nil {
+			empName = emp.Name
+		}
+	}
+
+	if err := s.sendMainMenuButtons(ctx, from, empName); err != nil {
 		return err
 	}
 	sess.LastMenuSentAt = time.Now()
@@ -300,11 +305,12 @@ func (s *Service) deliverPayslip(ctx context.Context, sess *Session, from string
 	return nil
 }
 
-func (s *Service) sendGeneratePayButton(ctx context.Context, to string) error {
-	_, err := s.dt.SendInteractiveButtons(ctx, to, msgWelcome, msgGeneratePayBody, "", generatePayButtons())
+func (s *Service) sendMainMenuButtons(ctx context.Context, to, name string) error {
+	body := msgWelcome(name) + "\n\n" + msgMainMenuBody
+	_, err := s.dt.SendInteractiveButtons(ctx, to, "", body, "", mainMenuButtons())
 	if err != nil {
 		slog.Warn("interactive button send failed, falling back to text", "err", err)
-		return s.sendText(ctx, to, msgWelcome+"\n\n"+msgGeneratePayBody+"\n\nReply *Generate Pay* to continue.")
+		return s.sendText(ctx, to, body+"\n\nReply *Request Salary Slip* or *Request Leave* to continue.")
 	}
 	return nil
 }
@@ -321,9 +327,21 @@ func (s *Service) handleLeaveAwaitStart(ctx context.Context, sess *Session, from
 		return s.handleIdle(ctx, sess, from, input)
 	}
 
-	parsed, err := time.Parse("02-01-2006", input)
+	parsed, err := time.Parse("02/01/2006", input)
 	if err != nil {
-		return s.sendText(ctx, from, "❌ Invalid date format. Please use DD-MM-YYYY (e.g., 01-07-2026).")
+		return s.sendText(ctx, from, "[INVALID FORMAT]\nPlease use DD/MM/YYYY (e.g., 01/07/2026).")
+	}
+
+	todayStr := time.Now().Format("2006-01-02")
+	today, _ := time.Parse("2006-01-02", todayStr)
+
+	if parsed.Before(today) {
+		return s.sendText(ctx, from, "Hmm, it looks like you entered a date in the past. Please enter a valid start date from today onwards.")
+	}
+	
+	maxDate := today.AddDate(0, 0, 30)
+	if parsed.After(maxDate) {
+		return s.sendText(ctx, from, "Leave applications can only be scheduled up to 30 days in advance from today. Please select an earlier start date.")
 	}
 
 	sess.TempLeaveStart = parsed.Format("2006-01-02") // Internal format is still YYYY-MM-DD
@@ -339,14 +357,22 @@ func (s *Service) handleLeaveAwaitEnd(ctx context.Context, sess *Session, from, 
 		return s.handleIdle(ctx, sess, from, input)
 	}
 
-	endDate, err := time.Parse("02-01-2006", input)
+	endDate, err := time.Parse("02/01/2006", input)
 	if err != nil {
-		return s.sendText(ctx, from, "❌ Invalid date format. Please use DD-MM-YYYY (e.g., 05-07-2026).")
+		return s.sendText(ctx, from, "[INVALID FORMAT]\nPlease use DD/MM/YYYY (e.g., 05/07/2026).")
 	}
 
 	startDate, _ := time.Parse("2006-01-02", sess.TempLeaveStart)
 	if endDate.Before(startDate) {
-		return s.sendText(ctx, from, "❌ End date cannot be before start date. Please enter a valid end date.")
+		return s.sendText(ctx, from, "[INVALID DATE]\nEnd date cannot be before start date. Please enter a valid end date.")
+	}
+
+	todayStr := time.Now().Format("2006-01-02")
+	today, _ := time.Parse("2006-01-02", todayStr)
+	maxDate := today.AddDate(0, 0, 30)
+
+	if endDate.After(maxDate) {
+		return s.sendText(ctx, from, "Leave applications can only be scheduled up to 30 days in advance from today. Please select an earlier end date.")
 	}
 
 	sess.TempLeaveEnd = endDate.Format("2006-01-02") // internal format
@@ -369,7 +395,8 @@ func (s *Service) handleLeaveAwaitReason(ctx context.Context, sess *Session, fro
 	// Convert internal dates back to display format for confirmation
 	sDate, _ := time.Parse("2006-01-02", sess.TempLeaveStart)
 	eDate, _ := time.Parse("2006-01-02", sess.TempLeaveEnd)
-	return s.sendText(ctx, from, msgLeaveConfirmPrompt(sDate.Format("02-01-2006"), eDate.Format("02-01-2006"), sess.TempLeaveReason))
+	days := int(eDate.Sub(sDate).Hours()/24) + 1
+	return s.sendText(ctx, from, msgLeaveConfirmPrompt(sDate.Format("02/01/2006"), eDate.Format("02/01/2006"), sess.TempLeaveReason, days))
 }
 
 func (s *Service) handleLeaveAwaitConfirm(ctx context.Context, sess *Session, from, input string) error {
@@ -386,6 +413,17 @@ func (s *Service) handleLeaveAwaitConfirm(ctx context.Context, sess *Session, fr
 	startDate, _ := time.Parse("2006-01-02", sess.TempLeaveStart)
 	endDate, _ := time.Parse("2006-01-02", sess.TempLeaveEnd)
 	days := int(endDate.Sub(startDate).Hours()/24) + 1
+
+	bal, err := s.leaveRepo.GetMonthlyBalance(ctx, sess.EmployeeID, int(startDate.Month()), startDate.Year())
+	if err == nil && bal != nil {
+		remCasual := bal.RemainingCasual()
+		if days > remCasual {
+			msg := fmt.Sprintf("[INSUFFICIENT BALANCE]\n\nYou are requesting %d days, but you only have %d Casual leave(s) remaining for %s %d. Please try again with a shorter duration.", days, remCasual, startDate.Month().String(), startDate.Year())
+			sess.resetFlow()
+			s.sessions.Set(from, sess)
+			return s.sendText(ctx, from, msg)
+		}
+	}
 
 	req := &leave.LeaveRequest{
 		EmployeeID: sess.EmployeeID,

@@ -30,7 +30,7 @@ export default function App() {
   return (
     <div className={isDark ? 'dark' : ''}>
       <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Toaster
           position="bottom-right"
           gutter={8}

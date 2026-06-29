@@ -3,7 +3,8 @@ package whatsapp
 import "time"
 
 const (
-	payloadGeneratePay = "generate_pay"
+	payloadGeneratePay  = "generate_pay"
+	payloadRequestLeave = "request_leave"
 )
 
 type State int
