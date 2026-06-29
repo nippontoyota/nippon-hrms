@@ -21,16 +21,21 @@ function BalanceBadge({ employeeId }: { employeeId: string }) {
   const remSick = Math.max(0, balance.totalSick - balance.usedSick);
 
   return (
-    <div className="flex gap-2 mt-1">
-      <span className="px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider rounded border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400">
-        {remCasual} Casual
-      </span>
-      <span className="px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider rounded border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400">
-        {remSick} Sick
-      </span>
+    <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-1.5 flex items-center gap-1.5 whitespace-nowrap">
+      <span>Bal: <strong>{remCasual}</strong> C</span>
+      <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600"></span>
+      <span><strong>{remSick}</strong> S</span>
     </div>
   );
 }
+
+const shortDate = (dStr?: string) => {
+  if (!dStr) return '';
+  const parts = dStr.split('T')[0].split('-');
+  if (parts.length !== 3) return dStr;
+  const m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(parts[1], 10) - 1];
+  return `${parts[2]} ${m}`;
+};
 
 export default function LeaveDirectoryPage() {
   const { data: leaves = [], isLoading } = useLeaves();
@@ -39,7 +44,7 @@ export default function LeaveDirectoryPage() {
   const [filterStatus, setFilterStatus] = useState<string>('all');
 
   const filteredLeaves = useMemo(() => {
-    return leaves.filter((l) => {
+    return (leaves || []).filter((l) => {
       const matchSearch = l.employee?.name?.toLowerCase().includes(search.toLowerCase()) || 
                           l.employee?.employeeId?.toLowerCase().includes(search.toLowerCase());
       const matchStatus = filterStatus === 'all' || l.status === filterStatus;
@@ -61,24 +66,12 @@ export default function LeaveDirectoryPage() {
   return (
     <div className="space-y-6 max-w-full pb-10">
       
-      <div className="flex items-center gap-3 border-b border-slate-200 dark:border-slate-700 pb-3">
-        <h2 className="text-lg font-bold text-slate-900 dark:text-white uppercase tracking-wide">Leave Requests</h2>
-        <span className="text-xs font-mono text-slate-500 dark:text-slate-400">
-          {filteredLeaves.length} records
-        </span>
-      </div>
-
-      {/* Universal Policy Banner */}
-      <div className="bg-white dark:bg-slate-800 border-l-4 border-slate-400 dark:border-slate-500 rounded-r-md p-4 shadow-sm text-slate-600 dark:text-slate-400 text-sm">
-        <div className="flex items-start gap-3">
-          <Info size={20} className="mt-0.5 shrink-0 text-slate-400" />
-          <div>
-            <h2 className="font-semibold text-slate-800 dark:text-slate-200 uppercase tracking-widest text-xs mb-1">Company Leave Policy Reference</h2>
-            <p className="leading-relaxed">
-              Standard employees are entitled to <span className="font-semibold text-slate-700 dark:text-slate-300">2 Casual Leaves</span> and <span className="font-semibold text-slate-700 dark:text-slate-300">2 Sick Leaves</span> per month. 
-              Balances shown below are dynamically calculated based on approved leaves for the current month.
-            </p>
-          </div>
+      <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-3">
+        <div className="flex items-center gap-3">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white uppercase tracking-wide">Leave Requests</h2>
+          <span className="text-xs font-mono text-slate-500 dark:text-slate-400">
+            {filteredLeaves.length} records
+          </span>
         </div>
       </div>
 
@@ -185,39 +178,40 @@ export default function LeaveDirectoryPage() {
                     </td>
                     <td className="py-3 px-4">
                       <div className="mb-1">
-                        <span className="px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider rounded bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                        <span className={`px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider rounded border ${
+                          l.type.toLowerCase() === 'casual'
+                            ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-300'
+                            : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:border-rose-800 dark:text-rose-300'
+                        }`}>
                           {l.type}
                         </span>
                       </div>
                       <BalanceBadge employeeId={l.employeeId} />
                     </td>
                     <td className="py-3 px-4">
-                      <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-medium">
-                        <CalendarBlank size={14} className="text-slate-400" />
-                        {l.fromDate} <span className="text-slate-400 font-normal">to</span> {l.toDate}
-                      </div>
-                      <div className="text-xs text-slate-500 mt-0.5">
-                        {l.days} {l.days === 1 ? 'day' : 'days'}
+                      <div className="text-[13px] text-slate-800 dark:text-slate-200 font-medium whitespace-nowrap">
+                        {shortDate(l.fromDate)} <span className="text-slate-400 font-normal px-1">-</span> {shortDate(l.toDate)}
+                        <span className="text-slate-500 font-normal ml-2 text-[11px]">({l.days} {l.days === 1 ? 'day' : 'days'})</span>
                       </div>
                     </td>
                     <td className="py-3 px-4">
-                      <p className="text-xs text-slate-600 dark:text-slate-400 max-w-[200px] truncate" title={l.reason}>
+                      <p className="text-[13px] text-slate-800 dark:text-slate-200 font-medium max-w-[220px] line-clamp-2 leading-relaxed" title={l.reason}>
                         {l.reason}
                       </p>
                     </td>
                     <td className="py-3 px-4">
                       {l.status === 'pending' && (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded shadow-sm text-[10px] uppercase tracking-widest font-bold bg-amber-100/50 text-amber-800 border border-amber-200/60 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800/50">
                           <Clock size={12} weight="bold" /> Pending
                         </span>
                       )}
                       {l.status === 'approved' && (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-green-50 text-green-700 border border-green-200">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded shadow-sm text-[10px] uppercase tracking-widest font-bold bg-emerald-100/50 text-emerald-800 border border-emerald-200/60 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800/50">
                           <CheckCircle size={12} weight="bold" /> Approved
                         </span>
                       )}
                       {l.status === 'rejected' && (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-red-50 text-red-700 border border-red-200">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded shadow-sm text-[10px] uppercase tracking-widest font-bold bg-rose-100/50 text-rose-800 border border-rose-200/60 dark:bg-rose-900/30 dark:text-rose-300 dark:border-rose-800/50">
                           <XCircle size={12} weight="bold" /> Rejected
                         </span>
                       )}
@@ -228,14 +222,14 @@ export default function LeaveDirectoryPage() {
                           <button
                             onClick={() => handleStatusUpdate(l.id, 'approved')}
                             disabled={updateStatus.isPending}
-                            className="btn-sm bg-green-50 hover:bg-green-600 text-green-700 hover:text-white border border-green-200 hover:border-green-600 transition-colors flex items-center gap-1"
+                            className="px-3 py-1.5 text-[11px] uppercase tracking-wider font-bold rounded shadow-sm flex items-center gap-1.5 transition-all bg-emerald-500 hover:bg-emerald-600 text-white border border-emerald-600 disabled:opacity-50"
                           >
                             <CheckCircle size={14} weight="bold" /> Approve
                           </button>
                           <button
                             onClick={() => handleStatusUpdate(l.id, 'rejected')}
                             disabled={updateStatus.isPending}
-                            className="btn-sm bg-red-50 hover:bg-red-600 text-red-700 hover:text-white border border-red-200 hover:border-red-600 transition-colors flex items-center gap-1"
+                            className="px-3 py-1.5 text-[11px] uppercase tracking-wider font-bold rounded shadow-sm flex items-center gap-1.5 transition-all bg-white hover:bg-rose-50 text-rose-600 border border-slate-200 hover:border-rose-200 dark:bg-slate-800 dark:border-slate-700 dark:hover:border-rose-900 dark:text-rose-400 disabled:opacity-50"
                           >
                             <XCircle size={14} weight="bold" /> Reject
                           </button>

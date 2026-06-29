@@ -26,7 +26,7 @@ func newDedupStore(ttl time.Duration) *dedupStore {
 	return &dedupStore{
 		ttl:               ttl,
 		echoWindow:        time.Second,
-		actionWindow:      3 * time.Second,
+		actionWindow:      5 * time.Second,
 		payslipWindow:     1 * time.Minute,
 		byMessageID:       make(map[string]time.Time),
 		byAction:          make(map[string]time.Time),
