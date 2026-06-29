@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/nippon-toyota/hrms/internal/doubletick"
@@ -99,6 +100,14 @@ func (d *Dispatcher) ValidatePayroll(ctx context.Context, month, year int) ([]Va
 			continue
 		}
 
+		if !strings.EqualFold(strings.TrimSpace(rec.EmpNameSnapshot), strings.TrimSpace(emp.Name)) {
+			validationErrs = append(validationErrs, ValidationError{
+				EmployeeID:   rec.EmployeeID,
+				EmployeeName: rec.EmpNameSnapshot,
+				Reason:       fmt.Sprintf("Name mismatch: Payroll says '%s', but Directory says '%s'", strings.TrimSpace(rec.EmpNameSnapshot), strings.TrimSpace(emp.Name)),
+			})
+		}
+
 		if emp.MobileNumber == "" {
 			validationErrs = append(validationErrs, ValidationError{
 				EmployeeID:   rec.EmployeeID,
@@ -141,7 +150,7 @@ func (d *Dispatcher) DeliverPayslip(ctx context.Context, emp *employee.Employee,
 
 	monthStr := time.Month(month).String()
 	filename := fmt.Sprintf("payslip_%s_%02d_%d.pdf", rec.EmployeeID, month, year)
-	caption := payslipCaption(monthStr, year, emp.Name)
+	caption := payslipCaption(monthStr, year, rec.EmpNameSnapshot)
 
 	return d.sendPayslipDocumentWithRetry(ctx, to, filename, caption, pdfBytes)
 }
@@ -196,7 +205,7 @@ func (d *Dispatcher) SendSinglePayslip(ctx context.Context, employeeID string, m
 
 	monthStr := time.Month(month).String()
 	filename := fmt.Sprintf("payslip_%s_%02d_%d.pdf", employeeID, month, year)
-	caption := payslipCaption(monthStr, year, emp.Name)
+	caption := payslipCaption(monthStr, year, rec.EmpNameSnapshot)
 
 	if err := d.sendPayslipDocument(ctx, to, filename, caption, pdfBytes); err != nil {
 		return err
