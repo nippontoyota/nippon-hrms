@@ -65,7 +65,7 @@ export default function AdminShell() {
                 }`
               }
               style={{ borderRadius: '0.375rem' }}
-              title={isCollapsed ? item.label : undefined}
+              title={item.label}
             >
               {({ isActive }) => (
                 <>
@@ -99,6 +99,7 @@ export default function AdminShell() {
           <button 
             onClick={() => setIsCollapsed(!isCollapsed)} 
             className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors font-semibold text-[13px]`}
+            title="Collapse Sidebar"
           >
             <List size={20} weight="bold" className="shrink-0" />
             <AnimatePresence>
@@ -126,6 +127,7 @@ export default function AdminShell() {
           <button 
             onClick={handleLogout} 
             className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 text-slate-500 hover:text-[#eb0a1e] dark:text-slate-400 dark:hover:text-[#eb0a1e] transition-colors font-semibold text-[13px] rounded-md hover:bg-red-50 dark:hover:bg-red-950/30`}
+            title="Logout"
           >
             <SignOut size={20} weight="bold" className="shrink-0" />
             <AnimatePresence>
