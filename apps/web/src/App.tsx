@@ -7,6 +7,7 @@ import AdminShell from '@/components/layout/AdminShell';
 import LoginPage from '@/pages/LoginPage';
 import DashboardPage from '@/pages/admin/DashboardPage';
 import EmployeesPage from '@/pages/admin/EmployeesPage';
+import EpfPage from '@/pages/admin/EpfPage';
 import EmployeeFormPage from '@/pages/admin/EmployeeFormPage';
 import SalaryPage from '@/pages/admin/SalaryPage';
 import SalaryDirectoryPage from '@/pages/admin/SalaryDirectoryPage';
@@ -90,6 +91,7 @@ export default function App() {
             <Route path="employees" element={<EmployeesPage />} />
             <Route path="employees/new" element={<EmployeeFormPage />} />
             <Route path="employees/:id/edit" element={<EmployeeFormPage />} />
+            <Route path="epf" element={<EpfPage />} />
             <Route path="salary" element={<SalaryPage />} />
             <Route path="salary-directory" element={<SalaryDirectoryPage />} />
             <Route path="salary/:periodId" element={<SalaryPeriodPage />} />

@@ -55,12 +55,9 @@ func (s *Service) HandleWebhook(ctx context.Context, wh *doubletick.Webhook) err
 	from := wh.Data.From
 	input := strings.TrimSpace(wh.Data.Body())
 
-	go func() {
-		bg := context.Background()
-		if err := s.dt.MarkMessageRead(bg, from, wh.Data.MessageID); err != nil {
-			slog.Debug("whatsapp mark read failed", "from", from, "messageId", wh.Data.MessageID, "err", err)
-		}
-	}()
+	if err := s.dt.MarkMessageRead(ctx, from, wh.Data.MessageID); err != nil {
+		slog.Warn("whatsapp mark read failed", "from", from, "messageId", wh.Data.MessageID, "err", err)
+	}
 
 	var handleErr error
 	s.phoneLock.run(from, func() {
@@ -75,7 +72,7 @@ func (s *Service) handleWebhookLocked(ctx context.Context, from, input, msgType,
 		sess = &Session{Phone: from, State: StateIdle}
 	}
 
-	if shouldSkipInboundEcho(input, msgType, sess.State) {
+	if shouldSkipInboundEcho(input, msgType) {
 		slog.Info("whatsapp inbound skipped echo", "from", from, "input", input, "type", msgType, "state", sess.State)
 		return nil
 	}
@@ -113,6 +110,24 @@ func (s *Service) ensureEmployee(ctx context.Context, sess *Session, from string
 	s.sessions.Set(from, sess)
 }
 
+const (
+	menuCooldown            = 60 * time.Second
+	periodPromptCooldown    = 30 * time.Second
+	postPayslipMenuSuppress = 5 * time.Minute
+)
+
+var greetingWords = []string{"hi", "hello", "hey", "start", "menu", "reset"}
+
+func isGreeting(input string) bool {
+	word := strings.ToLower(strings.TrimSpace(input))
+	for _, g := range greetingWords {
+		if word == g {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *Service) handleIdle(ctx context.Context, sess *Session, from, input string) error {
 	if input == payloadGeneratePay {
 		s.ensureEmployee(ctx, sess, from)
@@ -121,43 +136,76 @@ func (s *Service) handleIdle(ctx context.Context, sess *Session, from, input str
 			s.sessions.Set(from, sess)
 			return s.sendText(ctx, from, msgNotEmployee)
 		}
-		return s.sendPeriodList(ctx, sess, from)
+		sess.State = StateAwaitPeriod
+		s.sessions.Set(from, sess)
+		return s.sendPeriodPrompt(ctx, sess, from)
 	}
-	return s.sendGeneratePayButton(ctx, from)
+
+	if !isGreeting(input) && !sess.LastMenuSentAt.IsZero() && time.Since(sess.LastMenuSentAt) < menuCooldown {
+		slog.Info("whatsapp menu cooldown", "from", from)
+		return nil
+	}
+
+	if !isGreeting(input) && !sess.LastPayslipSentAt.IsZero() && time.Since(sess.LastPayslipSentAt) < postPayslipMenuSuppress {
+		slog.Info("whatsapp post-payslip menu suppress", "from", from)
+		return nil
+	}
+
+	if err := s.sendGeneratePayButton(ctx, from); err != nil {
+		return err
+	}
+	sess.LastMenuSentAt = time.Now()
+	s.sessions.Set(from, sess)
+	return nil
 }
 
 func (s *Service) handleAwaitPeriod(ctx context.Context, sess *Session, from, input string) error {
-	if !strings.HasPrefix(input, periodIDPrefix) {
-		if strings.Contains(input, "/") {
-			return s.handleManualPeriod(ctx, sess, from, input)
-		}
-		return nil
+	if isGreeting(input) {
+		sess.resetFlow()
+		s.sessions.Set(from, sess)
+		return s.handleIdle(ctx, sess, from, input)
 	}
 
-	parts := strings.Split(strings.TrimPrefix(input, periodIDPrefix), "_")
-	if len(parts) != 2 {
-		return nil
+	if input == payloadGeneratePay {
+		return s.sendPeriodPrompt(ctx, sess, from)
 	}
-	month, err1 := strconv.Atoi(parts[0])
-	year, err2 := strconv.Atoi(parts[1])
-	if err1 != nil || err2 != nil || month < 1 || month > 12 || year < 2000 {
-		return nil
+
+	month, year, ok := parseMMYYYY(input)
+	if !ok {
+		return s.sendPeriodPrompt(ctx, sess, from)
 	}
 
 	return s.deliverPayslip(ctx, sess, from, month, year)
 }
 
-func (s *Service) handleManualPeriod(ctx context.Context, sess *Session, from, input string) error {
+func (s *Service) sendPeriodPrompt(ctx context.Context, sess *Session, from string) error {
+	if !sess.LastPeriodPromptAt.IsZero() && time.Since(sess.LastPeriodPromptAt) < periodPromptCooldown {
+		slog.Info("whatsapp period prompt cooldown", "from", from)
+		return nil
+	}
+	if err := s.sendText(ctx, from, msgPayslipAwaitMonthFallback); err != nil {
+		return err
+	}
+	sess.LastPeriodPromptAt = time.Now()
+	s.sessions.Set(from, sess)
+	return nil
+}
+
+func parseMMYYYY(input string) (month, year int, ok bool) {
+	input = strings.ReplaceAll(strings.TrimSpace(input), ";", "/")
+	if !strings.Contains(input, "/") {
+		return 0, 0, false
+	}
 	parts := strings.Split(input, "/")
 	if len(parts) != 2 {
-		return s.sendText(ctx, from, msgPayslipAwaitMonthFallback)
+		return 0, 0, false
 	}
-	month, _ := strconv.Atoi(strings.TrimSpace(parts[0]))
-	year, _ := strconv.Atoi(strings.TrimSpace(parts[1]))
-	if month < 1 || month > 12 || year < 2000 {
-		return s.sendText(ctx, from, msgPayslipAwaitMonthFallback)
+	month, err1 := strconv.Atoi(strings.TrimSpace(parts[0]))
+	year, err2 := strconv.Atoi(strings.TrimSpace(parts[1]))
+	if err1 != nil || err2 != nil || month < 1 || month > 12 || year < 2000 {
+		return 0, 0, false
 	}
-	return s.deliverPayslip(ctx, sess, from, month, year)
+	return month, year, true
 }
 
 func (s *Service) deliverPayslip(ctx context.Context, sess *Session, from string, month, year int) error {
@@ -168,13 +216,20 @@ func (s *Service) deliverPayslip(ctx context.Context, sess *Session, from string
 		return s.sendText(ctx, from, msgNotEmployee)
 	}
 
+	if s.dedup.isRecentPayslip(from, month, year) {
+		slog.Info("whatsapp payslip delivery skipped duplicate", "from", from, "month", month, "year", year)
+		return s.sendText(ctx, from, msgPayslipAlreadySent(month, year))
+	}
+
 	record, err := s.payrollRepo.GetPayslip(ctx, sess.EmployeeID, month, year)
 	if err != nil {
 		slog.Warn("payslip not found", "emp", sess.EmployeeID, "m", month, "y", year)
-		sess.resetFlow()
+		sess.State = StateAwaitPeriod
 		s.sessions.Set(from, sess)
 		return s.sendText(ctx, from, msgPayslipNotFound)
 	}
+
+	s.dedup.markPayslipDelivered(from, month, year)
 
 	emp, err := s.empRepo.GetByID(ctx, sess.EmployeeID)
 	if err != nil {
@@ -185,6 +240,9 @@ func (s *Service) deliverPayslip(ctx context.Context, sess *Session, from string
 	pdfBytes, err := payroll.GeneratePayslipPDF(emp, record, s.lookupEpf(ctx, sess.EmployeeID))
 	if err != nil {
 		slog.Error("pdf generation failed", "err", err)
+		s.dedup.clearPayslipDelivery(from, month, year)
+		sess.State = StateAwaitPeriod
+		s.sessions.Set(from, sess)
 		return s.sendText(ctx, from, msgPayslipError)
 	}
 
@@ -192,6 +250,9 @@ func (s *Service) deliverPayslip(ctx context.Context, sess *Session, from string
 	mediaURL, err := s.dt.UploadMedia(ctx, pdfBytes, filename, "application/pdf")
 	if err != nil {
 		slog.Error("media upload failed", "err", err)
+		s.dedup.clearPayslipDelivery(from, month, year)
+		sess.State = StateAwaitPeriod
+		s.sessions.Set(from, sess)
 		return s.sendText(ctx, from, msgPayslipError)
 	}
 
@@ -204,9 +265,13 @@ func (s *Service) deliverPayslip(ctx context.Context, sess *Session, from string
 
 	if _, err := s.dt.SendDocument(ctx, from, mediaURL, filename, caption); err != nil {
 		slog.Error("document send failed", "err", err)
+		s.dedup.clearPayslipDelivery(from, month, year)
+		sess.State = StateAwaitPeriod
+		s.sessions.Set(from, sess)
 		return s.sendText(ctx, from, msgPayslipError)
 	}
 
+	sess.LastPayslipSentAt = time.Now()
 	sess.resetFlow()
 	s.sessions.Set(from, sess)
 	return nil
@@ -217,51 +282,6 @@ func (s *Service) sendGeneratePayButton(ctx context.Context, to string) error {
 	if err != nil {
 		slog.Warn("interactive button send failed, falling back to text", "err", err)
 		return s.sendText(ctx, to, msgWelcome+"\n\n"+msgGeneratePayBody+"\n\nReply *Generate Pay* to continue.")
-	}
-	return nil
-}
-
-func (s *Service) sendPeriodList(ctx context.Context, sess *Session, to string) error {
-	s.ensureEmployee(ctx, sess, to)
-	if sess.EmployeeID == "" {
-		sess.resetFlow()
-		s.sessions.Set(to, sess)
-		return s.sendText(ctx, to, msgNotEmployee)
-	}
-
-	periods, err := s.payrollRepo.ListPeriodsByEmployee(ctx, sess.EmployeeID)
-	if err != nil {
-		slog.Error("list periods failed", "emp", sess.EmployeeID, "err", err)
-		return s.sendText(ctx, to, msgPayslipError)
-	}
-	if len(periods) == 0 {
-		sess.resetFlow()
-		s.sessions.Set(to, sess)
-		return s.sendText(ctx, to, msgNoPayslips)
-	}
-
-	rows := make([]doubletick.InteractiveListRow, 0, len(periods))
-	for _, p := range periods {
-		rows = append(rows, doubletick.InteractiveListRow{
-			ID:    periodListRowID(p.Month, p.Year),
-			Title: periodListRowTitle(p.Month, p.Year),
-		})
-	}
-
-	sections := []doubletick.InteractiveListSection{{
-		Title: "Payslip Periods",
-		Rows:  rows,
-	}}
-
-	sess.State = StateAwaitPeriod
-	s.sessions.Set(to, sess)
-
-	_, err = s.dt.SendInteractiveList(ctx, to, "Select Period", "Choose the month and year for your payslip.", "", "View Periods", sections)
-	if err != nil {
-		slog.Warn("interactive list send failed, falling back to text", "err", err)
-		sess.State = StateAwaitPeriod
-		s.sessions.Set(to, sess)
-		return s.sendText(ctx, to, msgPayslipAwaitMonthFallback)
 	}
 	return nil
 }

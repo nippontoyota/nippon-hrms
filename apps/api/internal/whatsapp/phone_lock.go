@@ -21,8 +21,8 @@ func (l *phoneLocker) run(phone string, fn func()) {
 	fn()
 }
 
-// shouldSkipInboundEcho drops WhatsApp text echoes of button/list selections.
-func shouldSkipInboundEcho(input, msgType string, state State) bool {
+// shouldSkipInboundEcho drops WhatsApp text echoes of button selections.
+func shouldSkipInboundEcho(input, msgType string) bool {
 	if !strings.EqualFold(msgType, "text") {
 		return false
 	}
@@ -32,16 +32,19 @@ func shouldSkipInboundEcho(input, msgType string, state State) bool {
 		return true
 	}
 
-	switch state {
-	case StateAwaitPeriod:
-		if strings.Contains(input, "/") {
-			return false
-		}
-		return !strings.HasPrefix(input, periodIDPrefix)
-	default:
-		if input == payloadGeneratePay || strings.EqualFold(input, "generate pay") {
-			return true
-		}
-		return false
+	return isInteractiveMenuEcho(input)
+}
+
+// isInteractiveMenuEcho detects text echoes of interactive button/list replies.
+// WhatsApp often echoes the full multi-line body (welcome + button label), not just "Generate Pay".
+func isInteractiveMenuEcho(input string) bool {
+	lower := strings.ToLower(strings.TrimSpace(input))
+	if lower == "generate pay" || input == payloadGeneratePay {
+		return true
 	}
+	if strings.Contains(lower, "generate pay") &&
+		(strings.Contains(lower, "payslip") || strings.Contains(lower, "nippon toyota")) {
+		return true
+	}
+	return false
 }

@@ -75,3 +75,7 @@ func InternalError(w http.ResponseWriter) {
 		Error:   &APIError{Code: "INTERNAL_ERROR", Message: "an unexpected error occurred"},
 	})
 }
+
+func Accepted(w http.ResponseWriter, data interface{}) {
+	JSON(w, http.StatusAccepted, Envelope{Success: true, Data: data})
+}

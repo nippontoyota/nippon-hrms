@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"net/textproto"
-	"strings"
 	"time"
 )
 
@@ -52,6 +52,11 @@ func NewClient(cfg Config) *Client {
 	}
 }
 
+// Configured reports whether the client has credentials needed to send WhatsApp messages.
+func (c *Client) Configured() bool {
+	return c != nil && c.apiKey != "" && c.fromNumber != ""
+}
+
 func (c *Client) SendText(ctx context.Context, to, text string) (*Response, error) {
 	body := TextRequest{
 		From:    c.fromNumber,
@@ -61,9 +66,9 @@ func (c *Client) SendText(ctx context.Context, to, text string) (*Response, erro
 	return c.do(ctx, http.MethodPost, "/whatsapp/message/text", body)
 }
 
-// MarkMessageRead marks an inbound customer message as read (blue ticks) when a wamid is available.
+// MarkMessageRead marks an inbound customer message as read (blue ticks).
 func (c *Client) MarkMessageRead(ctx context.Context, customerPhone, whatsAppMessageID string) error {
-	if whatsAppMessageID == "" || !strings.HasPrefix(whatsAppMessageID, "wamid.") {
+	if whatsAppMessageID == "" {
 		return nil
 	}
 	body := MarkReadRequest{
@@ -205,6 +210,15 @@ type APIError struct {
 
 func (e *APIError) Error() string {
 	return fmt.Sprintf("doubletick: api error %d: %s", e.StatusCode, e.Body)
+}
+
+// IsTransient reports whether the API error may succeed on retry (rate limit or server error).
+func IsTransient(err error) bool {
+	var apiErr *APIError
+	if errors.As(err, &apiErr) {
+		return apiErr.StatusCode == 429 || apiErr.StatusCode >= 500
+	}
+	return false
 }
 
 func (c *Client) do(ctx context.Context, method, path string, payload any) (*Response, error) {

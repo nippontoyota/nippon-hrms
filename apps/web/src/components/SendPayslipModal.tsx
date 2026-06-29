@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { WhatsappLogo, X, PaperPlaneTilt, WarningCircle, ArrowClockwise } from '@phosphor-icons/react';
 import { salaryApi } from '@/api/hooks';
+import { getApiErrorMessage } from '@/lib/format';
 
 interface Props {
   open: boolean;
@@ -46,11 +47,10 @@ export default function SendPayslipModal({ open, employee, onClose }: Props) {
     setSending(true);
     try {
       await salaryApi.sendPayslip(employee.id, month, year);
-      toast.success(`Payslip for ${MONTHS[month - 1]} ${year} sent to ${employee.name}`);
+      toast.success(`Payslip for ${MONTHS[month - 1]} ${year} sent via WhatsApp to ${employee.name}`);
       onClose();
     } catch (err: unknown) {
-      const raw = (err as { response?: { data?: { error?: { message?: string } } } })
-        ?.response?.data?.error?.message ?? '';
+      const raw = getApiErrorMessage(err, 'Failed to send payslip. Please try again.');
 
       // Detect "no payroll record" vs other errors and show inline
       if (raw.toLowerCase().includes('no payroll record') || raw.toLowerCase().includes('not found')) {

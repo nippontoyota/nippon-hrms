@@ -44,7 +44,7 @@ function advanceDispatchJob(job: DispatchJob) {
   if (job.status === 'COMPLETED' || job.status === 'FAILED') return;
 
   job.status = 'RUNNING';
-  const pending = job.items.filter((i) => i.status === 'PENDING');
+  const pending = (job.items ?? []).filter((i) => i.status === 'PENDING');
   const batch = pending.slice(0, 3);
 
   for (const item of batch) {
@@ -73,7 +73,7 @@ function advanceDispatchJob(job: DispatchJob) {
     }
   }
 
-  if (job.items.every((i) => i.status !== 'PENDING')) {
+  if ((job.items ?? []).every((i) => i.status !== 'PENDING')) {
     job.status = job.failed > 0 && job.sent === 0 ? 'FAILED' : 'COMPLETED';
     const period = periods.find((p) => p.id === job.periodId);
     if (period && job.sent > 0) period.status = 'SENT';
@@ -306,7 +306,7 @@ export const handlers = [
   http.post('/api/admin/salary/dispatch/:jobId/retry-failed', ({ params }) => {
     const job = dispatchJobs.find((j) => j.id === params.jobId);
     if (!job) return HttpResponse.json({ message: 'Not found' }, { status: 404 });
-    for (const item of job.items) {
+    for (const item of job.items ?? []) {
       if (item.status === 'FAILED') {
         item.status = 'PENDING';
         item.errorReason = undefined;

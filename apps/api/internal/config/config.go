@@ -26,6 +26,9 @@ type Config struct {
 	DoubleTickAPIKey        string
 	DoubleTickWebhookSecret string
 	WABAPhoneNumberID       string
+
+	DispatchWorkers   int
+	DispatchItemDelay int
 }
 
 func Load() (*Config, error) {
@@ -50,6 +53,9 @@ func Load() (*Config, error) {
 		DoubleTickAPIKey:        getEnv("DOUBLETICK_API_KEY", ""),
 		DoubleTickWebhookSecret: getEnv("DOUBLETICK_WEBHOOK_SECRET", ""),
 		WABAPhoneNumberID:       getEnv("WABA_PHONE_NUMBER_ID", ""),
+
+		DispatchWorkers:   getEnvInt("DISPATCH_WORKERS", 15),
+		DispatchItemDelay: getEnvInt("DISPATCH_ITEM_DELAY_MS", 100),
 	}
 
 	return cfg, nil

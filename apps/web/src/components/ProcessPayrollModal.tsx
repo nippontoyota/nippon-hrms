@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { WarningCircle, CheckCircle, X, PaperPlaneTilt, Spinner } from '@phosphor-icons/react';
 import { salaryApi } from '@/api/endpoints';
@@ -23,6 +24,7 @@ const MONTHS = [
 ];
 
 export default function ProcessPayrollModal({ open, month, year, onClose, onSuccess }: Props) {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<ValidationError[] | null>(null);
   const [dispatching, setDispatching] = useState(false);
@@ -44,10 +46,11 @@ export default function ProcessPayrollModal({ open, month, year, onClose, onSucc
   const handleDispatch = async () => {
     setDispatching(true);
     try {
-      await salaryApi.dispatch(month, year);
-      toast.success(`Payslip dispatch triggered for ${MONTHS[month - 1]} ${year}`);
+      const { jobId } = await salaryApi.dispatch(month, year);
+      toast.success(`Payslip dispatch started for ${MONTHS[month - 1]} ${year}`);
       onSuccess();
       onClose();
+      navigate(`/admin/salary/dispatch/${jobId}`);
     } catch {
       toast.error('Failed to trigger bulk dispatch');
       setDispatching(false);

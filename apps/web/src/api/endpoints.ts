@@ -1,6 +1,8 @@
 import api from '@/lib/axios';
 import type {
   DashboardStats,
+  DispatchJob,
+  DispatchJobItem,
   Employee,
   EpfRecord,
   PayrollRecord,
@@ -63,8 +65,17 @@ export const salaryApi = {
   },
   dispatch: (month: number, year: number) =>
     api.post<{ jobId: string }>('/payroll/dispatch', { month, year }).then((r) => r.data),
+  getDispatchJob: (jobId: string) =>
+    api.get<DispatchJob>(`/payroll/dispatch/${jobId}`).then((r) => r.data),
+  getDispatchJobItems: (jobId: string, params?: { status?: string; page?: number; limit?: number }) =>
+    api.get<{ items: DispatchJobItem[]; total: number; page: number; limit: number }>(
+      `/payroll/dispatch/${jobId}/items`,
+      { params },
+    ).then((r) => r.data),
+  retryFailedDispatch: (jobId: string) =>
+    api.post<DispatchJob>(`/payroll/dispatch/${jobId}/retry-failed`).then((r) => r.data),
   sendPayslip: (employeeId: string, month: number, year: number) =>
-    api.post('/payroll/send', { employeeId, month, year }).then((r) => r.data),
+    api.post('/payroll/send', { employeeId, month, year }, { timeout: 60_000 }).then((r) => r.data),
   previewPayslip: (employeeId: string, month: number, year: number) =>
     api.get('/payroll/preview', { params: { employeeId, month, year }, responseType: 'blob' }).then((r) => r.data),
   validatePayroll: (month: number, year: number) =>

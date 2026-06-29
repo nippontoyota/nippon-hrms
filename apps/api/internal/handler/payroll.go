@@ -4,11 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"time"
+	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/nippon-toyota/hrms/internal/dispatch"
 	"github.com/nippon-toyota/hrms/internal/payroll"
+	"github.com/nippon-toyota/hrms/pkg/downloadname"
 	"github.com/nippon-toyota/hrms/pkg/logger"
 	"github.com/nippon-toyota/hrms/pkg/respond"
 	"github.com/xuri/excelize/v2"
@@ -16,13 +19,14 @@ import (
 
 // PayrollHandler provides HTTP endpoints for payroll management.
 type PayrollHandler struct {
-	repo       payroll.Repository
-	dispatcher *payroll.Dispatcher
+	repo             payroll.Repository
+	dispatcher       *payroll.Dispatcher
+	dispatchService  *dispatch.Service
 }
 
 // NewPayrollHandler constructs a PayrollHandler.
-func NewPayrollHandler(repo payroll.Repository, dispatcher *payroll.Dispatcher) *PayrollHandler {
-	return &PayrollHandler{repo: repo, dispatcher: dispatcher}
+func NewPayrollHandler(repo payroll.Repository, dispatcher *payroll.Dispatcher, dispatchService *dispatch.Service) *PayrollHandler {
+	return &PayrollHandler{repo: repo, dispatcher: dispatcher, dispatchService: dispatchService}
 }
 
 type DispatchRequest struct {
@@ -99,13 +103,76 @@ func (h *PayrollHandler) Dispatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.dispatcher.DispatchPayslips(r.Context(), req.Month, req.Year); err != nil {
+	job, err := h.dispatchService.StartDispatch(r.Context(), req.Month, req.Year)
+	if err != nil {
+		msg := err.Error()
+		if strings.Contains(msg, "already running") || strings.Contains(msg, "not configured") {
+			respond.JSON(w, http.StatusBadRequest, respond.Envelope{
+				Success: false,
+				Error:   &respond.APIError{Code: "DISPATCH_FAILED", Message: msg},
+			})
+			return
+		}
 		logger.Error("dispatch init failed", "err", err)
 		respond.InternalError(w)
 		return
 	}
 
-	respond.OK(w, map[string]string{"message": "dispatch triggered successfully"})
+	respond.Accepted(w, map[string]string{"jobId": job.ID})
+}
+
+func (h *PayrollHandler) GetDispatchJob(w http.ResponseWriter, r *http.Request) {
+	jobID := chi.URLParam(r, "jobId")
+	job, err := h.dispatchService.GetJob(r.Context(), jobID)
+	if err != nil {
+		respond.NotFound(w, "dispatch job")
+		return
+	}
+	respond.OK(w, job)
+}
+
+func (h *PayrollHandler) ListDispatchJobItems(w http.ResponseWriter, r *http.Request) {
+	jobID := chi.URLParam(r, "jobId")
+	status := dispatch.ItemStatus(r.URL.Query().Get("status"))
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+
+	items, total, err := h.dispatchService.ListItems(r.Context(), jobID, status, page, limit)
+	if err != nil {
+		logger.Error("list dispatch items failed", "job", jobID, "err", err)
+		respond.InternalError(w)
+		return
+	}
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 {
+		limit = 50
+	}
+
+	respond.OK(w, map[string]interface{}{
+		"items": items,
+		"total": total,
+		"page":  page,
+		"limit": limit,
+	})
+}
+
+func (h *PayrollHandler) RetryFailedDispatch(w http.ResponseWriter, r *http.Request) {
+	jobID := chi.URLParam(r, "jobId")
+	if err := h.dispatchService.RetryFailed(r.Context(), jobID); err != nil {
+		respond.JSON(w, http.StatusBadRequest, respond.Envelope{
+			Success: false,
+			Error:   &respond.APIError{Code: "RETRY_FAILED", Message: err.Error()},
+		})
+		return
+	}
+	job, err := h.dispatchService.GetJob(r.Context(), jobID)
+	if err != nil {
+		respond.NotFound(w, "dispatch job")
+		return
+	}
+	respond.OK(w, job)
 }
 
 // SendPayslip handles POST /api/v1/payroll/send — sends a single employee's payslip via WhatsApp.
@@ -133,7 +200,7 @@ func (h *PayrollHandler) SendPayslip(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respond.OK(w, map[string]string{"message": "payslip queued for delivery"})
+	respond.OK(w, map[string]string{"message": "payslip sent via WhatsApp"})
 }
 
 func (h *PayrollHandler) BulkUpload(w http.ResponseWriter, r *http.Request) {
@@ -339,8 +406,7 @@ func (h *PayrollHandler) ExportExcel(w http.ResponseWriter, r *http.Request) {
 		f.SetColWidth(sheet, col, col, 18)
 	}
 
-	timestamp := time.Now().Format("2006-01-02_15-04-05")
-	filename := fmt.Sprintf("SalaryDirectory_%s.xlsx", timestamp)
+	filename := downloadname.SalaryExport(month, year)
 
 	w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
@@ -366,8 +432,7 @@ func (h *PayrollHandler) DownloadTemplate(w http.ResponseWriter, r *http.Request
 
 	headers := payroll.ExportHeaders
 
-	timestamp := time.Now().Format("2006-01-02_15-04-05")
-	filename := fmt.Sprintf("SalaryDirectory_Template_%s.csv", timestamp)
+	filename := downloadname.SalaryImportTemplate(month, year)
 
 	w.Header().Set("Content-Type", "text/csv")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
