@@ -148,28 +148,17 @@ export default function LeaveDirectoryPage() {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               <AnimatePresence mode="popLayout">
                 {isLoading ? (
-                  <motion.tr 
-                    key="loading"
-                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                  >
+                  <tr key="loading">
                     <td colSpan={6} className="py-8 text-center text-slate-500">Loading leave requests...</td>
-                  </motion.tr>
+                  </tr>
                 ) : filteredLeaves.length === 0 ? (
-                  <motion.tr 
-                    key="empty"
-                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                  >
+                  <tr key="empty">
                     <td colSpan={6} className="py-8 text-center text-slate-500">No leave requests found.</td>
-                  </motion.tr>
+                  </tr>
                 ) : (
                   filteredLeaves.map((l, index) => (
-                    <motion.tr 
+                    <tr 
                       key={l.id}
-                      layout
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.98 }}
-                      transition={{ duration: 0.2, delay: index * 0.03 }}
                       className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
                     >
                       <td className="py-3 px-4">
@@ -240,7 +229,7 @@ export default function LeaveDirectoryPage() {
                         </span>
                       )}
                     </td>
-                    </motion.tr>
+                    </tr>
                   ))
                 )}
               </AnimatePresence>
