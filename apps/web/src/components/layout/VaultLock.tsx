@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LockKey, LockOpen } from '@phosphor-icons/react';
+import { LockKey, LockOpen, Eye, EyeSlash, CircleNotch } from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useVaultStore } from '@/stores/vaultStore';
 import toast from 'react-hot-toast';
@@ -10,6 +10,8 @@ export default function VaultLock({ isCollapsed }: { isCollapsed: boolean }) {
   const setVaultToken = useVaultStore(s => s.setVaultToken);
   const [isOpen, setIsOpen] = useState(false);
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const unlocked = !!vaultToken;
 
@@ -24,8 +26,9 @@ export default function VaultLock({ isCollapsed }: { isCollapsed: boolean }) {
 
   const handleUnlock = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!password.trim()) return;
+    if (!password.trim() || isLoading) return;
     
+    setIsLoading(true);
     try {
       await api.post('/vault/verify', {}, {
         headers: { 'X-Vault-Token': password }
@@ -39,7 +42,10 @@ export default function VaultLock({ isCollapsed }: { isCollapsed: boolean }) {
           window.location.reload();
       }, 500);
     } catch (error) {
+      setPassword('');
       toast.error('Invalid Root Password');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -101,30 +107,47 @@ export default function VaultLock({ isCollapsed }: { isCollapsed: boolean }) {
                   Enter the HR Root Password to reveal sensitive payroll and employee data.
                 </p>
                 <form onSubmit={handleUnlock} className="space-y-4">
-                  <div>
+                  <div className="relative">
                     <input
-                      type="password"
+                      type={showPassword ? "text" : "password"}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Root Password"
                       autoFocus
-                      className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/50 dark:text-white"
+                      disabled={isLoading}
+                      className="w-full px-4 py-2.5 pr-10 bg-slate-50 dark:bg-slate-900/50 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/50 dark:text-white"
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      tabIndex={-1}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors focus:outline-none"
+                    >
+                      {showPassword ? <EyeSlash size={18} weight="bold" /> : <Eye size={18} weight="bold" />}
+                    </button>
                   </div>
                   <div className="flex gap-3">
                     <button
                       type="button"
                       onClick={() => setIsOpen(false)}
-                      className="flex-1 px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors"
+                      disabled={isLoading}
+                      className="flex-1 px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
-                      disabled={!password.trim()}
-                      className="flex-1 px-4 py-2 text-sm font-semibold text-white bg-amber-500 rounded-lg hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      disabled={!password.trim() || isLoading}
+                      className="flex flex-1 items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-amber-500 rounded-lg hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
-                      Unlock
+                      {isLoading ? (
+                        <>
+                          <CircleNotch size={16} weight="bold" className="animate-spin" />
+                          Unlocking...
+                        </>
+                      ) : (
+                        'Unlock'
+                      )}
                     </button>
                   </div>
                 </form>
