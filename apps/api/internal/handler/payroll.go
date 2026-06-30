@@ -11,6 +11,7 @@ import (
 
 	"github.com/nippon-toyota/hrms/internal/dispatch"
 	"github.com/nippon-toyota/hrms/internal/payroll"
+	"github.com/nippon-toyota/hrms/internal/vault"
 	"github.com/nippon-toyota/hrms/pkg/downloadname"
 	"github.com/nippon-toyota/hrms/pkg/logger"
 	"github.com/nippon-toyota/hrms/pkg/respond"
@@ -334,6 +335,51 @@ func (h *PayrollHandler) List(w http.ResponseWriter, r *http.Request) {
 	if records == nil {
 		records = []payroll.Record{}
 	}
+
+	if !vault.IsUnlocked(r) {
+		for i := range records {
+			rec := &records[i]
+			rec.Basic = 0
+			rec.DA = 0
+			rec.BasicDA = 0
+			rec.HRA = 0
+			rec.Travel = 0
+			rec.ChildrenHostel = 0
+			rec.ChildrenEducation = 0
+			rec.Mobile = 0
+			rec.Conveyance = 0
+			rec.BranchAllowance = 0
+			rec.WashAllowance = 0
+			rec.SpecialAllowance = 0
+			rec.Training = 0
+			rec.Incentive = 0
+			rec.TotalEarWithIncen = 0
+			rec.GrossSalWithoutIncentives = 0
+			rec.GrossForPT = 0
+			rec.PF = 0
+			rec.PF367 = 0
+			rec.PF833 = 0
+			rec.ESI075 = 0
+			rec.ESI325 = 0
+			rec.TDS = 0
+			rec.SalAdv = 0
+			rec.AdditionalDeduction = 0
+			rec.Loan = 0
+			rec.Advance = 0
+			rec.LOPDeduction = 0
+			rec.CompanyStatutoryContribution = 0
+			rec.ReimbMedical = 0
+			rec.ReimbLTA = 0
+			rec.ZetaMealVoucher = 0
+			rec.ReimbTravel = 0
+			rec.TotalReimbursement = 0
+			rec.EPFER = 0
+			rec.NetIncentive = 0
+			rec.TotalDeductions = 0
+			rec.ActualFinalAmount = 0
+		}
+	}
+
 	respond.OK(w, records)
 }
 

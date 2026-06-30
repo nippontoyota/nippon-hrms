@@ -6,7 +6,12 @@ export function getApiErrorMessage(err: unknown, fallback = 'Something went wron
   return axiosErr.response?.data?.error?.message || axiosErr.message || fallback;
 }
 
+import { useVaultStore } from '@/stores/vaultStore';
+
 export function formatCurrency(n: number) {
+  if (n === 0 && !useVaultStore.getState().isUnlocked()) {
+    return '₹ ***';
+  }
   return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
 }
 

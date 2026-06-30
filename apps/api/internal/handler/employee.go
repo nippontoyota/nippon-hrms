@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/nippon-toyota/hrms/internal/employee"
+	"github.com/nippon-toyota/hrms/internal/vault"
 	"github.com/nippon-toyota/hrms/pkg/downloadname"
 	"github.com/nippon-toyota/hrms/pkg/logger"
 	"github.com/nippon-toyota/hrms/pkg/respond"
@@ -100,6 +101,37 @@ func (h *EmployeeHandler) List(w http.ResponseWriter, r *http.Request) {
 	if employees == nil {
 		employees = []employee.Employee{}
 	}
+
+	if !vault.IsUnlocked(r) {
+		for i := range employees {
+			emp := &employees[i]
+			emp.Basic = 0
+			emp.DA = 0
+			emp.RevisedBasicDA = 0
+			emp.HRA = 0
+			emp.Travel = 0
+			emp.Hostel = 0
+			emp.Children = 0
+			emp.TotalSalary = 0
+			emp.Mobile = 0
+			emp.Conveyance = 0
+			emp.WashAllowance = 0
+			emp.BranchAllowance = 0
+			emp.SpecialAllowance = 0
+			emp.Training = 0
+			emp.TotalAllowances = 0
+			emp.TotalSalaryWithAllowances = 0
+			if len(emp.AccountNumber) > 4 {
+				emp.AccountNumber = "****" + emp.AccountNumber[len(emp.AccountNumber)-4:]
+			} else if emp.AccountNumber != "" {
+				emp.AccountNumber = "****"
+			}
+			if emp.IFSCCode != "" {
+				emp.IFSCCode = "****"
+			}
+		}
+	}
+
 	respond.OK(w, employees)
 }
 
