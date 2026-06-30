@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://YOUR-RAILWAY-API.up.railway.app/api/:path*"
+      "destination": "https://nippon-hrms.onrender.com/api/:path*"
     }
   ]
 }
