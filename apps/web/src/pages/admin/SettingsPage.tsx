@@ -79,8 +79,8 @@ function VaultPasswordTab() {
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-none border border-slate-200 dark:border-slate-800 p-6 max-w-sm mx-auto shadow-sm mt-8">
-      <div className="flex items-center gap-2 mb-6">
+    <div className="bg-white dark:bg-slate-900 rounded-none border border-slate-200 dark:border-slate-800 p-4 sm:p-6 w-full max-w-md mx-auto shadow-sm mt-8">
+      <div className="flex sm:items-center items-start gap-2 mb-6">
         <Key size={20} weight="fill" className="text-slate-900 dark:text-white" />
         <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">Change Privacy Mode Password</h3>
       </div>
@@ -202,7 +202,7 @@ function AccessManagementTab() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="max-w-2xl">
           <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
             Manage HR staff access. Only Super Admins can add or remove HR accounts.
@@ -210,7 +210,7 @@ function AccessManagementTab() {
         </div>
         <button
           onClick={() => setShowCreate(true)}
-          className="bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-5 py-2.5 rounded-md font-bold text-xs uppercase tracking-wider flex items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm"
+          className="w-full sm:w-auto justify-center bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-5 py-2.5 rounded-md font-bold text-xs uppercase tracking-wider flex items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm shrink-0"
         >
           <Plus size={16} weight="bold" /> Add HR User
         </button>
@@ -222,7 +222,7 @@ function AccessManagementTab() {
             <Users size={20} weight="duotone" className="text-slate-400" />
             <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">Add New HR User</h3>
           </div>
-          <div className="flex flex-col md:flex-row items-end gap-4">
+          <div className="flex flex-col md:flex-row items-start md:items-end gap-4">
             <div className="flex-1 w-full">
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">Email Address</label>
               <input
@@ -268,8 +268,8 @@ function AccessManagementTab() {
           <Spinner className="animate-spin text-slate-400" size={32} />
         </div>
       ) : (
-        <div className="border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
-          <table className="w-full text-left text-sm whitespace-nowrap">
+        <div className="border border-slate-200 dark:border-slate-800 rounded-lg overflow-x-auto bg-white dark:bg-slate-900 shadow-sm">
+          <table className="w-full text-left text-sm whitespace-nowrap min-w-[600px]">
             <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
               <tr>
                 <th className="px-6 py-4 font-bold uppercase tracking-wider text-[11px] text-slate-500 dark:text-slate-400">HR User</th>
