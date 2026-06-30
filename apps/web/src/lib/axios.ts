@@ -16,8 +16,14 @@ api.interceptors.request.use((config) => {
   if (vaultData) {
     try {
       const parsed = JSON.parse(vaultData);
-      if (parsed?.state?.vaultToken) {
-        config.headers['X-Vault-Token'] = parsed.state.vaultToken;
+      const state = parsed?.state;
+      if (state?.vaultToken) {
+        // Enforce 30-minute auto-lock timeout at the API level
+        if (state.unlockedAt && Date.now() - state.unlockedAt > 30 * 60 * 1000) {
+          // Token expired, do not attach
+        } else {
+          config.headers['X-Vault-Token'] = state.vaultToken;
+        }
       }
     } catch(e) {}
   }
