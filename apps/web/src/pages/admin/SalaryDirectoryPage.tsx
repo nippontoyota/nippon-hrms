@@ -1,3 +1,4 @@
+import { useVaultStore } from '@/stores/vaultStore';
 import { useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { useQueryClient } from '@tanstack/react-query';
@@ -48,6 +49,13 @@ export default function SalaryDirectoryPage() {
   const [search, setSearch] = useState('');
 
   const qc = useQueryClient();
+
+  const isUnlocked = useVaultStore((s) => s.isUnlocked());
+  const m = (val: number | undefined) => {
+    if (!isUnlocked && (val === 0 || val === undefined)) return '***';
+    return val?.toFixed(2) || '0.00';
+  };
+
   const { tableRef, handleRowClick, rowHighlightClass } = useTableRowHighlight();
   const { data: records, isLoading } = usePayrollRecords(month, year);
 
@@ -526,47 +534,47 @@ export default function SalaryDirectoryPage() {
                     <td className="text-center font-mono">{r.leaves?.toFixed(1) || '0.0'}</td>
                     <td className="text-center font-mono text-red-600">{r.lop?.toFixed(1) || '0.0'}</td>
                     <td className="text-center font-mono">{r.days?.toFixed(1) || '0.0'}</td>
-                    <td className="text-right font-mono">{r.basic?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono">{r.da?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono font-bold bg-slate-50 dark:bg-slate-900">{r.basicDa?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono">{r.hra?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono">{r.travel?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono">{r.childrenHostel?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono">{r.childrenEducation?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono">{r.mobile?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono">{r.conveyance?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono">{r.branchAllowance?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono">{r.washAllowance?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono">{r.specialAllowance?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono">{r.training?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono text-[#eb0a1e] font-bold">{r.incentive?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono font-black">{r.totalEarWithIncen?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono font-bold">{r.grossSalWithoutIncentives?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono">{r.pf?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono">{r.pf367?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono">{r.pf833?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono">{r.esi075?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono">{r.esi325?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono">{r.tds?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono">{r.salAdv?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono">{r.additionalDeduction?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono">{r.loan?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono">{r.companyStatutoryContribution?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono">{r.reimbMedical?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono">{r.reimbLTA?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono">{r.zetaMealVoucher?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono">{r.reimbTravel?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono font-bold">{r.totalReimbursement?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono">{r.netIncentive?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono font-bold !text-red-700 dark:!text-red-400 !bg-red-50 dark:!bg-red-950">{r.totalDeductions?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono font-black !text-green-700 dark:!text-green-400 !bg-green-50 dark:!bg-green-950 text-sm">{r.actualFinalAmount?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono">{r.lopDeduction?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono">{r.epfER?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono">{r.grossForPT?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono">{r.advance?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono">{r.pf367?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono">{r.pf833?.toFixed(2) || '0.00'}</td>
-                    <td className="text-right font-mono font-bold">{((r.pf367 || 0) + (r.pf833 || 0)).toFixed(2)}</td>
+                    <td className="text-right font-mono">{m(r.basic)}</td>
+                    <td className="text-right font-mono">{m(r.da)}</td>
+                    <td className="text-right font-mono font-bold bg-slate-50 dark:bg-slate-900">{m(r.basicDa)}</td>
+                    <td className="text-right font-mono">{m(r.hra)}</td>
+                    <td className="text-right font-mono">{m(r.travel)}</td>
+                    <td className="text-right font-mono">{m(r.childrenHostel)}</td>
+                    <td className="text-right font-mono">{m(r.childrenEducation)}</td>
+                    <td className="text-right font-mono">{m(r.mobile)}</td>
+                    <td className="text-right font-mono">{m(r.conveyance)}</td>
+                    <td className="text-right font-mono">{m(r.branchAllowance)}</td>
+                    <td className="text-right font-mono">{m(r.washAllowance)}</td>
+                    <td className="text-right font-mono">{m(r.specialAllowance)}</td>
+                    <td className="text-right font-mono">{m(r.training)}</td>
+                    <td className="text-right font-mono text-[#eb0a1e] font-bold">{m(r.incentive)}</td>
+                    <td className="text-right font-mono font-black">{m(r.totalEarWithIncen)}</td>
+                    <td className="text-right font-mono font-bold">{m(r.grossSalWithoutIncentives)}</td>
+                    <td className="text-right font-mono">{m(r.pf)}</td>
+                    <td className="text-right font-mono">{m(r.pf367)}</td>
+                    <td className="text-right font-mono">{m(r.pf833)}</td>
+                    <td className="text-right font-mono">{m(r.esi075)}</td>
+                    <td className="text-right font-mono">{m(r.esi325)}</td>
+                    <td className="text-right font-mono">{m(r.tds)}</td>
+                    <td className="text-right font-mono">{m(r.salAdv)}</td>
+                    <td className="text-right font-mono">{m(r.additionalDeduction)}</td>
+                    <td className="text-right font-mono">{m(r.loan)}</td>
+                    <td className="text-right font-mono">{m(r.companyStatutoryContribution)}</td>
+                    <td className="text-right font-mono">{m(r.reimbMedical)}</td>
+                    <td className="text-right font-mono">{m(r.reimbLTA)}</td>
+                    <td className="text-right font-mono">{m(r.zetaMealVoucher)}</td>
+                    <td className="text-right font-mono">{m(r.reimbTravel)}</td>
+                    <td className="text-right font-mono font-bold">{m(r.totalReimbursement)}</td>
+                    <td className="text-right font-mono">{m(r.netIncentive)}</td>
+                    <td className="text-right font-mono font-bold !text-red-700 dark:!text-red-400 !bg-red-50 dark:!bg-red-950">{m(r.totalDeductions)}</td>
+                    <td className="text-right font-mono font-black !text-green-700 dark:!text-green-400 !bg-green-50 dark:!bg-green-950 text-sm">{m(r.actualFinalAmount)}</td>
+                    <td className="text-right font-mono">{m(r.lopDeduction)}</td>
+                    <td className="text-right font-mono">{m(r.epfER)}</td>
+                    <td className="text-right font-mono">{m(r.grossForPT)}</td>
+                    <td className="text-right font-mono">{m(r.advance)}</td>
+                    <td className="text-right font-mono">{m(r.pf367)}</td>
+                    <td className="text-right font-mono">{m(r.pf833)}</td>
+                    <td className="text-right font-mono font-bold">{m((r.pf367 || 0) + (r.pf833 || 0))}</td>
                     <td className="text-center font-mono font-bold text-red-600">{r.absents?.toFixed(1) || '0.0'}</td>
                   </tr>
                   );
