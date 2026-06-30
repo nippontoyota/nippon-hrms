@@ -3,6 +3,7 @@ import { LockKey, LockOpen } from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useVaultStore } from '@/stores/vaultStore';
 import toast from 'react-hot-toast';
+import api from '@/lib/axios';
 
 export default function VaultLock({ isCollapsed }: { isCollapsed: boolean }) {
   const vaultToken = useVaultStore(s => s.vaultToken);
@@ -21,17 +22,25 @@ export default function VaultLock({ isCollapsed }: { isCollapsed: boolean }) {
     }
   };
 
-  const handleUnlock = (e: React.FormEvent) => {
+  const handleUnlock = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!password.trim()) return;
-    setVaultToken(password);
-    setPassword('');
-    setIsOpen(false);
-    toast.success('Vault unlocked! Sensitive data visible.');
-    // Force a small delay then reload to refetch without masking
-    setTimeout(() => {
-        window.location.reload();
-    }, 500);
+    
+    try {
+      await api.post('/vault/verify', {}, {
+        headers: { 'X-Vault-Token': password }
+      });
+      setVaultToken(password);
+      setPassword('');
+      setIsOpen(false);
+      toast.success('Vault unlocked! Sensitive data visible.');
+      // Force a small delay then reload to refetch without masking
+      setTimeout(() => {
+          window.location.reload();
+      }, 500);
+    } catch (error) {
+      toast.error('Invalid Root Password');
+    }
   };
 
   return (
