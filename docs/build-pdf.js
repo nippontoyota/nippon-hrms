@@ -11,9 +11,11 @@ const htmlPath = path.join(__dirname, `${mdBase}.html`);
 const pdfPath = pdfArg
   ? path.resolve(pdfArg)
   : 'E:\\PayslipPortal-How-To-Run.pdf';
-const docTitle = mdBase.includes('hosting')
-  ? 'Nippon Toyota Payslip Portal: How to Host Online'
-  : 'Nippon Toyota Payslip Portal: How to Run Everything';
+const docTitle = mdBase.includes('complete')
+  ? 'Nippon Toyota Payslip Portal: Complete Hosting Guide'
+  : mdBase.includes('hosting')
+    ? 'Nippon Toyota Payslip Portal: How to Host Online'
+    : 'Nippon Toyota Payslip Portal: How to Run Everything';
 
 const md = fs.readFileSync(mdPath, 'utf8');
 const css = fs.readFileSync(cssPath, 'utf8');
