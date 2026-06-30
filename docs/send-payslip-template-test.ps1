@@ -34,7 +34,7 @@ $body = @{
                         filename = "payslip_sample.pdf"
                     }
                     body = @{
-                        placeholders = @("Krishnanand G", "June", "2026", "June", "2026")
+                        placeholders = @("Krishnanand G", "June", "Krishnanand G", "June", "2026")
                     }
                 }
             }

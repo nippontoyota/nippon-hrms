@@ -340,27 +340,27 @@ Before dispatching payslips to ~2000 employees, submit this template in **Double
 | Category | UTILITY |
 | Header | DOCUMENT (dynamic PDF per employee) |
 
-**Body text** (use exactly 5 variables — month and year each appear twice):
+**Body text** (use exactly 5 variables — name and month each appear twice):
 
 ```
-📄 *Payslip - {{2}} {{3}}*
+📄 *Payslip - {{1}} {{2}}*
 
-Dear *{{1}}*,
+Dear *{{3}}*,
 
-Please find attached your payslip for the month of *{{2}} {{3}}*.
+Please find attached your payslip for the month of *{{4}} {{5}}*.
 
 For any discrepancies, please reach out to HR.
 ```
 
 | Variable | Example | Maps to |
 |----------|---------|---------|
-| `{{1}}` | Krishnanand G | Employee name |
+| `{{1}}` | Krishnanand G | Employee name (title line) |
 | `{{2}}` | June | Month (title line) |
-| `{{3}}` | 2026 | Year (title line) |
-| `{{4}}` | June | Month (body line — same as `{{2}}`) |
-| `{{5}}` | 2026 | Year (body line — same as `{{3}}`) |
+| `{{3}}` | Krishnanand G | Employee name (greeting) |
+| `{{4}}` | June | Month (body line) |
+| `{{5}}` | 2026 | Year (body line) |
 
-The API sends **5 placeholder values** because month and year appear twice in the template body.
+The API sends **5 placeholder values** in Meta appearance order: name, month, name, month, year.
 
 After Meta approves the template, verify with:
 
