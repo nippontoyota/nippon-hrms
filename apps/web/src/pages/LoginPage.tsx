@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { Eye, EyeSlash, Spinner } from '@phosphor-icons/react';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
+import api from '@/lib/axios';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -24,12 +25,22 @@ export default function LoginPage() {
       const session = data.session;
       if (!session) throw new Error('No session returned');
 
+      localStorage.setItem('access_token', session.access_token);
+      
+      let role = 'HR_ADMIN';
+      try {
+        const res = await api.get('/admin/me') as any;
+        if (res?.data?.role) role = res.data.role.toUpperCase();
+      } catch (e) {
+        console.warn('Failed to fetch role, defaulting to HR_ADMIN', e);
+      }
+
       setAuth(
         { 
           id: session.user.id, 
           name: session.user.email?.split('@')[0] || 'User', 
           email: session.user.email || '',
-          role: 'HR_ADMIN' 
+          role: role as any
         }, 
         session.access_token
       );
