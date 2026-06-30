@@ -99,8 +99,6 @@ const msgLeaveAwaitEndNotDate = `That doesn't look like an end date.
 We're still waiting for your leave end date in DD/MM/YYYY format.
 Example: 05/07/2026`
 
-const msgLeavePleaseWait = `Got it — please wait a moment and answer the latest question above.`
-
 const msgLeaveAlreadySubmitted = `Your leave request has already been submitted.
 
 Reply Hi to return to the main menu.`
@@ -149,6 +147,10 @@ Please try again or contact the HR department.`
 const msgIdleNudge = `Reply *Hi* when you need something else.`
 
 const msgIdleNudgePayslip = `Your payslip has been sent.
+
+Reply *Hi* when you need something else.`
+
+const msgIdleNudgeLeave = `Your leave request has been submitted.
 
 Reply *Hi* when you need something else.`
 

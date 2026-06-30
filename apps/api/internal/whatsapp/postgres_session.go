@@ -16,9 +16,13 @@ type sessionSnapshot struct {
 	State              State           `json:"state"`
 	EmployeeID         string          `json:"employeeId,omitempty"`
 	LastMenuSentAt     time.Time       `json:"lastMenuSentAt,omitempty"`
-	LastPeriodPromptAt time.Time       `json:"lastPeriodPromptAt,omitempty"`
-	LastPayslipSentAt  time.Time       `json:"lastPayslipSentAt,omitempty"`
-	LastOutboundAt     time.Time       `json:"lastOutboundAt,omitempty"`
+	LastPeriodPromptAt    time.Time       `json:"lastPeriodPromptAt,omitempty"`
+	LastPayslipSentAt     time.Time       `json:"lastPayslipSentAt,omitempty"`
+	LastLeaveTypePromptAt time.Time       `json:"lastLeaveTypePromptAt,omitempty"`
+	LastLeaveSubmittedAt  time.Time       `json:"lastLeaveSubmittedAt,omitempty"`
+	LastLeaveDateAt       time.Time       `json:"lastLeaveDateAt,omitempty"`
+	LastOutboundAt        time.Time       `json:"lastOutboundAt,omitempty"`
+	LastOutboundText      string          `json:"lastOutboundText,omitempty"`
 	UpdatedAt          time.Time       `json:"updatedAt,omitempty"`
 	TempLeaveType      leave.LeaveType `json:"tempLeaveType,omitempty"`
 	TempLeaveStart     string          `json:"tempLeaveStart,omitempty"`
@@ -31,9 +35,13 @@ func snapshotFromSession(sess *Session) sessionSnapshot {
 		State:              sess.State,
 		EmployeeID:         sess.EmployeeID,
 		LastMenuSentAt:     sess.LastMenuSentAt,
-		LastPeriodPromptAt: sess.LastPeriodPromptAt,
-		LastPayslipSentAt:  sess.LastPayslipSentAt,
-		LastOutboundAt:     sess.LastOutboundAt,
+		LastPeriodPromptAt:    sess.LastPeriodPromptAt,
+		LastPayslipSentAt:     sess.LastPayslipSentAt,
+		LastLeaveTypePromptAt: sess.LastLeaveTypePromptAt,
+		LastLeaveSubmittedAt:  sess.LastLeaveSubmittedAt,
+		LastLeaveDateAt:       sess.LastLeaveDateAt,
+		LastOutboundAt:        sess.LastOutboundAt,
+		LastOutboundText:      sess.LastOutboundText,
 		UpdatedAt:          sess.UpdatedAt,
 		TempLeaveType:      sess.TempLeaveType,
 		TempLeaveStart:     sess.TempLeaveStart,
@@ -48,9 +56,13 @@ func sessionFromSnapshot(phone string, snap sessionSnapshot) *Session {
 		State:              snap.State,
 		EmployeeID:         snap.EmployeeID,
 		LastMenuSentAt:     snap.LastMenuSentAt,
-		LastPeriodPromptAt: snap.LastPeriodPromptAt,
-		LastPayslipSentAt:  snap.LastPayslipSentAt,
-		LastOutboundAt:     snap.LastOutboundAt,
+		LastPeriodPromptAt:    snap.LastPeriodPromptAt,
+		LastPayslipSentAt:     snap.LastPayslipSentAt,
+		LastLeaveTypePromptAt: snap.LastLeaveTypePromptAt,
+		LastLeaveSubmittedAt:  snap.LastLeaveSubmittedAt,
+		LastLeaveDateAt:       snap.LastLeaveDateAt,
+		LastOutboundAt:        snap.LastOutboundAt,
+		LastOutboundText:      snap.LastOutboundText,
 		UpdatedAt:          snap.UpdatedAt,
 		TempLeaveType:      snap.TempLeaveType,
 		TempLeaveStart:     snap.TempLeaveStart,

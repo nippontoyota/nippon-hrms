@@ -120,10 +120,6 @@ func (s *Service) handleWebhookLocked(ctx context.Context, from, input, msgType,
 		return nil
 	}
 
-	if s.shouldSoftGate(sess, input) {
-		return s.sendText(ctx, from, msgLeavePleaseWait)
-	}
-
 	if s.sessionWindow != nil {
 		if err := s.sessionWindow.RecordInbound(ctx, from); err != nil {
 			slog.Error("failed to record inbound session window", "from", from, "err", err)
@@ -169,8 +165,11 @@ func (s *Service) ensureEmployee(ctx context.Context, sess *Session, from string
 const (
 	menuCooldown            = 60 * time.Second
 	periodPromptCooldown    = 30 * time.Second
+	leaveTypePromptCooldown = 30 * time.Second
 	postPayslipMenuSuppress = 5 * time.Minute
-	outboundSoftGate        = 600 * time.Millisecond
+	postLeaveMenuSuppress   = 5 * time.Minute
+	outboundReplyDedup      = 15 * time.Second
+	leaveDateBurstWindow    = 750 * time.Millisecond
 )
 
 var greetingWords = []string{"hi", "hello", "hey", "start", "menu", "reset"}
@@ -290,6 +289,12 @@ func (s *Service) handleIdle(ctx context.Context, sess *Session, from, input str
 		return s.sendText(ctx, from, msgLeaveDateWithoutSession)
 	}
 
+	if isLeaveConfirmKeyword(strings.ToLower(strings.TrimSpace(input))) {
+		if !sess.LastLeaveSubmittedAt.IsZero() && time.Since(sess.LastLeaveSubmittedAt) < postLeaveMenuSuppress {
+			return nil
+		}
+	}
+
 	if isAcknowledgment(input) {
 		if !sess.LastPayslipSentAt.IsZero() && time.Since(sess.LastPayslipSentAt) < postPayslipMenuSuppress {
 			return s.sendText(ctx, from, msgIdleNudgePayslip)
@@ -305,6 +310,11 @@ func (s *Service) handleIdle(ctx context.Context, sess *Session, from, input str
 	if !isGreeting(input) && !sess.LastPayslipSentAt.IsZero() && time.Since(sess.LastPayslipSentAt) < postPayslipMenuSuppress {
 		slog.Info("whatsapp post-payslip menu suppress", "from", from)
 		return s.sendText(ctx, from, msgIdleNudgePayslip)
+	}
+
+	if !isGreeting(input) && !sess.LastLeaveSubmittedAt.IsZero() && time.Since(sess.LastLeaveSubmittedAt) < postLeaveMenuSuppress {
+		slog.Info("whatsapp post-leave menu suppress", "from", from)
+		return s.sendText(ctx, from, msgIdleNudgeLeave)
 	}
 
 	empName := ""
@@ -352,7 +362,7 @@ func (s *Service) beginLeaveFlow(ctx context.Context, sess *Session, from string
 	sess.TempLeaveReason = ""
 	sess.State = StateLeaveAwaitType
 	s.sessions.Set(from, sess)
-	return s.sendLeaveTypePrompt(ctx, from)
+	return s.sendLeaveTypePrompt(ctx, sess, from)
 }
 
 func (s *Service) handleAwaitPeriod(ctx context.Context, sess *Session, from, input string) error {
@@ -524,17 +534,60 @@ func (s *Service) menuImageMediaURL(ctx context.Context) (string, error) {
 	return mediaURL, nil
 }
 
-func (s *Service) shouldSoftGate(sess *Session, input string) bool {
-	if !isInLeaveFlow(sess.State) {
-		return false
+func (s *Service) sendUserText(ctx context.Context, sess *Session, from, text string) error {
+	if sess != nil && text == sess.LastOutboundText && !sess.LastOutboundAt.IsZero() && time.Since(sess.LastOutboundAt) < outboundReplyDedup {
+		return nil
 	}
-	if isBotPromptEcho(input) {
-		return false
+	if err := s.sendText(ctx, from, text); err != nil {
+		return err
 	}
-	if sess.LastOutboundAt.IsZero() || time.Since(sess.LastOutboundAt) > outboundSoftGate {
-		return false
+	if sess != nil {
+		sess.LastOutboundText = text
+		s.sessions.Set(from, sess)
 	}
-	return !isValidInputForState(sess.State, input)
+	return nil
+}
+
+func (s *Service) sendLeaveTypePrompt(ctx context.Context, sess *Session, to string) error {
+	if !sess.LastLeaveTypePromptAt.IsZero() && time.Since(sess.LastLeaveTypePromptAt) < leaveTypePromptCooldown {
+		return nil
+	}
+	body := msgLeaveAwaitType
+	buttons := leaveTypeButtons()
+
+	_, err := s.dt.SendInteractiveButtons(ctx, to, "", body, "", buttons)
+	if err != nil {
+		slog.Warn("leave type button send failed, falling back to text", "err", err)
+		if err := s.sendUserText(ctx, sess, to, body+"\n\n"+msgLeaveTypeTextFallback); err != nil {
+			return err
+		}
+	} else {
+		s.recordOutbound(to)
+	}
+	sess.LastLeaveTypePromptAt = time.Now()
+	s.sessions.Set(to, sess)
+	return nil
+}
+
+func (s *Service) handleLeaveAwaitType(ctx context.Context, sess *Session, from, input string) error {
+	if isGreeting(input) || input == "0" {
+		sess.resetFlow()
+		s.sessions.Set(from, sess)
+		return s.handleIdle(ctx, sess, from, input)
+	}
+	if isStalePromptEcho(sess.State, input) {
+		return nil
+	}
+
+	sel := normalizeLeaveTypeSelection(input)
+	if sel == "" {
+		return s.sendLeaveTypePrompt(ctx, sess, from)
+	}
+
+	sess.TempLeaveType = leaveTypeFromSelection(sel)
+	sess.State = StateLeaveAwaitStart
+	s.sessions.Set(from, sess)
+	return s.sendUserText(ctx, sess, from, msgLeaveAwaitStart)
 }
 
 func (s *Service) recordOutbound(phone string) {
@@ -550,40 +603,6 @@ func (s *Service) sendText(ctx context.Context, to, text string) error {
 		s.recordOutbound(to)
 	}
 	return err
-}
-
-func (s *Service) sendLeaveTypePrompt(ctx context.Context, to string) error {
-	body := msgLeaveAwaitType
-	buttons := leaveTypeButtons()
-
-	_, err := s.dt.SendInteractiveButtons(ctx, to, "", body, "", buttons)
-	if err != nil {
-		slog.Warn("leave type button send failed, falling back to text", "err", err)
-		return s.sendText(ctx, to, body+"\n\n"+msgLeaveTypeTextFallback)
-	}
-	s.recordOutbound(to)
-	return nil
-}
-
-func (s *Service) handleLeaveAwaitType(ctx context.Context, sess *Session, from, input string) error {
-	if isGreeting(input) || input == "0" {
-		sess.resetFlow()
-		s.sessions.Set(from, sess)
-		return s.handleIdle(ctx, sess, from, input)
-	}
-
-	sel := normalizeLeaveTypeSelection(input)
-	if sel == "" {
-		if err := s.sendText(ctx, from, msgLeaveInvalidType); err != nil {
-			return err
-		}
-		return s.sendLeaveTypePrompt(ctx, from)
-	}
-
-	sess.TempLeaveType = leaveTypeFromSelection(sel)
-	sess.State = StateLeaveAwaitStart
-	s.sessions.Set(from, sess)
-	return s.sendText(ctx, from, msgLeaveAwaitStart)
 }
 
 func leaveTypeFromSelection(sel string) leave.LeaveType {
@@ -613,20 +632,24 @@ func (s *Service) handleLeaveAwaitStart(ctx context.Context, sess *Session, from
 		s.sessions.Set(from, sess)
 		return s.handleIdle(ctx, sess, from, input)
 	}
+	if isStalePromptEcho(sess.State, input) {
+		return nil
+	}
 
 	parsed, ok := parseLeaveDate(input)
 	if !ok {
-		return s.sendText(ctx, from, msgLeaveInvalidDate)
+		return s.sendUserText(ctx, sess, from, msgLeaveInvalidDate)
 	}
 
 	if startOfDayLocal(parsed).Before(startOfDayLocal(time.Now())) {
-		return s.sendText(ctx, from, msgLeaveStartInPast)
+		return s.sendUserText(ctx, sess, from, msgLeaveStartInPast)
 	}
 
 	sess.TempLeaveStart = parsed.Format("2006-01-02")
+	sess.LastLeaveDateAt = time.Now()
 	sess.State = StateLeaveAwaitEnd
 	s.sessions.Set(from, sess)
-	return s.sendText(ctx, from, msgLeaveAwaitEnd)
+	return s.sendUserText(ctx, sess, from, msgLeaveAwaitEnd)
 }
 
 func (s *Service) handleLeaveAwaitEnd(ctx context.Context, sess *Session, from, input string) error {
@@ -635,21 +658,30 @@ func (s *Service) handleLeaveAwaitEnd(ctx context.Context, sess *Session, from, 
 		s.sessions.Set(from, sess)
 		return s.handleIdle(ctx, sess, from, input)
 	}
+	if isStalePromptEcho(sess.State, input) {
+		return nil
+	}
 
 	endDate, ok := parseLeaveDate(input)
 	if !ok {
 		if strings.TrimSpace(input) != "" && !looksLikeLeaveDateAttempt(input) {
-			return s.sendText(ctx, from, msgLeaveAwaitEndNotDate)
+			return s.sendUserText(ctx, sess, from, msgLeaveAwaitEndNotDate)
 		}
-		return s.sendText(ctx, from, msgLeaveInvalidDate)
+		return s.sendUserText(ctx, sess, from, msgLeaveInvalidDate)
+	}
+
+	endISO := endDate.Format("2006-01-02")
+	if endISO == sess.TempLeaveStart && !sess.LastLeaveDateAt.IsZero() && time.Since(sess.LastLeaveDateAt) < leaveDateBurstWindow {
+		return nil
 	}
 
 	startDate, ok := parseStoredLeaveDate(sess.TempLeaveStart)
 	if !ok {
-		return s.sendText(ctx, from, msgLeaveInvalidDate)
+		return s.sendUserText(ctx, sess, from, msgLeaveInvalidDate)
 	}
 	if endDate.Before(startDate) {
-		return s.sendText(ctx, from, msgLeaveEndBeforeStart)
+		sess.LastLeaveDateAt = time.Time{}
+		return s.sendUserText(ctx, sess, from, msgLeaveEndBeforeStart)
 	}
 
 	days := int(endDate.Sub(startDate).Hours()/24) + 1
@@ -661,16 +693,17 @@ func (s *Service) handleLeaveAwaitEnd(ctx context.Context, sess *Session, from, 
 		}
 		remaining, label := remainingForLeaveType(bal, leaveType)
 		if days > remaining {
+			sess.LastLeaveDateAt = time.Time{}
 			sess.State = StateLeaveAwaitEnd
 			s.sessions.Set(from, sess)
-			return s.sendText(ctx, from, msgLeaveInsufficientBalance(days, remaining, label, startDate.Month().String(), startDate.Year()))
+			return s.sendUserText(ctx, sess, from, msgLeaveInsufficientBalance(days, remaining, label, startDate.Month().String(), startDate.Year()))
 		}
 	}
 
 	sess.TempLeaveEnd = endDate.Format("2006-01-02")
 	sess.State = StateLeaveAwaitReason
 	s.sessions.Set(from, sess)
-	return s.sendText(ctx, from, msgLeaveAwaitReason)
+	return s.sendUserText(ctx, sess, from, msgLeaveAwaitReason)
 }
 
 func (s *Service) handleLeaveAwaitReason(ctx context.Context, sess *Session, from, input string) error {
@@ -679,16 +712,19 @@ func (s *Service) handleLeaveAwaitReason(ctx context.Context, sess *Session, fro
 		s.sessions.Set(from, sess)
 		return s.handleIdle(ctx, sess, from, input)
 	}
+	if isStalePromptEcho(sess.State, input) {
+		return nil
+	}
 
 	trimmed := strings.TrimSpace(input)
 	if len(trimmed) < minLeaveReasonLen {
-		return s.sendText(ctx, from, msgLeaveReasonTooShort)
+		return s.sendUserText(ctx, sess, from, msgLeaveReasonTooShort)
 	}
 	if looksLikeLeaveDateAttempt(trimmed) || looksLikePeriodAttempt(trimmed) {
-		return s.sendText(ctx, from, msgLeaveInvalidReason)
+		return s.sendUserText(ctx, sess, from, msgLeaveInvalidReason)
 	}
 	if isLeaveConfirmKeyword(trimmed) {
-		return s.sendText(ctx, from, msgLeaveInvalidReason)
+		return s.sendUserText(ctx, sess, from, msgLeaveInvalidReason)
 	}
 
 	sess.TempLeaveReason = trimmed
@@ -700,14 +736,14 @@ func (s *Service) handleLeaveAwaitReason(ctx context.Context, sess *Session, fro
 func (s *Service) sendLeaveConfirmSummary(ctx context.Context, sess *Session, from string) error {
 	sDate, ok := parseStoredLeaveDate(sess.TempLeaveStart)
 	if !ok {
-		return s.sendText(ctx, from, msgLeaveInvalidDate)
+		return s.sendUserText(ctx, sess, from, msgLeaveInvalidDate)
 	}
 	eDate, ok := parseStoredLeaveDate(sess.TempLeaveEnd)
 	if !ok {
-		return s.sendText(ctx, from, msgLeaveInvalidDate)
+		return s.sendUserText(ctx, sess, from, msgLeaveInvalidDate)
 	}
 	days := int(eDate.Sub(sDate).Hours()/24) + 1
-	return s.sendText(ctx, from, msgLeaveConfirmPrompt(
+	return s.sendUserText(ctx, sess, from, msgLeaveConfirmPrompt(
 		leaveTypeDisplayName(sess.TempLeaveType),
 		sDate.Format("02/01/2006"),
 		eDate.Format("02/01/2006"),
@@ -717,6 +753,9 @@ func (s *Service) sendLeaveConfirmSummary(ctx context.Context, sess *Session, fr
 }
 
 func (s *Service) handleLeaveAwaitConfirm(ctx context.Context, sess *Session, from, input string) error {
+	if isStalePromptEcho(sess.State, input) {
+		return nil
+	}
 	normalized := strings.ToLower(strings.TrimSpace(input))
 	if isLeaveConfirmNegative(normalized) {
 		sess.resetFlow()
@@ -774,7 +813,8 @@ func (s *Service) handleLeaveAwaitConfirm(ctx context.Context, sess *Session, fr
 	}
 
 	s.dedup.markLeaveSubmitted(from)
+	sess.LastLeaveSubmittedAt = time.Now()
 	sess.resetFlow()
 	s.sessions.Set(from, sess)
-	return s.sendText(ctx, from, msgLeaveCreated)
+	return s.sendUserText(ctx, sess, from, msgLeaveCreated)
 }
