@@ -3,19 +3,21 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import queryClient from '@/lib/queryClient';
+import { Suspense, lazy } from 'react';
 import AdminShell from '@/components/layout/AdminShell';
-import LoginPage from '@/pages/LoginPage';
-import DashboardPage from '@/pages/admin/DashboardPage';
-import EmployeesPage from '@/pages/admin/EmployeesPage';
-import EpfPage from '@/pages/admin/EpfPage';
-import EmployeeFormPage from '@/pages/admin/EmployeeFormPage';
-import SalaryPage from '@/pages/admin/SalaryPage';
-import SalaryDirectoryPage from '@/pages/admin/SalaryDirectoryPage';
-import LeaveDirectoryPage from '@/pages/admin/LeaveDirectoryPage';
-import SalaryPeriodPage from '@/pages/admin/SalaryPeriodPage';
-import DispatchJobPage from '@/pages/admin/DispatchJobPage';
-import SettingsPage from '@/pages/admin/SettingsPage';
 import { useThemeStore } from '@/stores/themeStore';
+
+const LoginPage = lazy(() => import('@/pages/LoginPage'));
+const DashboardPage = lazy(() => import('@/pages/admin/DashboardPage'));
+const EmployeesPage = lazy(() => import('@/pages/admin/EmployeesPage'));
+const EpfPage = lazy(() => import('@/pages/admin/EpfPage'));
+const EmployeeFormPage = lazy(() => import('@/pages/admin/EmployeeFormPage'));
+const SalaryPage = lazy(() => import('@/pages/admin/SalaryPage'));
+const SalaryDirectoryPage = lazy(() => import('@/pages/admin/SalaryDirectoryPage'));
+const LeaveDirectoryPage = lazy(() => import('@/pages/admin/LeaveDirectoryPage'));
+const SalaryPeriodPage = lazy(() => import('@/pages/admin/SalaryPeriodPage'));
+const DispatchJobPage = lazy(() => import('@/pages/admin/DispatchJobPage'));
+const SettingsPage = lazy(() => import('@/pages/admin/SettingsPage'));
 
 export default function App() {
   const isDark = useThemeStore((s) => s.isDark);
@@ -86,23 +88,25 @@ export default function App() {
             },
           }}
         />
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/admin" element={<AdminShell />}>
-            <Route index element={<DashboardPage />} />
-            <Route path="employees" element={<EmployeesPage />} />
-            <Route path="employees/new" element={<EmployeeFormPage />} />
-            <Route path="employees/:id/edit" element={<EmployeeFormPage />} />
-            <Route path="epf" element={<EpfPage />} />
-            <Route path="leaves" element={<LeaveDirectoryPage />} />
-            <Route path="salary" element={<SalaryPage />} />
-            <Route path="salary-directory" element={<SalaryDirectoryPage />} />
-            <Route path="salary/:periodId" element={<SalaryPeriodPage />} />
-            <Route path="salary/dispatch/:jobId" element={<DispatchJobPage />} />
-            <Route path="settings" element={<SettingsPage />} />
-          </Route>
-          <Route path="*" element={<Navigate to="/admin" replace />} />
-        </Routes>
+        <Suspense fallback={<div className="flex h-screen items-center justify-center dark:bg-slate-900"><div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>}>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/admin" element={<AdminShell />}>
+              <Route index element={<DashboardPage />} />
+              <Route path="employees" element={<EmployeesPage />} />
+              <Route path="employees/new" element={<EmployeeFormPage />} />
+              <Route path="employees/:id/edit" element={<EmployeeFormPage />} />
+              <Route path="epf" element={<EpfPage />} />
+              <Route path="leaves" element={<LeaveDirectoryPage />} />
+              <Route path="salary" element={<SalaryPage />} />
+              <Route path="salary-directory" element={<SalaryDirectoryPage />} />
+              <Route path="salary/:periodId" element={<SalaryPeriodPage />} />
+              <Route path="salary/dispatch/:jobId" element={<DispatchJobPage />} />
+              <Route path="settings" element={<SettingsPage />} />
+            </Route>
+            <Route path="*" element={<Navigate to="/admin" replace />} />
+          </Routes>
+        </Suspense>
       </BrowserRouter>
     </QueryClientProvider>
     </div>

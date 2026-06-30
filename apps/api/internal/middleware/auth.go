@@ -18,6 +18,7 @@ const (
 
 type HRMSClaims struct {
 	UserID string `json:"user_id"`
+	Email  string `json:"email"`
 	Role   string `json:"role"`
 }
 
@@ -53,7 +54,8 @@ func RequireAuth(supaURL, anonKey string) func(http.Handler) http.Handler {
 			}
 
 			var supaUser struct {
-				ID string `json:"id"`
+				ID    string `json:"id"`
+				Email string `json:"email"`
 			}
 			if err := json.NewDecoder(resp.Body).Decode(&supaUser); err != nil {
 				respond.Unauthorized(w)
@@ -62,6 +64,7 @@ func RequireAuth(supaURL, anonKey string) func(http.Handler) http.Handler {
 
 			claims := &HRMSClaims{
 				UserID: supaUser.ID,
+				Email:  supaUser.Email,
 				Role:   "HR_ADMIN",
 			}
 
