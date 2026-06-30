@@ -3,7 +3,7 @@ import { useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { usePayrollRecords, salaryApi } from '@/api/hooks';
-import { MicrosoftExcelLogo, CaretLeft, CaretRight, Trash, FloppyDisk, Warning, X, ArrowsDownUp, MagnifyingGlass, DownloadSimple, FileCsv, Eye, FilePdf, Spinner } from '@phosphor-icons/react';
+import { MicrosoftExcelLogo, CaretLeft, CaretRight, Trash, FloppyDisk, Warning, X, ArrowsDownUp, DownloadSimple, FileCsv, Eye, FilePdf, Spinner } from '@phosphor-icons/react';
 import { PayrollRecord } from '@/api/types';
 import { downloadApiBlob, exportCsv } from '@/lib/format';
 import { SALARY_DIRECTORY_HEADERS } from '@/lib/exportColumns';
@@ -45,8 +45,6 @@ export default function SalaryDirectoryPage() {
   const [sortKey, setSortKey] = useState<SortKey>('employeeId');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
 
-  // Search
-  const [search, setSearch] = useState('');
 
   const qc = useQueryClient();
 
@@ -119,18 +117,8 @@ export default function SalaryDirectoryPage() {
       return sortDir === 'asc' ? avStr.localeCompare(bvStr) : bvStr.localeCompare(avStr);
     });
 
-    // Apply search filter
-    if (search.trim()) {
-      const searchLower = search.toLowerCase();
-      result = result.filter(r =>
-        r.employeeId?.toLowerCase().includes(searchLower) ||
-        r.empNameSnapshot?.toLowerCase().includes(searchLower) ||
-        r.mobileNo?.toLowerCase().includes(searchLower)
-      );
-    }
-
     return result;
-  }, [records, previewData, sortKey, sortDir, search]);
+  }, [records, previewData, sortKey, sortDir]);
 
   const allSelected = filtered.length > 0 && selectedIds.size === filtered.length;
 
@@ -347,20 +335,6 @@ export default function SalaryDirectoryPage() {
             >
               <CaretRight size={14} weight="bold" />
             </button>
-          </div>
-
-          {/* Search Input */}
-          <div className="relative w-full max-w-[400px] flex-1">
-            <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-            <input
-              type="text"
-              placeholder="Search employee..."
-              className="w-full bg-white dark:bg-slate-800 rounded-md pl-10 pr-4 py-2 text-sm border border-slate-300 dark:border-slate-600 focus:outline-none focus:border-[#eb0a1e]"
-              style={{ borderRadius: '0.375rem' }}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              disabled={!!previewFile}
-            />
           </div>
         </div>
 
