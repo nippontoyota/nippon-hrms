@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { LockKey, LockOpen, Eye, EyeSlash, CircleNotch } from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useVaultStore } from '@/stores/vaultStore';
@@ -14,6 +14,19 @@ export default function VaultLock({ isCollapsed }: { isCollapsed: boolean }) {
   const [isLoading, setIsLoading] = useState(false);
 
   const unlocked = !!vaultToken;
+
+  useEffect(() => {
+    if (!unlocked) return;
+    const interval = setInterval(() => {
+      const state = useVaultStore.getState();
+      if (state.unlockedAt && Date.now() - state.unlockedAt > 30 * 60 * 1000) {
+        state.setVaultToken(null);
+        toast.error('Privacy Mode auto-enabled for security (session expired).');
+        setTimeout(() => window.location.reload(), 500);
+      }
+    }, 10000); // Check every 10 seconds
+    return () => clearInterval(interval);
+  }, [unlocked]);
 
   const handleToggle = () => {
     if (unlocked) {
