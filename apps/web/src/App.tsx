@@ -14,6 +14,7 @@ import SalaryDirectoryPage from '@/pages/admin/SalaryDirectoryPage';
 import LeaveDirectoryPage from '@/pages/admin/LeaveDirectoryPage';
 import SalaryPeriodPage from '@/pages/admin/SalaryPeriodPage';
 import DispatchJobPage from '@/pages/admin/DispatchJobPage';
+import SettingsPage from '@/pages/admin/SettingsPage';
 import { useThemeStore } from '@/stores/themeStore';
 
 export default function App() {
@@ -98,6 +99,7 @@ export default function App() {
             <Route path="salary-directory" element={<SalaryDirectoryPage />} />
             <Route path="salary/:periodId" element={<SalaryPeriodPage />} />
             <Route path="salary/dispatch/:jobId" element={<DispatchJobPage />} />
+            <Route path="settings" element={<SettingsPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Navigate, Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { SquaresFour, Users, IdentificationCard, Money, SignOut, ListDashes, List, Sun, Moon, CalendarCheck } from '@phosphor-icons/react';
+import { SquaresFour, Users, IdentificationCard, Money, SignOut, ListDashes, List, Sun, Moon, CalendarCheck, Gear } from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '@/stores/authStore';
 import { useThemeStore } from '@/stores/themeStore';
@@ -142,6 +142,37 @@ export default function AdminShell() {
               </div>
             )}
           </button>
+          
+          <NavLink
+            to="/admin/settings"
+            className={({ isActive }) =>
+              `group relative flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-md transition-colors font-semibold text-[13px] ${
+                isActive
+                  ? 'text-slate-900 bg-slate-200 dark:text-white dark:bg-slate-700'
+                  : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700'
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <Gear size={20} weight={isActive ? "fill" : "bold"} className="shrink-0" />
+                <AnimatePresence>
+                  {!isCollapsed && (
+                    <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="truncate whitespace-nowrap">
+                      Settings
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+                {isCollapsed && (
+                  <div className="absolute left-full ml-4 px-3 py-1.5 bg-slate-800 dark:bg-slate-700 text-white text-xs font-semibold rounded shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50 translate-x-[-4px] group-hover:translate-x-0 pointer-events-none border border-slate-700 dark:border-slate-600">
+                    Settings
+                    <div className="absolute top-1/2 -translate-y-1/2 -left-1 w-2 h-2 bg-slate-800 dark:bg-slate-700 rotate-45 border-l border-b border-slate-700 dark:border-slate-600"></div>
+                  </div>
+                )}
+              </>
+            )}
+          </NavLink>
+
           <VaultLock isCollapsed={isCollapsed} />
           <button 
             onClick={handleLogout} 
