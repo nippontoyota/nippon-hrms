@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { LockKey, LockOpen, Eye, EyeSlash, CircleNotch } from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useVaultStore } from '@/stores/vaultStore';
@@ -102,73 +103,76 @@ export default function VaultLock({ isCollapsed }: { isCollapsed: boolean }) {
       </button>
 
       {/* Unlock Modal */}
-      <AnimatePresence>
-        {isOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-sm overflow-hidden border border-slate-200 dark:border-slate-700"
-            >
-              <div className="p-6">
-                <div className="flex items-center gap-3 mb-4 text-slate-800 dark:text-slate-200">
-                  <LockKey size={24} weight="fill" />
-                  <h3 className="font-bold text-lg text-slate-900 dark:text-white">Disable Privacy Mode</h3>
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {isOpen && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-sm overflow-hidden border border-slate-200 dark:border-slate-700"
+              >
+                <div className="p-5 sm:p-6">
+                  <div className="flex items-start sm:items-center gap-3 mb-4 text-slate-800 dark:text-slate-200">
+                    <LockKey size={24} weight="fill" className="shrink-0" />
+                    <h3 className="font-bold text-lg text-slate-900 dark:text-white leading-tight">Disable Privacy Mode</h3>
+                  </div>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
+                    Enter the Administrator Password to reveal sensitive payroll and employee data.
+                  </p>
+                  <form onSubmit={handleUnlock} className="space-y-4">
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Administrator Password"
+                        autoFocus
+                        disabled={isLoading}
+                        className="w-full px-4 py-2.5 pr-10 bg-slate-50 dark:bg-slate-900/50 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-500/50 dark:text-white"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        tabIndex={-1}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors focus:outline-none"
+                      >
+                        {showPassword ? <EyeSlash size={18} weight="bold" /> : <Eye size={18} weight="bold" />}
+                      </button>
+                    </div>
+                    <div className="flex flex-col-reverse sm:flex-row gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setIsOpen(false)}
+                        disabled={isLoading}
+                        className="flex-1 px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={!password.trim() || isLoading}
+                        className="flex flex-1 items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-slate-900 rounded-lg hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {isLoading ? (
+                          <>
+                            <CircleNotch size={16} weight="bold" className="animate-spin" />
+                            Authenticating...
+                          </>
+                        ) : (
+                          'Authenticate'
+                        )}
+                      </button>
+                    </div>
+                  </form>
                 </div>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
-                  Enter the Administrator Password to reveal sensitive payroll and employee data.
-                </p>
-                <form onSubmit={handleUnlock} className="space-y-4">
-                  <div className="relative">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Administrator Password"
-                      autoFocus
-                      disabled={isLoading}
-                      className="w-full px-4 py-2.5 pr-10 bg-slate-50 dark:bg-slate-900/50 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-500/50 dark:text-white"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      tabIndex={-1}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors focus:outline-none"
-                    >
-                      {showPassword ? <EyeSlash size={18} weight="bold" /> : <Eye size={18} weight="bold" />}
-                    </button>
-                  </div>
-                  <div className="flex gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setIsOpen(false)}
-                      disabled={isLoading}
-                      className="flex-1 px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={!password.trim() || isLoading}
-                      className="flex flex-1 items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-slate-900 rounded-lg hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      {isLoading ? (
-                        <>
-                          <CircleNotch size={16} weight="bold" className="animate-spin" />
-                          Authenticating...
-                        </>
-                      ) : (
-                        'Authenticate'
-                      )}
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </>
   );
 }
