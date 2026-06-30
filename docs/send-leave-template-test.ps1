@@ -1,10 +1,10 @@
-# Send leave_approved / leave_rejected template via DoubleTick API.
+# Send leave_approved_v2 / leave_rejected_v2 template via DoubleTick API.
 # Usage:  .\docs\send-leave-template-test.ps1
-#         .\docs\send-leave-template-test.ps1 -Template leave_rejected -To 918921764648
+#         .\docs\send-leave-template-test.ps1 -Template leave_rejected_v2 -To 918921764648
 
 param(
-    [ValidateSet("leave_approved", "leave_rejected")]
-    [string]$Template = "leave_approved",
+    [ValidateSet("leave_approved_v2", "leave_rejected_v2")]
+    [string]$Template = "leave_approved_v2",
     [string]$To = "918606723377",
     [string]$From = "917594086900"
 )
@@ -21,7 +21,7 @@ if (-not $apiKey) {
     exit 1
 }
 
-if ($Template -eq "leave_approved") {
+if ($Template -eq "leave_approved_v2") {
     $placeholders = @("Krishnanand G", "2", "09 Jun", "10 Jun")
 } else {
     $placeholders = @("Ananth Krisha T", "1", "15 Jun", "15 Jun", "Insufficient leave balance for this month")

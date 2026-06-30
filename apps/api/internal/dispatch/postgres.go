@@ -13,6 +13,7 @@ type Repository interface {
 	HasRunningJobForPeriod(ctx context.Context, month, year int) (bool, error)
 	CreateJob(ctx context.Context, month, year int, items []Item) (*Job, error)
 	GetJob(ctx context.Context, jobID string) (*Job, error)
+	GetLatestJobForPeriod(ctx context.Context, month, year int) (*Job, error)
 	ListItems(ctx context.Context, jobID string, status ItemStatus, page, limit int) ([]Item, int, error)
 	ClaimNextPendingItem(ctx context.Context, jobID string) (*Item, error)
 	MarkItemSent(ctx context.Context, jobID, itemID string) error
@@ -97,6 +98,28 @@ func (r *PostgresRepository) GetJob(ctx context.Context, jobID string) (*Job, er
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, fmt.Errorf("job not found")
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &job, nil
+}
+
+func (r *PostgresRepository) GetLatestJobForPeriod(ctx context.Context, month, year int) (*Job, error) {
+	var job Job
+	err := r.db.QueryRow(ctx, `
+		SELECT id, month, year, status, total, sent, failed, skipped, created_at, updated_at, completed_at
+		FROM dispatch_jobs
+		WHERE month = $1 AND year = $2
+		ORDER BY created_at DESC
+		LIMIT 1`, month, year,
+	).Scan(
+		&job.ID, &job.Month, &job.Year, &job.Status, &job.Total,
+		&job.Sent, &job.Failed, &job.Skipped,
+		&job.CreatedAt, &job.UpdatedAt, &job.CompletedAt,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
 	}
 	if err != nil {
 		return nil, err

@@ -1,4 +1,4 @@
-# Send payslip_notification template via DoubleTick API.
+# Send notification_of_payslip template via DoubleTick API.
 # Usage:  .\docs\send-payslip-template-test.ps1
 #         .\docs\send-payslip-template-test.ps1 -To 918921764648
 
@@ -25,7 +25,7 @@ $body = @{
             to   = $To
             from = $From
             content = @{
-                templateName = "payslip_notification"
+                templateName = "notification_of_payslip"
                 language     = "en"
                 templateData = @{
                     header = @{
@@ -34,7 +34,7 @@ $body = @{
                         filename = "payslip_sample.pdf"
                     }
                     body = @{
-                        placeholders = @("Krishnanand G", "June", "2026", "9001")
+                        placeholders = @("Krishnanand G", "June", "2026", "June", "2026")
                     }
                 }
             }

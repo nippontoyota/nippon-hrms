@@ -15,6 +15,7 @@ const sessionWindowDuration = 24 * time.Hour
 type SessionWindowStore interface {
 	RecordInbound(ctx context.Context, phone string) error
 	IsSessionWindowOpen(ctx context.Context, phone string) bool
+	LoadOpenSessions(ctx context.Context, phones []string) map[string]bool
 }
 
 type PostgresSessionWindowStore struct {
@@ -63,4 +64,51 @@ func (s *PostgresSessionWindowStore) IsSessionWindowOpen(ctx context.Context, ph
 		return false
 	}
 	return time.Since(*lastInbound) < sessionWindowDuration
+}
+
+func (s *PostgresSessionWindowStore) LoadOpenSessions(ctx context.Context, phones []string) map[string]bool {
+	result := make(map[string]bool, len(phones))
+	if len(phones) == 0 {
+		return result
+	}
+
+	normalized := make([]string, 0, len(phones))
+	seen := make(map[string]struct{}, len(phones))
+	for _, p := range phones {
+		p = normalizeSessionPhone(p)
+		if p == "" {
+			continue
+		}
+		if _, ok := seen[p]; ok {
+			continue
+		}
+		seen[p] = struct{}{}
+		normalized = append(normalized, p)
+	}
+	for _, p := range normalized {
+		result[p] = false
+	}
+	if len(normalized) == 0 {
+		return result
+	}
+
+	cutoff := time.Now().Add(-sessionWindowDuration)
+	rows, err := s.db.Query(ctx, `
+		SELECT phone, last_inbound_at FROM whatsapp_conversations
+		WHERE phone = ANY($1) AND last_inbound_at > $2
+	`, normalized, cutoff)
+	if err != nil {
+		return result
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var phone string
+		var lastInbound time.Time
+		if err := rows.Scan(&phone, &lastInbound); err != nil {
+			continue
+		}
+		result[phone] = true
+	}
+	return result
 }

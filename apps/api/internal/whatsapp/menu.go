@@ -53,12 +53,6 @@ func msgPayslipAlreadySent(month, year int) string {
 	)
 }
 
-func msgPayslipCaption(name, monthStr string, year int) string {
-	return fmt.Sprintf(
-		"Payslip - %s %d\n\nDear %s,\n\nPlease find your payslip for %s %d attached.\n\nFor any questions, please contact the HR department.",
-		monthStr, year, name, monthStr, year,
-	)
-}
 
 func mainMenuButtons() []doubletick.InteractiveButton {
 	return []doubletick.InteractiveButton{
@@ -109,19 +103,15 @@ const msgLeaveStartInPast = `The start date cannot be in the past.
 
 Please enter today's date or a future date.`
 
-const msgLeaveTooFarAhead = `Leave can be applied only up to 30 days in advance.
-
-Please enter an earlier date.`
-
 const msgLeaveEndBeforeStart = `The end date cannot be before the start date.
 
 Please enter the correct end date.`
 
-const msgLeaveConfirmHelp = `Please reply *yes* to submit or *no* to cancel.`
+const msgLeaveConfirmHelp = `Please reply *Yes* to submit or *No* to cancel.`
 
 func msgLeaveConfirmPrompt(leaveType, start, end, reason string, days int) string {
 	return fmt.Sprintf(
-		"Please confirm your leave details:\n\nLeave type: %s\nStart date: %s\nEnd date: %s\nTotal days: %d\nReason: %s\n\nReply *yes* to submit or *no* to cancel.",
+		"Please confirm your leave details:\n\nLeave type: %s\nStart date: %s\nEnd date: %s\nTotal days: %d\nReason: %s\n\nReply *Yes* to submit or *No* to cancel.",
 		leaveType, start, end, days, reason,
 	)
 }

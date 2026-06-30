@@ -10,16 +10,18 @@ import (
 	"github.com/nippon-toyota/hrms/internal/employee"
 	"github.com/nippon-toyota/hrms/internal/epf"
 	"github.com/nippon-toyota/hrms/internal/payroll"
+	"github.com/nippon-toyota/hrms/internal/whatsapp"
 )
 
 type Service struct {
-	repo       Repository
-	payrollRepo payroll.Repository
-	empRepo    employee.Repository
-	epfRepo    epf.Repository
-	dispatcher *payroll.Dispatcher
-	cfg        RunnerConfig
-	registry   *RunnerRegistry
+	repo          Repository
+	payrollRepo   payroll.Repository
+	empRepo       employee.Repository
+	epfRepo       epf.Repository
+	dispatcher    *payroll.Dispatcher
+	windowStore   whatsapp.SessionWindowStore
+	cfg           RunnerConfig
+	registry      *RunnerRegistry
 }
 
 func NewService(
@@ -28,6 +30,7 @@ func NewService(
 	empRepo employee.Repository,
 	epfRepo epf.Repository,
 	dispatcher *payroll.Dispatcher,
+	windowStore whatsapp.SessionWindowStore,
 	cfg RunnerConfig,
 ) *Service {
 	if cfg.Workers <= 0 {
@@ -39,6 +42,7 @@ func NewService(
 		empRepo:     empRepo,
 		epfRepo:     epfRepo,
 		dispatcher:  dispatcher,
+		windowStore: windowStore,
 		cfg:         cfg,
 		registry:    NewRunnerRegistry(),
 	}
@@ -85,6 +89,10 @@ func (s *Service) StartDispatch(ctx context.Context, month, year int) (*Job, err
 
 func (s *Service) GetJob(ctx context.Context, jobID string) (*Job, error) {
 	return s.repo.GetJob(ctx, jobID)
+}
+
+func (s *Service) GetLatestJobForPeriod(ctx context.Context, month, year int) (*Job, error) {
+	return s.repo.GetLatestJobForPeriod(ctx, month, year)
 }
 
 func (s *Service) ListItems(ctx context.Context, jobID string, status ItemStatus, page, limit int) ([]Item, int, error) {
@@ -155,6 +163,17 @@ func (s *Service) runJobAsync(jobID string, month, year int, records []payroll.R
 			}
 		}
 
+		if s.windowStore != nil {
+			phones := make([]string, 0, len(empMap))
+			for _, emp := range empMap {
+				if emp.MobileNumber != "" {
+					phones = append(phones, emp.MobileNumber)
+				}
+			}
+			s.dispatcher.SetSessionCache(s.windowStore.LoadOpenSessions(ctx, phones))
+			defer s.dispatcher.ClearSessionCache()
+		}
+
 		var wg sync.WaitGroup
 		for i := 0; i < s.cfg.Workers; i++ {
 			wg.Add(1)
@@ -175,9 +194,13 @@ func (s *Service) runJobAsync(jobID string, month, year int, records []payroll.R
 			slog.Error("dispatch: get job after finalize failed", "job", jobID, "err", err)
 			return
 		}
-		if job.Sent > 0 {
+		if job.Failed == 0 && job.Sent > 0 {
 			if err := s.payrollRepo.MarkAsDispatched(ctx, month, year); err != nil {
 				slog.Error("dispatch: mark payroll dispatched failed", "job", jobID, "err", err)
+			}
+		} else if job.Failed > 0 {
+			if err := s.payrollRepo.ClearDispatched(ctx, month, year); err != nil {
+				slog.Error("dispatch: clear payroll dispatched flag failed", "job", jobID, "err", err)
 			}
 		}
 		slog.Info("dispatch: job completed", "job", jobID, "sent", job.Sent, "failed", job.Failed, "skipped", job.Skipped, "total", job.Total)

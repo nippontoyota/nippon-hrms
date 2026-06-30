@@ -18,7 +18,14 @@ type TemplateContent struct {
 }
 
 type TemplateData struct {
-	Body TemplateBodyData `json:"body"`
+	Header *TemplateHeaderData `json:"header,omitempty"`
+	Body   TemplateBodyData    `json:"body"`
+}
+
+type TemplateHeaderData struct {
+	Type     string `json:"type"`
+	MediaURL string `json:"mediaUrl"`
+	Filename string `json:"filename"`
 }
 
 type TemplateBodyData struct {
@@ -77,9 +84,11 @@ type Response struct {
 }
 
 type MessageStatus struct {
-	ID     string `json:"id"`
-	To     string `json:"to"`
-	Status string `json:"status"`
+	ID           string `json:"id"`
+	To           string `json:"to"`
+	Recipient    string `json:"recipient"`
+	Status       string `json:"status"`
+	ErrorMessage string `json:"errorMessage"`
 }
 
 type Webhook struct {

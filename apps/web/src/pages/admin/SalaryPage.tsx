@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { WarningCircle, Spinner, CaretLeft, CaretRight, CheckCircle, WhatsappLogo } from '@phosphor-icons/react';
+import { WarningCircle, Spinner, CaretLeft, CaretRight, CheckCircle, WhatsappLogo, ArrowRight } from '@phosphor-icons/react';
 import { salaryApi } from '@/api/endpoints';
 import { usePayrollRecords } from '@/api/hooks';
+import type { DispatchJob } from '@/api/types';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTableRowHighlight } from '@/lib/useTableRowHighlight';
 
@@ -29,6 +30,8 @@ export default function SalaryPage() {
   const [errors, setErrors] = useState<ValidationError[] | null>(null);
   const [dispatching, setDispatching] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [latestJob, setLatestJob] = useState<DispatchJob | null>(null);
+  const [latestJobLoading, setLatestJobLoading] = useState(false);
 
   const qc = useQueryClient();
   const navigate = useNavigate();
@@ -55,6 +58,22 @@ export default function SalaryPage() {
     validate(month, year);
   }, [month, year]);
 
+  const loadLatestJob = async (m: number, y: number) => {
+    setLatestJobLoading(true);
+    try {
+      const job = await salaryApi.getLatestDispatchJob(m, y);
+      setLatestJob(job);
+    } catch {
+      setLatestJob(null);
+    } finally {
+      setLatestJobLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadLatestJob(month, year);
+  }, [month, year]);
+
   const prevMonth = () => {
     if (month === 1) { setMonth(12); setYear(y => y - 1); }
     else setMonth(m => m - 1);
@@ -66,7 +85,11 @@ export default function SalaryPage() {
     else setMonth(m => m + 1);
   };
 
-  const isDispatched = records?.some(r => r.dispatchedAt) ?? false;
+  const isJobActive = latestJob?.status === 'PENDING' || latestJob?.status === 'RUNNING';
+  const hasPartialFailure = latestJob?.status === 'COMPLETED' && (latestJob.failed ?? 0) > 0;
+  const isFullyDispatched = latestJob
+    ? latestJob.status === 'COMPLETED' && (latestJob.failed ?? 0) === 0 && (latestJob.sent ?? 0) > 0
+    : (records?.some(r => r.dispatchedAt) ?? false);
   const recordCount = records?.length ?? 0;
 
   const handleDispatch = async () => {
@@ -76,6 +99,7 @@ export default function SalaryPage() {
       toast.success('Dispatch started');
       qc.invalidateQueries({ queryKey: ['payrollRecords', month, year] });
       setIsConfirmModalOpen(false);
+      await loadLatestJob(month, year);
       navigate(`/admin/salary/dispatch/${jobId}`);
     } catch {
       toast.error('Failed to trigger dispatch');
@@ -183,6 +207,27 @@ export default function SalaryPage() {
               </table>
             </div>
           </div>
+        ) : hasPartialFailure ? (
+          <div className="flex-1 flex flex-col">
+            <div className="flex items-start gap-3 bg-amber-50 border-b border-amber-200 p-5 shrink-0">
+              <WarningCircle size={24} weight="fill" className="text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <h3 className="text-sm font-bold text-amber-900 uppercase tracking-wide">Partial Dispatch</h3>
+                <p className="text-xs text-amber-800 mt-1 leading-relaxed">
+                  {latestJob?.sent} of {latestJob?.total} payslips sent. <strong>{latestJob?.failed}</strong> failed — use the button below to retry only the failed employees.
+                </p>
+              </div>
+            </div>
+            <div className="flex-1 flex flex-col items-center justify-center py-16 px-6 text-center">
+              <p className="text-5xl font-black text-amber-700 tabular-nums">{latestJob?.failed}</p>
+              <p className="text-sm font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mt-2">
+                failed deliver{latestJob?.failed === 1 ? 'y' : 'ies'}
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                {MONTHS[month - 1]} {year} — do not re-dispatch all; retry failed only
+              </p>
+            </div>
+          </div>
         ) : (!records || records.length === 0) ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-2 py-24 bg-white dark:bg-slate-800">
             <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">No Records Found</p>
@@ -220,10 +265,37 @@ export default function SalaryPage() {
         {/* Action Footer */}
         <div className="border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-5 flex items-center justify-between shrink-0">
           <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-            {isDispatched ? 'Process Completed' : errors?.length === 0 ? 'Ready to process' : 'Action required'}
+            {isFullyDispatched
+              ? 'Process Completed'
+              : hasPartialFailure
+                ? `${latestJob?.failed} delivery failure${latestJob?.failed === 1 ? '' : 's'} — action required`
+                : isJobActive
+                  ? 'Dispatch in progress'
+                  : errors?.length === 0
+                    ? 'Ready to process'
+                    : 'Action required'}
           </div>
 
-          {isDispatched ? (
+          {isJobActive && latestJob ? (
+            <button
+              type="button"
+              onClick={() => navigate(`/admin/salary/dispatch/${latestJob.id}`)}
+              className="bg-[#eb0a1e] hover:bg-red-700 text-white font-bold uppercase tracking-wider !px-6 !py-3 flex items-center gap-2 shadow-md transition-colors text-sm rounded-md"
+            >
+              <Spinner className="animate-spin" size={18} />
+              View Progress
+              <ArrowRight size={16} weight="bold" />
+            </button>
+          ) : hasPartialFailure && latestJob ? (
+            <button
+              type="button"
+              onClick={() => navigate(`/admin/salary/dispatch/${latestJob.id}`)}
+              className="bg-amber-600 hover:bg-amber-700 text-white font-bold uppercase tracking-wider !px-6 !py-3 flex items-center gap-2 shadow-md transition-colors text-sm rounded-md"
+            >
+              <WarningCircle size={18} weight="fill" />
+              View & Retry Failed ({latestJob.failed})
+            </button>
+          ) : isFullyDispatched ? (
             <div className="flex items-center gap-2 px-4 py-2.5 bg-green-100 border border-green-200 text-green-800 font-bold uppercase tracking-wider text-[11px] rounded-md">
               <CheckCircle size={18} weight="fill" className="text-green-600" />
               Payslips Dispatched
@@ -231,7 +303,7 @@ export default function SalaryPage() {
           ) : (
             <button
               onClick={() => setIsConfirmModalOpen(true)}
-              disabled={loading || (errors && errors.length > 0) || dispatching || recordsLoading || !records || records.length === 0}
+              disabled={loading || latestJobLoading || (errors && errors.length > 0) || dispatching || recordsLoading || !records || records.length === 0}
               className="bg-green-700 hover:bg-green-800 text-white font-bold uppercase tracking-wider !px-6 !py-3 flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed shadow-md transition-colors text-sm rounded-md"
             >
               <WhatsappLogo size={18} weight="fill" />

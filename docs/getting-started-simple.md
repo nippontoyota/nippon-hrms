@@ -327,6 +327,57 @@ That phone number must be registered in the employees table for WhatsApp self-se
 - Check `DOUBLETICK_API_KEY` and `WABA_PHONE_NUMBER_ID` in `apps\api\.env`.
 - The phone number format must include country code with **no** `+` sign (example: `919876543210`).
 - Restart the API after changing `.env`.
+- For employees who have **not** messaged the bot in the last 24 hours, bulk send requires the **`notification_of_payslip`** WhatsApp template to be approved in DoubleTick/Meta. See [Bulk payslip template](#bulk-payslip-whatsapp-template) below.
+
+### Bulk payslip WhatsApp template
+
+Before dispatching payslips to ~2000 employees, submit this template in **DoubleTick / Meta Business Manager**:
+
+| Field | Value |
+|-------|-------|
+| Name | `notification_of_payslip` |
+| Language | `en` |
+| Category | UTILITY |
+| Header | DOCUMENT (dynamic PDF per employee) |
+
+**Body text** (use exactly 5 variables — month and year each appear twice):
+
+```
+📄 *Payslip - {{2}} {{3}}*
+
+Dear *{{1}}*,
+
+Please find attached your payslip for the month of *{{2}} {{3}}*.
+
+For any discrepancies, please reach out to HR.
+```
+
+| Variable | Example | Maps to |
+|----------|---------|---------|
+| `{{1}}` | Krishnanand G | Employee name |
+| `{{2}}` | June | Month (title line) |
+| `{{3}}` | 2026 | Year (title line) |
+| `{{4}}` | June | Month (body line — same as `{{2}}`) |
+| `{{5}}` | 2026 | Year (body line — same as `{{3}}`) |
+
+The API sends **5 placeholder values** because month and year appear twice in the template body.
+
+After Meta approves the template, verify with:
+
+```powershell
+.\docs\send-payslip-template-test.ps1
+```
+
+### Bulk dispatch performance tuning
+
+For large payroll runs (~2000 employees), set in `apps\api\.env`:
+
+```
+DISPATCH_WORKERS=30
+DISPATCH_ITEM_DELAY_MS=50
+```
+
+If DoubleTick returns rate-limit errors (HTTP 429), reduce `DISPATCH_WORKERS` or increase `DISPATCH_ITEM_DELAY_MS`.
 
 ### Employees message WhatsApp but nothing happens / no bot reply
 
