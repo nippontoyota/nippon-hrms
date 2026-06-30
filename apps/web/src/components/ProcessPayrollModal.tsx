@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { WarningCircle, CheckCircle, X, PaperPlaneTilt, Spinner } from '@phosphor-icons/react';
 import { salaryApi } from '@/api/endpoints';
+import { useTableRowHighlight } from '@/lib/useTableRowHighlight';
 
 interface Props {
   open: boolean;
@@ -28,6 +29,7 @@ export default function ProcessPayrollModal({ open, month, year, onClose, onSucc
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<ValidationError[] | null>(null);
   const [dispatching, setDispatching] = useState(false);
+  const { tableRef, handleRowClick, rowHighlightClass } = useTableRowHighlight();
 
   useEffect(() => {
     if (open) {
@@ -99,7 +101,7 @@ export default function ProcessPayrollModal({ open, month, year, onClose, onSucc
                 </div>
               </div>
 
-              <div className="border border-slate-200 dark:border-slate-700">
+              <div ref={tableRef} className="border border-slate-200 dark:border-slate-700">
                 <table className="w-full text-left border-collapse whitespace-nowrap">
                   <thead className="bg-slate-50 dark:bg-slate-900 text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 font-mono">
                     <tr>
@@ -109,13 +111,20 @@ export default function ProcessPayrollModal({ open, month, year, onClose, onSucc
                     </tr>
                   </thead>
                   <tbody className="text-xs text-slate-700 dark:text-slate-200">
-                    {errors.map((err, i) => (
-                      <tr key={i} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-700 dark:bg-slate-900">
+                    {errors.map((err, i) => {
+                      const rowId = err.employeeId || String(i);
+                      return (
+                      <tr
+                        key={i}
+                        className={`cursor-pointer border-b border-slate-100 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-700 dark:bg-slate-900 ${rowHighlightClass(rowId)}`}
+                        onClick={(ev) => handleRowClick(rowId, ev)}
+                      >
                         <td className="px-4 py-3 font-mono font-bold text-slate-900 dark:text-white">{err.employeeId}</td>
                         <td className="px-4 py-3 font-semibold">{err.employeeName}</td>
                         <td className="px-4 py-3 text-red-600 font-medium">{err.reason}</td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

@@ -8,6 +8,9 @@ import {
   Clock,
 } from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'framer-motion';
+import RejectLeaveModal from '@/components/RejectLeaveModal';
+import LeaveRequestDetailModal from '@/components/LeaveRequestDetailModal';
+import type { LeaveRequest } from '@/api/types';
 
 function BalanceBadge({ employeeId }: { employeeId: string }) {
   const { data: balance, isLoading } = useLeaveBalance(employeeId);
@@ -40,6 +43,8 @@ export default function LeaveDirectoryPage() {
   const updateStatus = useUpdateLeaveStatus();
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [rejectTarget, setRejectTarget] = useState<LeaveRequest | null>(null);
+  const [selectedLeave, setSelectedLeave] = useState<LeaveRequest | null>(null);
 
   const filteredLeaves = useMemo(() => {
     return (leaves || []).filter((l) => {
@@ -50,15 +55,44 @@ export default function LeaveDirectoryPage() {
     });
   }, [leaves, search, filterStatus]);
 
-  const handleStatusUpdate = (id: string, status: 'approved' | 'rejected') => {
+  const handleLeaveRowClick = (leave: LeaveRequest, e: React.MouseEvent<HTMLTableRowElement>) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('button, input, a, select, textarea, label')) return;
+    setSelectedLeave(leave);
+  };
+
+  const handleApprove = (id: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
     toast.promise(
-      updateStatus.mutateAsync({ id, status }),
+      updateStatus.mutateAsync({ id, status: 'approved' }),
       {
         loading: 'Updating status...',
-        success: `Leave request ${status} and employee notified!`,
+        success: 'Leave approved — employee notified!',
         error: 'Failed to update leave status',
       }
-    );
+    ).then(() => setSelectedLeave(null));
+  };
+
+  const handleRejectClick = (id: string) => {
+    const leave = leaves.find((l) => l.id === id) ?? selectedLeave;
+    if (!leave) return;
+    setSelectedLeave(null);
+    setRejectTarget(leave);
+  };
+
+  const handleRejectConfirm = (reason: string) => {
+    if (!rejectTarget) return;
+    toast.promise(
+      updateStatus.mutateAsync({ id: rejectTarget.id, status: 'rejected', rejectionReason: reason }),
+      {
+        loading: 'Updating status...',
+        success: 'Leave rejected — employee notified!',
+        error: 'Failed to update leave status',
+      }
+    ).finally(() => {
+      setRejectTarget(null);
+      setSelectedLeave(null);
+    });
   };
 
   return (
@@ -155,9 +189,10 @@ export default function LeaveDirectoryPage() {
                   </tr>
                 ) : (
                   filteredLeaves.map((l) => (
-                    <tr 
+                    <tr
                       key={l.id}
-                      className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                      className={`cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${selectedLeave?.id === l.id ? 'row-selected' : ''}`}
+                      onClick={(ev) => handleLeaveRowClick(l, ev)}
                     >
                       <td className="py-3 px-4">
                       <div className="font-bold text-slate-900 dark:text-white">{l.employee?.name}</div>
@@ -182,7 +217,7 @@ export default function LeaveDirectoryPage() {
                       </div>
                     </td>
                     <td className="py-3 px-4">
-                      <p className="text-[13px] text-slate-800 dark:text-slate-200 font-medium max-w-[220px] line-clamp-2 leading-relaxed" title={l.reason}>
+                      <p className="text-[13px] text-slate-800 dark:text-slate-200 font-medium max-w-[220px] line-clamp-2 leading-relaxed">
                         {l.reason}
                       </p>
                     </td>
@@ -198,23 +233,33 @@ export default function LeaveDirectoryPage() {
                         </span>
                       )}
                       {l.status === 'rejected' && (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded shadow-sm text-[10px] uppercase tracking-widest font-bold bg-rose-100/50 text-rose-800 border border-rose-200/60 dark:bg-rose-900/30 dark:text-rose-300 dark:border-rose-800/50">
-                          <XCircle size={12} weight="bold" /> Rejected
-                        </span>
+                        <div className="space-y-1.5">
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded shadow-sm text-[10px] uppercase tracking-widest font-bold bg-rose-100/50 text-rose-800 border border-rose-200/60 dark:bg-rose-900/30 dark:text-rose-300 dark:border-rose-800/50">
+                            <XCircle size={12} weight="bold" /> Rejected
+                          </span>
+                          {l.rejectionReason && (
+                            <p className="text-[11px] text-rose-700 dark:text-rose-300 max-w-[200px] leading-snug" title={l.rejectionReason}>
+                              HR: {l.rejectionReason}
+                            </p>
+                          )}
+                        </div>
                       )}
                     </td>
                     <td className="py-3 px-4 text-right">
                       {l.status === 'pending' ? (
                         <div className="flex justify-end gap-2">
                           <button
-                            onClick={() => handleStatusUpdate(l.id, 'approved')}
+                            onClick={(e) => handleApprove(l.id, e)}
                             disabled={updateStatus.isPending}
                             className="px-3 py-1.5 text-[11px] uppercase tracking-wider font-bold rounded shadow-sm flex items-center gap-1.5 transition-all bg-emerald-500 hover:bg-emerald-600 text-white border border-emerald-600 disabled:opacity-50"
                           >
                             <CheckCircle size={14} weight="bold" /> Approve
                           </button>
                           <button
-                            onClick={() => handleStatusUpdate(l.id, 'rejected')}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setRejectTarget(l);
+                            }}
                             disabled={updateStatus.isPending}
                             className="px-3 py-1.5 text-[11px] uppercase tracking-wider font-bold rounded shadow-sm flex items-center gap-1.5 transition-all bg-white hover:bg-rose-50 text-rose-600 border border-slate-200 hover:border-rose-200 dark:bg-slate-800 dark:border-slate-700 dark:hover:border-rose-900 dark:text-rose-400 disabled:opacity-50"
                           >
@@ -235,6 +280,22 @@ export default function LeaveDirectoryPage() {
           </table>
         </div>
       </div>
+
+      <LeaveRequestDetailModal
+        leave={selectedLeave}
+        onClose={() => setSelectedLeave(null)}
+        onApprove={handleApprove}
+        onReject={handleRejectClick}
+        isUpdating={updateStatus.isPending}
+      />
+
+      <RejectLeaveModal
+        open={rejectTarget !== null}
+        employeeName={rejectTarget?.employee?.name}
+        onCancel={() => setRejectTarget(null)}
+        onConfirm={handleRejectConfirm}
+        isSubmitting={updateStatus.isPending}
+      />
     </div>
   );
 }

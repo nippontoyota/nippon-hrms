@@ -48,7 +48,13 @@ func isInteractiveMenuEcho(input string) bool {
 	if lower == "request leave" || input == payloadRequestLeave {
 		return true
 	}
-	if strings.Contains(lower, "nippon hr connect") && strings.Contains(lower, "please tap a button") {
+	if lower == "casual leave" || input == payloadLeaveCasual {
+		return true
+	}
+	if lower == "sick leave" || input == payloadLeaveSick {
+		return true
+	}
+	if strings.Contains(lower, "nippon hr connect") && strings.Contains(lower, "please select an option") {
 		return true
 	}
 	if strings.Contains(lower, "generate pay") &&
@@ -62,6 +68,12 @@ func isInteractiveMenuEcho(input string) bool {
 		return true
 	}
 	if strings.Contains(lower, "request leave") && strings.Contains(lower, "nippon") {
+		return true
+	}
+	if strings.Contains(lower, "casual leave") && strings.Contains(lower, "leave application") {
+		return true
+	}
+	if strings.Contains(lower, "sick leave") && strings.Contains(lower, "leave application") {
 		return true
 	}
 	return false

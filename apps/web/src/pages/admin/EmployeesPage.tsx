@@ -9,6 +9,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import SendPayslipModal from '@/components/SendPayslipModal';
 import { downloadApiBlob, exportCsv } from '@/lib/format';
 import { EMPLOYEE_DIRECTORY_HEADERS } from '@/lib/exportColumns';
+import { useTableRowHighlight } from '@/lib/useTableRowHighlight';
 
 type SortKey = 'employeeId' | 'name' | 'department' | 'doj' | 'branch' | 'designation';
 type SortDir = 'asc' | 'desc';
@@ -88,6 +89,7 @@ export default function EmployeesPage() {
   } | null>(null);
   
   const qc = useQueryClient();
+  const { tableRef, handleRowClick, rowHighlightClass } = useTableRowHighlight();
 
   const openConfirm = (title: string, message: string, confirmLabel: string, onConfirm: () => void) => {
     setConfirmDialog({ open: true, title, message, confirmLabel, onConfirm });
@@ -339,7 +341,7 @@ export default function EmployeesPage() {
             <p className="text-slate-500 dark:text-slate-400 font-mono text-[10px] uppercase tracking-widest">Fetching records...</p>
           </div>
         ) : (
-          <div className="table-wrapper overflow-x-auto w-full">
+          <div ref={tableRef} className="table-wrapper overflow-x-auto w-full">
             <table className="table-dense whitespace-nowrap">
               <thead>
                 <tr>
@@ -396,7 +398,11 @@ export default function EmployeesPage() {
                   };
 
                   return (
-                    <tr key={e.id} className={`hover:bg-slate-50 dark:hover:bg-slate-700 dark:bg-slate-900 transition-colors ${isEditing ? 'bg-yellow-50/50' : ''}`}>
+                    <tr
+                      key={e.id}
+                      className={`cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 dark:bg-slate-900 transition-colors ${isEditing ? 'bg-yellow-50/50' : ''} ${rowHighlightClass(e.id)}`}
+                      onClick={(ev) => handleRowClick(e.id, ev)}
+                    >
                       <td className="text-center px-0">
                         <input 
                           type="checkbox" 

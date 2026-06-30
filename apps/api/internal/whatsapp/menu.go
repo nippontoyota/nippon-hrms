@@ -7,42 +7,55 @@ import (
 	"github.com/nippon-toyota/hrms/internal/doubletick"
 )
 
-const msgNotEmployee = `[UNAUTHORIZED ACCESS]
-This number is not registered in the Nippon HR Connect Master Database. Please contact the HR Department to link your WhatsApp number.`
+const msgNotEmployee = `This WhatsApp number is not registered in our system.
+
+Please contact the HR department to register your number.`
 
 func msgWelcome(name string) string {
 	if strings.TrimSpace(name) != "" {
-		return fmt.Sprintf("Hi %s,\n\nWelcome to Nippon HR Connect.\n\nPlease tap a button below to proceed.", strings.TrimSpace(name))
+		return fmt.Sprintf("Hello %s,\n\nWelcome to Nippon HR Connect.\n\nPlease select an option using the buttons below.", strings.TrimSpace(name))
 	}
 	return `Welcome to Nippon HR Connect.
 
-Please tap a button below to proceed.`
+Please select an option using the buttons below.`
 }
 
-const msgMainMenuBody = `Select an option to continue.`
+const msgMainMenuBody = `How may we help you today?`
 
-const msgNoPayslips = `No historical payslip records were found for your employee profile. Please consult HR for clarification.`
+const msgMenuTextFallback = `Please reply *Salary Slip* or *Request Leave*.`
 
-const msgPayslipNotFound = `No payroll data exists for the requested period. Please try a different month.`
+const msgNoPayslips = `No payslip records are available for your account.
 
-const msgPayslipError = `A system error occurred while generating your official PDF payslip. Please try again or contact IT Support.`
+Please contact the HR department.`
 
-const msgPayslipAwaitMonth = `Please specify the payslip month and year in MM/YYYY format.
+const msgPayslipNotFound = `No payslip was found for the month you entered.
 
+Please try another month or contact the HR department.`
+
+const msgPayslipError = `We were unable to send your payslip at this time.
+
+Please try again later or contact the HR department.`
+
+const msgPayslipAwaitMonth = `Please enter the month and year for your payslip.
+
+Format: MM/YYYY
 Example: 06/2026`
 
-const msgPayslipInvalidPeriod = `Invalid date format. Please use MM/YYYY (e.g., 06/2026).`
+const msgPayslipInvalidPeriod = `Invalid format.
+
+Please enter month and year as MM/YYYY.
+Example: 06/2026`
 
 func msgPayslipAlreadySent(month, year int) string {
 	return fmt.Sprintf(
-		"You already received your payslip for %02d/%d. Reply Hi to request another period.",
+		"Your payslip for %02d/%d has already been sent.\n\nReply Hi if you need a payslip for a different month.",
 		month, year,
 	)
 }
 
 func msgPayslipCaption(name, monthStr string, year int) string {
 	return fmt.Sprintf(
-		"*Payslip - %s %d*\n\nDear %s,\n\nPlease find attached your payslip for the month of %s %d.\n\nFor any discrepancies, please reach out to HR.",
+		"Payslip - %s %d\n\nDear %s,\n\nPlease find your payslip for %s %d attached.\n\nFor any questions, please contact the HR department.",
 		monthStr, year, name, monthStr, year,
 	)
 }
@@ -54,29 +67,80 @@ func mainMenuButtons() []doubletick.InteractiveButton {
 	}
 }
 
-const msgLeaveAwaitStart = `*Leave Application*
+const msgLeaveAwaitType = `Leave Application
 
-Please enter the *Start Date* for your leave (DD/MM/YYYY).
-Note: Start and End dates are both inclusive.
+What type of leave do you need?`
 
+const msgLeaveTypeTextFallback = `Please tap *Casual Leave* or *Sick Leave* using the buttons above.`
+
+const msgLeaveInvalidType = `Please select a leave type using the buttons below.`
+
+func leaveTypeButtons() []doubletick.InteractiveButton {
+	return []doubletick.InteractiveButton{
+		{ID: payloadLeaveCasual, Title: "Casual Leave"},
+		{ID: payloadLeaveSick, Title: "Sick Leave"},
+	}
+}
+
+const msgLeaveAwaitStart = `Leave Application
+
+Please enter your leave start date.
+
+Please enter your leave start date.
+
+Format: DD/MM/YYYY
 Example: 01/07/2026`
 
-const msgLeaveAwaitEnd = `Got it. Now enter the *End Date* (DD/MM/YYYY).
-Example: 05/07/2026`
+const msgLeaveAwaitEnd = `Please enter your leave end date.
 
-const msgLeaveAwaitReason = `Please provide a brief *reason* for your leave.`
+Format: DD/MM/YYYY
+Example: 05/07/2026
 
-func msgLeaveConfirmPrompt(start, end, reason string, days int) string {
+For a one-day leave, enter the same date as your start date.`
+
+const msgLeaveAwaitReason = `Please enter the reason for your leave.`
+
+const msgLeaveInvalidDate = `Invalid format.
+
+Please enter the date as DD/MM/YYYY.
+Example: 01/07/2026`
+
+const msgLeaveStartInPast = `The start date cannot be in the past.
+
+Please enter today's date or a future date.`
+
+const msgLeaveTooFarAhead = `Leave can be applied only up to 30 days in advance.
+
+Please enter an earlier date.`
+
+const msgLeaveEndBeforeStart = `The end date cannot be before the start date.
+
+Please enter the correct end date.`
+
+const msgLeaveConfirmHelp = `Please reply *yes* to submit or *no* to cancel.`
+
+func msgLeaveConfirmPrompt(leaveType, start, end, reason string, days int) string {
 	return fmt.Sprintf(
-		"Please confirm your leave details:\n\n*Start:* %s\n*End:* %s\n*Total Days:* %d\n*Reason:* %s\n\nReply *yes* to submit or *no* to cancel.",
-		start, end, days, reason,
+		"Please confirm your leave details:\n\nLeave type: %s\nStart date: %s\nEnd date: %s\nTotal days: %d\nReason: %s\n\nReply *yes* to submit or *no* to cancel.",
+		leaveType, start, end, days, reason,
 	)
 }
 
-const msgLeaveCreated = `*Leave Request Submitted*
+func msgLeaveInsufficientBalance(days, remaining int, leaveKind, month string, year int) string {
+	return fmt.Sprintf(
+		"You have requested %d days of leave, but only %d %s leave days are available for %s %d.\n\nPlease apply for fewer days.",
+		days, remaining, leaveKind, month, year,
+	)
+}
 
-Your leave request has been submitted and is pending approval. Reply *Hi* for the main menu.`
+const msgLeaveCreated = `Your leave request has been submitted successfully.
 
-const msgLeaveCancelled = `*Action Terminated*
+It is pending approval from the HR department. Reply Hi to return to the main menu.`
 
-Your leave application was discarded. Reply *Hi* for the main menu.`
+const msgLeaveCancelled = `Your leave request has been cancelled.
+
+Reply Hi to return to the main menu.`
+
+const msgLeaveSubmitError = `Your leave request could not be submitted due to a system error.
+
+Please try again or contact the HR department.`

@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowClockwise, CheckCircle, WarningCircle, XCircle, Spinner
 import { salaryApi } from '@/api/endpoints';
 import type { DispatchJob, DispatchJobItem } from '@/api/types';
 import { dispatchItemBadge } from '@/lib/format';
+import { useTableRowHighlight } from '@/lib/useTableRowHighlight';
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -23,6 +24,7 @@ export default function DispatchJobPage() {
   const [job, setJob] = useState<DispatchJob | null>(null);
   const [failedItems, setFailedItems] = useState<DispatchJobItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const { tableRef, handleRowClick, rowHighlightClass } = useTableRowHighlight();
   const [retrying, setRetrying] = useState(false);
 
   const loadJob = useCallback(async () => {
@@ -163,7 +165,7 @@ export default function DispatchJobPage() {
           <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
             <h2 className="font-bold text-slate-900 dark:text-white">Failed deliveries</h2>
           </div>
-          <div className="overflow-x-auto">
+          <div ref={tableRef} className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 uppercase text-xs">
                 <tr>
@@ -175,7 +177,11 @@ export default function DispatchJobPage() {
               </thead>
               <tbody>
                 {failedItems.map((item) => (
-                  <tr key={item.id} className="border-t border-slate-100 dark:border-slate-700">
+                  <tr
+                    key={item.id}
+                    className={`cursor-pointer border-t border-slate-100 dark:border-slate-700 ${rowHighlightClass(item.id)}`}
+                    onClick={(ev) => handleRowClick(item.id, ev)}
+                  >
                     <td className="p-3 font-mono">{item.employeeId}</td>
                     <td className="p-3">{item.employeeName}</td>
                     <td className="p-3">

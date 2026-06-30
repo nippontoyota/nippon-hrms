@@ -162,6 +162,9 @@ func canonicalInput(input string) string {
 	case payloadGeneratePay, payloadRequestSalary, payloadRequestLeave:
 		return normalizeMenuSelection(input)
 	default:
+		if sel := normalizeLeaveTypeSelection(input); sel != "" {
+			return sel
+		}
 		return strings.ToLower(input)
 	}
 }
@@ -183,5 +186,18 @@ func normalizeMenuSelection(input string) string {
 		return payloadRequestLeave
 	default:
 		return trimmed
+	}
+}
+
+func normalizeLeaveTypeSelection(input string) string {
+	trimmed := strings.TrimSpace(input)
+	lower := strings.ToLower(trimmed)
+	switch {
+	case trimmed == payloadLeaveCasual, lower == "casual leave", lower == "casual":
+		return payloadLeaveCasual
+	case trimmed == payloadLeaveSick, lower == "sick leave", lower == "sick":
+		return payloadLeaveSick
+	default:
+		return ""
 	}
 }

@@ -55,7 +55,7 @@ func (d *Dispatcher) sendPayslipDocument(ctx context.Context, to, filename, capt
 	if err := d.ensureWhatsApp(); err != nil {
 		return err
 	}
-	mediaURL, err := d.dtClient.UploadMedia(ctx, pdfBytes, filename, "application/pdf")
+	mediaURL, _, err := d.dtClient.UploadMedia(ctx, pdfBytes, filename, "application/pdf")
 	if err != nil {
 		return fmt.Errorf("media upload failed: %w", err)
 	}

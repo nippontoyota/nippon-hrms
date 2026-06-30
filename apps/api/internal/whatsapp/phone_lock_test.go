@@ -36,6 +36,36 @@ func TestShouldSkipInboundEcho_manualPeriod(t *testing.T) {
 	}
 }
 
+func TestShouldSkipInboundEcho_leaveTypeButtons(t *testing.T) {
+	if !shouldSkipInboundEcho("Casual Leave", "text") {
+		t.Fatal("expected casual leave text echo to be skipped")
+	}
+	if !shouldSkipInboundEcho("Sick Leave", "text") {
+		t.Fatal("expected sick leave text echo to be skipped")
+	}
+}
+
+func TestNormalizeLeaveTypeSelection(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{payloadLeaveCasual, payloadLeaveCasual},
+		{"Casual Leave", payloadLeaveCasual},
+		{"casual", payloadLeaveCasual},
+		{payloadLeaveSick, payloadLeaveSick},
+		{"Sick Leave", payloadLeaveSick},
+		{"sick", payloadLeaveSick},
+		{"annual leave", ""},
+	}
+
+	for _, tc := range tests {
+		if got := normalizeLeaveTypeSelection(tc.input); got != tc.want {
+			t.Fatalf("normalizeLeaveTypeSelection(%q) = %q, want %q", tc.input, got, tc.want)
+		}
+	}
+}
+
 func TestIsGreeting(t *testing.T) {
 	for _, input := range []string{"Hi", "hello", "HEY", "start", "menu", "reset", "Hi!", "hello.", "hello there", "hi there", "hey there"} {
 		if !isGreeting(input) {
@@ -50,7 +80,7 @@ func TestIsGreeting(t *testing.T) {
 }
 
 func TestMsgWelcomeFor(t *testing.T) {
-	want := "Hi Krishnanand G,\n\nWelcome to Nippon HR Connect.\n\nPlease tap a button below to proceed."
+	want := "Hello Krishnanand G,\n\nWelcome to Nippon HR Connect.\n\nPlease select an option using the buttons below."
 	if got := msgWelcome("Krishnanand G"); got != want {
 		t.Fatalf("msgWelcome() = %q, want %q", got, want)
 	}

@@ -16,6 +16,7 @@ import type { EpfRecord } from '@/api/types';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { downloadApiBlob, exportCsv } from '@/lib/format';
 import { EPF_DIRECTORY_HEADERS } from '@/lib/exportColumns';
+import { useTableRowHighlight } from '@/lib/useTableRowHighlight';
 
 type SortKey = 'employeeId' | 'name' | 'department' | 'level' | 'doj' | 'doa';
 type SortDir = 'asc' | 'desc';
@@ -36,6 +37,7 @@ export default function EpfRecordsSection() {
   const { data: records, isLoading, isError, error, refetch } = useEpfRecords();
   const deleteMutation = useDeleteEpfRecord();
   const qc = useQueryClient();
+  const { tableRef, handleRowClick, rowHighlightClass } = useTableRowHighlight();
 
   const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -252,7 +254,7 @@ export default function EpfRecordsSection() {
             </button>
           </div>
         ) : (
-          <div className="table-wrapper overflow-x-auto w-full">
+          <div ref={tableRef} className="table-wrapper overflow-x-auto w-full">
             <table className="table-dense whitespace-nowrap">
               <thead>
                 <tr>
@@ -281,7 +283,11 @@ export default function EpfRecordsSection() {
               </thead>
               <tbody>
                 {filtered.map((r: EpfRecord, index) => (
-                  <tr key={r.employeeId} className="hover:bg-slate-50 dark:hover:bg-slate-700 dark:bg-slate-900 transition-colors">
+                  <tr
+                    key={r.employeeId}
+                    className={`cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 dark:bg-slate-900 transition-colors ${rowHighlightClass(r.employeeId)}`}
+                    onClick={(ev) => handleRowClick(r.employeeId, ev)}
+                  >
                     <td className="text-center px-0">
                       <input
                         type="checkbox"

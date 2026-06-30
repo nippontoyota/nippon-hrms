@@ -41,7 +41,7 @@ func (r *PostgresRepository) Create(ctx context.Context, req *LeaveRequest) erro
 func (r *PostgresRepository) ListAll(ctx context.Context) ([]LeaveRequest, error) {
 	query := `
 		SELECT 
-			l.id, l.employee_id, l.type, l.from_date, l.to_date, l.days, l.reason, l.status, l.reviewed_by, l.reviewed_at, l.created_at,
+			l.id, l.employee_id, l.type, l.from_date, l.to_date, l.days, l.reason, l.status, l.rejection_reason, l.reviewed_by, l.reviewed_at, l.created_at,
 			e.name, e.department, e.mobile_number
 		FROM leaves l
 		JOIN employees e ON l.employee_id = e.id
@@ -59,11 +59,12 @@ func (r *PostgresRepository) ListAll(ctx context.Context) ([]LeaveRequest, error
 		var emp employee.Employee
 		var reviewedBy *string
 		var reviewedAt *time.Time
+		var rejectionReason *string
 		var fromDate, toDate time.Time
 
 		err := rows.Scan(
 			&l.ID, &l.EmployeeID, &l.Type, &fromDate, &toDate, &l.Days, &l.Reason, &l.Status,
-			&reviewedBy, &reviewedAt, &l.CreatedAt,
+			&rejectionReason, &reviewedBy, &reviewedAt, &l.CreatedAt,
 			&emp.Name, &emp.Department, &emp.MobileNumber,
 		)
 		if err != nil {
@@ -72,6 +73,7 @@ func (r *PostgresRepository) ListAll(ctx context.Context) ([]LeaveRequest, error
 
 		l.FromDate = fromDate.Format("2006-01-02")
 		l.ToDate = toDate.Format("2006-01-02")
+		l.RejectionReason = rejectionReason
 		l.ReviewedBy = reviewedBy
 		l.ReviewedAt = reviewedAt
 		
@@ -84,13 +86,13 @@ func (r *PostgresRepository) ListAll(ctx context.Context) ([]LeaveRequest, error
 	return leaves, nil
 }
 
-func (r *PostgresRepository) UpdateStatus(ctx context.Context, id string, status LeaveStatus, reviewerID string) error {
+func (r *PostgresRepository) UpdateStatus(ctx context.Context, id string, status LeaveStatus, reviewerID *string, rejectionReason *string) error {
 	query := `
 		UPDATE leaves 
-		SET status = $1, reviewed_by = $2, reviewed_at = NOW()
+		SET status = $1, reviewed_by = $2, reviewed_at = NOW(), rejection_reason = $4
 		WHERE id = $3
 	`
-	cmd, err := r.db.Exec(ctx, query, status, reviewerID, id)
+	cmd, err := r.db.Exec(ctx, query, status, reviewerID, id, rejectionReason)
 	if err != nil {
 		return fmt.Errorf("failed to update leave status: %w", err)
 	}
@@ -103,7 +105,7 @@ func (r *PostgresRepository) UpdateStatus(ctx context.Context, id string, status
 func (r *PostgresRepository) GetByID(ctx context.Context, id string) (*LeaveRequest, error) {
 	query := `
 		SELECT 
-			l.id, l.employee_id, l.type, l.from_date, l.to_date, l.days, l.reason, l.status, l.reviewed_by, l.reviewed_at, l.created_at,
+			l.id, l.employee_id, l.type, l.from_date, l.to_date, l.days, l.reason, l.status, l.rejection_reason, l.reviewed_by, l.reviewed_at, l.created_at,
 			e.name, e.department, e.mobile_number
 		FROM leaves l
 		JOIN employees e ON l.employee_id = e.id
@@ -113,11 +115,12 @@ func (r *PostgresRepository) GetByID(ctx context.Context, id string) (*LeaveRequ
 	var emp employee.Employee
 	var reviewedBy *string
 	var reviewedAt *time.Time
+	var rejectionReason *string
 	var fromDate, toDate time.Time
 
 	err := r.db.QueryRow(ctx, query, id).Scan(
 		&l.ID, &l.EmployeeID, &l.Type, &fromDate, &toDate, &l.Days, &l.Reason, &l.Status,
-		&reviewedBy, &reviewedAt, &l.CreatedAt,
+		&rejectionReason, &reviewedBy, &reviewedAt, &l.CreatedAt,
 		&emp.Name, &emp.Department, &emp.MobileNumber,
 	)
 	if err != nil {
@@ -126,6 +129,7 @@ func (r *PostgresRepository) GetByID(ctx context.Context, id string) (*LeaveRequ
 
 	l.FromDate = fromDate.Format("2006-01-02")
 	l.ToDate = toDate.Format("2006-01-02")
+	l.RejectionReason = rejectionReason
 	l.ReviewedBy = reviewedBy
 	l.ReviewedAt = reviewedAt
 	
