@@ -60,13 +60,14 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 	)
 
 	sessionStore := whatsapp.NewInMemoryStore(0)
-	waSvc := whatsapp.NewService(dtClient, sessionStore, empRepo, epfRepo, payrollRepo, leaveRepo)
+	sessionWindow := whatsapp.NewPostgresSessionWindowStore(pgPool)
+	waSvc := whatsapp.NewService(dtClient, sessionStore, sessionWindow, empRepo, epfRepo, payrollRepo, leaveRepo)
 	waHandler := whatsapp.NewHandler(waSvc, cfg.DoubleTickWebhookSecret)
 
 	employeeH := handler.NewEmployeeHandler(empRepo)
 	epfH := handler.NewEpfHandler(epfRepo)
 	payrollH := handler.NewPayrollHandler(payrollRepo, payrollDispatcher, dispatchService)
-	leaveH := handler.NewLeaveHandler(leaveRepo, empRepo, dtClient)
+	leaveH := handler.NewLeaveHandler(leaveRepo, empRepo, dtClient, sessionWindow)
 
 	r.Get("/health", handler.HealthHandler)
 

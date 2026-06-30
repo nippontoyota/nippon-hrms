@@ -13,7 +13,16 @@ type TemplateMessage struct {
 type TemplateContent struct {
 	TemplateName string              `json:"templateName"`
 	Language     string              `json:"language"`
+	TemplateData *TemplateData       `json:"templateData,omitempty"`
 	Components   []TemplateComponent `json:"components,omitempty"`
+}
+
+type TemplateData struct {
+	Body TemplateBodyData `json:"body"`
+}
+
+type TemplateBodyData struct {
+	Placeholders []string `json:"placeholders"`
 }
 
 type TemplateComponent struct {
@@ -138,6 +147,21 @@ type InteractiveButtonContent struct {
 type InteractiveButton struct {
 	ID    string `json:"id"`
 	Title string `json:"title"`
+}
+
+// InteractiveMediaRequest is the body for POST /whatsapp/message/interactive/media.
+type InteractiveMediaRequest struct {
+	From    string                   `json:"from"`
+	To      string                   `json:"to"`
+	Content InteractiveMediaContent  `json:"content"`
+}
+
+type InteractiveMediaContent struct {
+	Body      string              `json:"body"`
+	Footer    string              `json:"footer,omitempty"`
+	Buttons   []InteractiveButton `json:"buttons"`
+	MediaURL  string              `json:"mediaUrl"`
+	MediaType string              `json:"mediaType"`
 }
 
 // InteractiveListRequest is the body for POST /whatsapp/message/interactive-list.

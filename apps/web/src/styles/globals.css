@@ -111,6 +111,23 @@
   .table-dense tbody tr {
     @apply bg-white dark:bg-slate-800/50 hover:bg-blue-50 dark:hover:bg-slate-700 transition-none;
   }
+  .table-dense tbody tr.row-selected,
+  .table-dense tbody tr.row-selected td {
+    @apply !bg-blue-100 dark:!bg-blue-900/50;
+  }
+  .table-dense tbody tr.row-selected:hover,
+  .table-dense tbody tr.row-selected:hover td {
+    @apply !bg-blue-100 dark:!bg-blue-900/50;
+  }
+
+  tbody tr.row-selected,
+  tbody tr.row-selected td {
+    @apply bg-blue-100 dark:bg-blue-900/50;
+  }
+  tbody tr.row-selected:hover,
+  tbody tr.row-selected:hover td {
+    @apply bg-blue-100 dark:bg-blue-900/50;
+  }
 
 
   .glass-panel {

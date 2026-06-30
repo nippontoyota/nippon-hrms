@@ -1,5 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { exportCsv } from '@/lib/format';
+import { useTableRowHighlight } from '@/lib/useTableRowHighlight';
 
 interface Column<T> {
   key: string;
@@ -23,6 +24,7 @@ export default function LogTable<T extends Record<string, unknown>>({
   emptyMessage = 'No records found.',
 }: LogTableProps<T>) {
   const [search, setSearch] = useState('');
+  const { tableRef, handleRowClick, rowHighlightClass } = useTableRowHighlight();
 
   const filtered = useMemo(() => {
     if (!search.trim()) return data;
@@ -59,7 +61,7 @@ export default function LogTable<T extends Record<string, unknown>>({
         )}
       </div>
       <div className="card !p-0 overflow-hidden">
-        <div className="overflow-x-auto">
+        <div ref={tableRef} className="overflow-x-auto">
           <table className="data-table">
             <thead>
               <tr>
@@ -76,13 +78,20 @@ export default function LogTable<T extends Record<string, unknown>>({
                   </td>
                 </tr>
               ) : (
-                filtered.map((row, i) => (
-                  <tr key={i}>
+                filtered.map((row, i) => {
+                  const rowId = String(i);
+                  return (
+                  <tr
+                    key={i}
+                    className={`cursor-pointer ${rowHighlightClass(rowId)}`}
+                    onClick={(ev) => handleRowClick(rowId, ev)}
+                  >
                     {columns.map((c) => (
                       <td key={c.key}>{c.render ? c.render(row) : String(row[c.key] ?? '—')}</td>
                     ))}
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>

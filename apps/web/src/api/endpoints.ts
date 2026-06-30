@@ -112,6 +112,9 @@ export const dashboardApi = {
 export const leaveApi = {
   list: () => api.get<LeaveRequest[]>('/leaves').then((r) => r.data),
   getBalance: (employeeId: string) => api.get<LeaveBalance>(`/leaves/balances?employeeId=${employeeId}`).then((r) => r.data),
-  updateStatus: (id: string, status: 'approved' | 'rejected') => 
-    api.patch(`/leaves/${id}`, { status }).then((r) => r.data),
+  updateStatus: (id: string, status: 'approved' | 'rejected', rejectionReason?: string) =>
+    api.patch(`/leaves/${id}`, {
+      status,
+      ...(rejectionReason ? { rejectionReason } : {}),
+    }).then((r) => r.data),
 };

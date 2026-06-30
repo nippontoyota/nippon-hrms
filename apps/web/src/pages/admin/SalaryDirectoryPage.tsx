@@ -6,6 +6,7 @@ import { MicrosoftExcelLogo, CaretLeft, CaretRight, Trash, FloppyDisk, Warning, 
 import { PayrollRecord } from '@/api/types';
 import { downloadApiBlob, exportCsv } from '@/lib/format';
 import { SALARY_DIRECTORY_HEADERS } from '@/lib/exportColumns';
+import { useTableRowHighlight } from '@/lib/useTableRowHighlight';
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -47,6 +48,7 @@ export default function SalaryDirectoryPage() {
   const [search, setSearch] = useState('');
 
   const qc = useQueryClient();
+  const { tableRef, handleRowClick, rowHighlightClass } = useTableRowHighlight();
   const { data: records, isLoading } = usePayrollRecords(month, year);
 
   const isNextMonthDisabled = year === currentYear && month === currentMonth;
@@ -420,7 +422,7 @@ export default function SalaryDirectoryPage() {
             <p className="text-slate-500 dark:text-slate-400 font-mono text-[10px] uppercase tracking-widest">Fetching records...</p>
           </div>
         ) : (
-          <div className="table-wrapper overflow-x-auto w-full">
+          <div ref={tableRef} className="table-wrapper overflow-x-auto w-full">
             <table className="table-dense whitespace-nowrap">
               <thead>
                 <tr>
@@ -485,8 +487,14 @@ export default function SalaryDirectoryPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((r, idx) => (
-                  <tr key={r.id || `preview-${idx}`} className={`hover:bg-slate-50 dark:hover:bg-slate-700 dark:bg-slate-900 ${(r.id && selectedIds.has(r.id)) ? 'bg-red-50/50' : ''}`}>
+                {filtered.map((r, idx) => {
+                  const rowId = r.id || `preview-${idx}`;
+                  return (
+                  <tr
+                    key={rowId}
+                    className={`cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 dark:bg-slate-900 ${(r.id && selectedIds.has(r.id)) ? 'bg-red-50/50' : ''} ${rowHighlightClass(rowId)}`}
+                    onClick={(ev) => handleRowClick(rowId, ev)}
+                  >
                     <td className="text-center px-0">
                       <input
                         type="checkbox"
@@ -561,7 +569,8 @@ export default function SalaryDirectoryPage() {
                     <td className="text-right font-mono font-bold">{((r.pf367 || 0) + (r.pf833 || 0)).toFixed(2)}</td>
                     <td className="text-center font-mono font-bold text-red-600">{r.absents?.toFixed(1) || '0.0'}</td>
                   </tr>
-                ))}
+                  );
+                })}
                 {filtered.length === 0 && (
                   <tr>
                     <td colSpan={50} className="text-center p-8 text-slate-400 font-mono text-xs uppercase tracking-widest">

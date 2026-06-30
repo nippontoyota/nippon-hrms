@@ -107,8 +107,8 @@ export function useLeaveBalance(employeeId: string | undefined) {
 export function useUpdateLeaveStatus() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, status }: { id: string; status: 'approved' | 'rejected' }) =>
-      leaveApi.updateStatus(id, status),
+    mutationFn: ({ id, status, rejectionReason }: { id: string; status: 'approved' | 'rejected'; rejectionReason?: string }) =>
+      leaveApi.updateStatus(id, status, rejectionReason),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['leaves'] });
       qc.invalidateQueries({ queryKey: ['leave-balance'] });

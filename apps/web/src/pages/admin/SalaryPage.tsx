@@ -5,6 +5,7 @@ import { WarningCircle, Spinner, CaretLeft, CaretRight, CheckCircle, WhatsappLog
 import { salaryApi } from '@/api/endpoints';
 import { usePayrollRecords } from '@/api/hooks';
 import { useQueryClient } from '@tanstack/react-query';
+import { useTableRowHighlight } from '@/lib/useTableRowHighlight';
 
 interface ValidationError {
   employeeId: string;
@@ -31,6 +32,7 @@ export default function SalaryPage() {
 
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const { tableRef, handleRowClick, rowHighlightClass } = useTableRowHighlight();
   const { data: records, isLoading: recordsLoading } = usePayrollRecords(month, year);
 
   const isNextMonthDisabled = year === currentYear && month === currentMonth;
@@ -151,7 +153,7 @@ export default function SalaryPage() {
                 </p>
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-0">
+            <div ref={tableRef} className="flex-1 overflow-y-auto custom-scrollbar p-0">
               <table className="w-full text-left whitespace-nowrap">
                 <thead className="bg-slate-50 dark:bg-slate-900 text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 font-mono sticky top-0 border-b border-slate-200 dark:border-slate-700 shadow-sm z-10">
                   <tr>
@@ -162,14 +164,21 @@ export default function SalaryPage() {
                   </tr>
                 </thead>
                 <tbody className="text-xs text-slate-700 dark:text-slate-200 divide-y divide-slate-100">
-                  {errors.map((err, i) => (
-                    <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-700 dark:bg-slate-900 transition-colors">
+                  {errors.map((err, i) => {
+                    const rowId = err.employeeId || String(i);
+                    return (
+                    <tr
+                      key={i}
+                      className={`cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 dark:bg-slate-900 transition-colors ${rowHighlightClass(rowId)}`}
+                      onClick={(ev) => handleRowClick(rowId, ev)}
+                    >
                       <td className="px-5 py-3 text-slate-400 font-mono text-center">{i + 1}</td>
                       <td className="px-5 py-3 font-mono font-bold text-slate-900 dark:text-white">{err.employeeId}</td>
                       <td className="px-5 py-3 font-semibold">{err.employeeName}</td>
                       <td className="px-5 py-3 text-red-600 font-medium">{err.reason}</td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

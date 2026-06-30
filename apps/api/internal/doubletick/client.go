@@ -108,20 +108,36 @@ func (c *Client) MarkMessageRead(ctx context.Context, customerPhone, whatsAppMes
 func (c *Client) SendTemplate(
 	ctx context.Context,
 	to, templateName, language string,
-	components []TemplateComponent,
+	placeholders []string,
 ) (*Response, error) {
 	body := TemplateRequest{
 		Messages: []TemplateMessage{{
 			Content: TemplateContent{
 				TemplateName: templateName,
 				Language:     language,
-				Components:   components,
+				TemplateData: &TemplateData{
+					Body: TemplateBodyData{Placeholders: placeholders},
+				},
 			},
-			From: c.fromNumber,
-			To:   to,
+			From: c.formatFrom(),
+			To:   c.formatTo(to),
 		}},
 	}
 	return c.do(ctx, http.MethodPost, "/whatsapp/message/template", body)
+}
+
+// IsSessionExpiredError reports whether a SendText failure indicates the 24-hour session window is closed.
+func IsSessionExpiredError(err error) bool {
+	var apiErr *APIError
+	if !errors.As(err, &apiErr) {
+		return false
+	}
+	body := strings.ToLower(string(apiErr.Body))
+	return strings.Contains(body, "131047") ||
+		strings.Contains(body, "re-engagement") ||
+		strings.Contains(body, "session") ||
+		strings.Contains(body, "24 hour") ||
+		strings.Contains(body, "outside")
 }
 
 // SendDocument sends a WhatsApp document message pointing at a hosted media URL.
@@ -157,6 +173,26 @@ func (c *Client) SendInteractiveButtons(
 	return c.do(ctx, http.MethodPost, "/whatsapp/message/interactive", req)
 }
 
+// SendInteractiveMedia sends a WhatsApp interactive button message with an image, video, or document header.
+func (c *Client) SendInteractiveMedia(
+	ctx context.Context,
+	to, body, footer, mediaURL, mediaType string,
+	buttons []InteractiveButton,
+) (*Response, error) {
+	req := InteractiveMediaRequest{
+		From: c.formatFrom(),
+		To:   c.formatTo(to),
+		Content: InteractiveMediaContent{
+			Body:      body,
+			Footer:    footer,
+			Buttons:   buttons,
+			MediaURL:  mediaURL,
+			MediaType: mediaType,
+		},
+	}
+	return c.do(ctx, http.MethodPost, "/whatsapp/message/interactive/media", req)
+}
+
 // SendInteractiveList sends a WhatsApp interactive list message.
 func (c *Client) SendInteractiveList(
 	ctx context.Context,
@@ -177,8 +213,8 @@ func (c *Client) SendInteractiveList(
 	return c.do(ctx, http.MethodPost, "/whatsapp/message/interactive-list", req)
 }
 
-// UploadMedia uploads a file to DoubleTick and returns a hosted media URL usable in a document message.
-func (c *Client) UploadMedia(ctx context.Context, data []byte, filename, contentType string) (string, error) {
+// UploadMedia uploads a file to DoubleTick and returns a hosted media URL usable in outbound messages.
+func (c *Client) UploadMedia(ctx context.Context, data []byte, filename, contentType string) (string, int, error) {
 	var buf bytes.Buffer
 	w := multipart.NewWriter(&buf)
 
@@ -190,18 +226,18 @@ func (c *Client) UploadMedia(ctx context.Context, data []byte, filename, content
 
 	part, err := w.CreatePart(h)
 	if err != nil {
-		return "", fmt.Errorf("doubletick: create form part: %w", err)
+		return "", 0, fmt.Errorf("doubletick: create form part: %w", err)
 	}
 	if _, err := part.Write(data); err != nil {
-		return "", fmt.Errorf("doubletick: write file part: %w", err)
+		return "", 0, fmt.Errorf("doubletick: write file part: %w", err)
 	}
 	if err := w.Close(); err != nil {
-		return "", fmt.Errorf("doubletick: close multipart writer: %w", err)
+		return "", 0, fmt.Errorf("doubletick: close multipart writer: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/media/upload", &buf)
 	if err != nil {
-		return "", fmt.Errorf("doubletick: build upload request: %w", err)
+		return "", 0, fmt.Errorf("doubletick: build upload request: %w", err)
 	}
 	req.Header.Set("Content-Type", w.FormDataContentType())
 	req.Header.Set("Accept", "application/json")
@@ -209,23 +245,23 @@ func (c *Client) UploadMedia(ctx context.Context, data []byte, filename, content
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("doubletick: upload http: %w", err)
+		return "", 0, fmt.Errorf("doubletick: upload http: %w", err)
 	}
 	defer resp.Body.Close()
 
 	raw, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("doubletick: read upload body: %w", err)
+		return "", 0, fmt.Errorf("doubletick: read upload body: %w", err)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return "", &APIError{StatusCode: resp.StatusCode, Body: raw}
+		return "", 0, &APIError{StatusCode: resp.StatusCode, Body: raw}
 	}
 
 	var out UploadMediaResponse
 	if err := json.Unmarshal(raw, &out); err != nil {
-		return "", fmt.Errorf("doubletick: decode upload response: %w", err)
+		return "", 0, fmt.Errorf("doubletick: decode upload response: %w", err)
 	}
-	return out.MediaURL, nil
+	return out.MediaURL, out.ExpiresIn, nil
 }
 
 type APIError struct {
