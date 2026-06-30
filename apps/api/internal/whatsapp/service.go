@@ -287,7 +287,7 @@ func (s *Service) handleIdle(ctx context.Context, sess *Session, from, input str
 	}
 
 	if looksLikeLeaveDateAttempt(input) {
-		return s.sendText(ctx, from, msgSessionExpired)
+		return s.sendText(ctx, from, msgLeaveDateWithoutSession)
 	}
 
 	if isAcknowledgment(input) {
@@ -528,6 +528,9 @@ func (s *Service) shouldSoftGate(sess *Session, input string) bool {
 	if !isInLeaveFlow(sess.State) {
 		return false
 	}
+	if isBotPromptEcho(input) {
+		return false
+	}
 	if sess.LastOutboundAt.IsZero() || time.Since(sess.LastOutboundAt) > outboundSoftGate {
 		return false
 	}
@@ -658,7 +661,7 @@ func (s *Service) handleLeaveAwaitEnd(ctx context.Context, sess *Session, from, 
 		}
 		remaining, label := remainingForLeaveType(bal, leaveType)
 		if days > remaining {
-			sess.resetFlow()
+			sess.State = StateLeaveAwaitEnd
 			s.sessions.Set(from, sess)
 			return s.sendText(ctx, from, msgLeaveInsufficientBalance(days, remaining, label, startDate.Month().String(), startDate.Year()))
 		}

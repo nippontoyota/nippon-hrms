@@ -49,6 +49,7 @@ func (r *flowEmpRepo) DeleteAll(context.Context) error { return nil }
 
 type flowLeaveRepo struct {
 	created []*leave.LeaveRequest
+	balance *leave.LeaveBalance
 }
 
 func (r *flowLeaveRepo) Create(_ context.Context, req *leave.LeaveRequest) error {
@@ -61,6 +62,10 @@ func (r *flowLeaveRepo) UpdateStatus(context.Context, string, leave.LeaveStatus,
 	return nil
 }
 func (r *flowLeaveRepo) GetMonthlyBalance(context.Context, string, int, int) (*leave.LeaveBalance, error) {
+	if r.balance != nil {
+		b := *r.balance
+		return &b, nil
+	}
 	return &leave.LeaveBalance{TotalCasual: 10, UsedCasual: 0, TotalSick: 5, UsedSick: 0}, nil
 }
 func (r *flowLeaveRepo) GetByID(context.Context, string) (*leave.LeaveRequest, error) { return nil, nil }
@@ -306,6 +311,31 @@ func TestFlow_awaitPeriod_salarySlipTextNotSkipped(t *testing.T) {
 	}
 	if !strings.Contains(rec.lastText(), "Please enter the month and year") {
 		t.Fatalf("expected period prompt after salary text tap, got %q", rec.lastText())
+	}
+}
+
+func TestFlow_insufficientBalance_keepsSession(t *testing.T) {
+	svc, rec, store, phone := newFlowTestService(t)
+	ctx := context.Background()
+	leaveRepo := svc.leaveRepo.(*flowLeaveRepo)
+	leaveRepo.balance = &leave.LeaveBalance{TotalCasual: 1, UsedCasual: 0, TotalSick: 0, UsedSick: 0}
+
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m1", "interactive", payloadRequestLeave))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m2", "text", "Casual Leave"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m3", "text", "01/07/2026"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m4", "text", "02/07/2026"))
+
+	sess, ok := store.Get(phone)
+	if !ok || sess.State != StateLeaveAwaitEnd {
+		t.Fatalf("expected leave-await-end after balance error, got state %v", sess.State)
+	}
+	if !strings.Contains(rec.lastText(), "only 1 casual leave days") {
+		t.Fatalf("expected balance message, got %q", rec.lastText())
+	}
+
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m5", "text", "01/07/2026"))
+	if !strings.Contains(rec.lastText(), "Please enter the reason") {
+		t.Fatalf("expected reason prompt after corrected end date, got %q", rec.lastText())
 	}
 }
 

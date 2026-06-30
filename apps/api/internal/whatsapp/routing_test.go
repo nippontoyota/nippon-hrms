@@ -3,6 +3,7 @@ package whatsapp
 import (
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestAcceptsInboundAtState(t *testing.T) {
@@ -170,6 +171,42 @@ func TestNormalizeMenuSelection_unknownReturnsTrimmed(t *testing.T) {
 	}
 	if isMenuLeaveSelection("foobar") {
 		t.Fatal("unknown input should not be leave selection")
+	}
+}
+
+func TestIsBotPromptEcho_leavePromptBodies(t *testing.T) {
+	cases := []struct {
+		input string
+		want  bool
+	}{
+		{msgLeaveAwaitType, true},
+		{msgLeaveAwaitStart, true},
+		{msgLeaveAwaitEnd, true},
+		{msgLeaveAwaitReason, true},
+		{"Please confirm your leave details:\n\nLeave type: Casual Leave", true},
+		{"Leave Application\n\nWhat type of leave do you need?\nCasual Leave", true},
+	}
+	for _, tc := range cases {
+		if got := isBotPromptEcho(tc.input); got != tc.want {
+			t.Fatalf("isBotPromptEcho(%q) = %v, want %v", tc.input, got, tc.want)
+		}
+	}
+}
+
+func TestShouldSkipInboundEcho_promptOnlyAtLeaveAwaitType(t *testing.T) {
+	if !shouldSkipInboundEcho(msgLeaveAwaitType, "text", StateLeaveAwaitType) {
+		t.Fatal("prompt-only echo should be skipped while awaiting leave type")
+	}
+}
+
+func TestShouldSoftGate_promptEchoNotGated(t *testing.T) {
+	s := &Service{}
+	sess := &Session{
+		State:          StateLeaveAwaitType,
+		LastOutboundAt: time.Now(),
+	}
+	if s.shouldSoftGate(sess, msgLeaveAwaitType) {
+		t.Fatal("prompt echo should not trigger soft gate")
 	}
 }
 

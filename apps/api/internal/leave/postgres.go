@@ -144,7 +144,7 @@ func (r *PostgresRepository) GetMonthlyBalance(ctx context.Context, employeeID s
 		SELECT type, SUM(days)
 		FROM leaves
 		WHERE employee_id = $1 
-		  AND status = 'approved'
+		  AND status IN ('approved', 'pending')
 		  AND EXTRACT(MONTH FROM from_date) = $2
 		  AND EXTRACT(YEAR FROM from_date) = $3
 		GROUP BY type

@@ -129,7 +129,7 @@ func msgLeaveConfirmPrompt(leaveType, start, end, reason string, days int) strin
 
 func msgLeaveInsufficientBalance(days, remaining int, leaveKind, month string, year int) string {
 	return fmt.Sprintf(
-		"You have requested %d days of leave, but only %d %s leave days are available for %s %d.\n\nPlease apply for fewer days.",
+		"You have requested %d days of leave, but only %d %s leave days are available for %s %d.\n\nPlease enter a shorter date range, try another month, or reply *Hi* to cancel.",
 		days, remaining, leaveKind, month, year,
 	)
 }
@@ -155,3 +155,7 @@ Reply *Hi* when you need something else.`
 const msgSessionExpired = `Your previous session expired.
 
 Reply *Hi* and start your request again.`
+
+const msgLeaveDateWithoutSession = `There is no active leave request to continue.
+
+Reply *Hi* to start a new leave application.`

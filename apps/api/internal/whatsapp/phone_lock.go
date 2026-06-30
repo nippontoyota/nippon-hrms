@@ -37,7 +37,43 @@ func shouldSkipInboundEcho(input, msgType string, state State) bool {
 		return false
 	}
 
-	return isInteractiveMenuEcho(input)
+	return isBotPromptEcho(input)
+}
+
+// isBotPromptEcho detects WhatsApp text echoes of button taps and outbound prompt bodies.
+func isBotPromptEcho(input string) bool {
+	if isInteractiveMenuEcho(input) {
+		return true
+	}
+	lower := strings.ToLower(strings.TrimSpace(input))
+	if strings.Contains(lower, "leave application") {
+		if strings.Contains(lower, "what type of leave do you need") {
+			return true
+		}
+		if strings.Contains(lower, "please enter your leave start date") {
+			return true
+		}
+	}
+	if strings.Contains(lower, "please enter your leave end date") {
+		return true
+	}
+	if strings.Contains(lower, "please enter the reason for your leave") {
+		return true
+	}
+	if strings.Contains(lower, "please confirm your leave details") {
+		return true
+	}
+	if strings.Contains(lower, "please enter the month and year for your payslip") {
+		return true
+	}
+	if strings.Contains(lower, "how may we help you today") {
+		if !strings.Contains(lower, "salary slip") &&
+			!strings.Contains(lower, "request leave") &&
+			!strings.Contains(lower, "generate pay") {
+			return true
+		}
+	}
+	return false
 }
 
 // isInteractiveMenuEcho detects text echoes of interactive button/list replies.
