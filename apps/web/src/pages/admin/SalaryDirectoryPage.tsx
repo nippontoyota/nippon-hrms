@@ -50,7 +50,8 @@ export default function SalaryDirectoryPage() {
 
   const qc = useQueryClient();
 
-  const isUnlocked = useVaultStore((s) => s.isUnlocked());
+  const vaultToken = useVaultStore((s) => s.vaultToken);
+  const isUnlocked = !!vaultToken;
   const m = (val: number | undefined) => {
     if (!isUnlocked && (val === 0 || val === undefined)) return '***';
     return val?.toFixed(2) || '0.00';

@@ -5,11 +5,12 @@ import { useVaultStore } from '@/stores/vaultStore';
 import toast from 'react-hot-toast';
 
 export default function VaultLock({ isCollapsed }: { isCollapsed: boolean }) {
-  const { setVaultToken, isUnlocked } = useVaultStore();
+  const vaultToken = useVaultStore(s => s.vaultToken);
+  const setVaultToken = useVaultStore(s => s.setVaultToken);
   const [isOpen, setIsOpen] = useState(false);
   const [password, setPassword] = useState('');
 
-  const unlocked = isUnlocked();
+  const unlocked = !!vaultToken;
 
   const handleToggle = () => {
     if (unlocked) {
