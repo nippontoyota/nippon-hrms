@@ -12,6 +12,7 @@ import (
 	"github.com/nippon-toyota/hrms/internal/dispatch"
 	"github.com/nippon-toyota/hrms/internal/payroll"
 	"github.com/nippon-toyota/hrms/internal/vault"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/nippon-toyota/hrms/pkg/downloadname"
 	"github.com/nippon-toyota/hrms/pkg/logger"
 	"github.com/nippon-toyota/hrms/pkg/respond"
@@ -23,11 +24,12 @@ type PayrollHandler struct {
 	repo             payroll.Repository
 	dispatcher       *payroll.Dispatcher
 	dispatchService  *dispatch.Service
+	pool             *pgxpool.Pool
 }
 
 // NewPayrollHandler constructs a PayrollHandler.
-func NewPayrollHandler(repo payroll.Repository, dispatcher *payroll.Dispatcher, dispatchService *dispatch.Service) *PayrollHandler {
-	return &PayrollHandler{repo: repo, dispatcher: dispatcher, dispatchService: dispatchService}
+func NewPayrollHandler(repo payroll.Repository, dispatcher *payroll.Dispatcher, dispatchService *dispatch.Service, pool *pgxpool.Pool) *PayrollHandler {
+	return &PayrollHandler{repo: repo, dispatcher: dispatcher, dispatchService: dispatchService, pool: pool}
 }
 
 type DispatchRequest struct {
@@ -362,7 +364,7 @@ func (h *PayrollHandler) List(w http.ResponseWriter, r *http.Request) {
 		records = []payroll.Record{}
 	}
 
-	if !vault.IsUnlocked(r) {
+	if !vault.IsUnlocked(r.Context(), h.pool, r) {
 		for i := range records {
 			rec := &records[i]
 			rec.Basic = 0

@@ -64,11 +64,12 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 	waSvc := whatsapp.NewService(dtClient, sessionStore, sessionWindow, empRepo, epfRepo, payrollRepo, leaveRepo)
 	waHandler := whatsapp.NewHandler(waSvc, cfg.DoubleTickWebhookSecret)
 
-	employeeH := handler.NewEmployeeHandler(empRepo)
-	epfH := handler.NewEpfHandler(epfRepo)
-	payrollH := handler.NewPayrollHandler(payrollRepo, payrollDispatcher, dispatchService)
+	employeeH := handler.NewEmployeeHandler(empRepo, pgPool)
+	epfH := handler.NewEpfHandler(epfRepo, pgPool)
+	payrollH := handler.NewPayrollHandler(payrollRepo, payrollDispatcher, dispatchService, pgPool)
 	leaveH := handler.NewLeaveHandler(leaveRepo, empRepo, dtClient, sessionWindow)
-	vaultH := handler.NewVaultHandler()
+	vaultH := handler.NewVaultHandler(pgPool)
+	adminH := handler.NewAdminHandler(pgPool, supaClient)
 
 	r.Get("/health", handler.HealthHandler)
 
@@ -76,9 +77,12 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 
 		r.Post("/whatsapp/webhook", waHandler.Webhook)
 		r.Post("/vault/verify", vaultH.Verify)
+		r.Patch("/vault/password", vaultH.UpdatePassword)
 
 		r.Group(func(r chi.Router) {
 			r.Use(appMiddleware.RequireAuth(cfg.SupabaseURL, cfg.SupabaseAnonKey))
+
+			r.Get("/admin/me", adminH.GetMe)
 
 			r.Route("/employees", func(r chi.Router) {
 				r.Get("/", employeeH.List)
@@ -122,6 +126,12 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 				r.Get("/", leaveH.ListAll)
 				r.Get("/balances", leaveH.GetBalance)
 				r.Patch("/{id}", leaveH.UpdateStatus)
+			})
+
+			r.Route("/admin", func(r chi.Router) {
+				r.Get("/users", adminH.ListHRUsers)
+				r.Post("/users", adminH.CreateHRUser)
+				r.Delete("/users/{id}", adminH.DeleteHRUser)
 			})
 		})
 	})
