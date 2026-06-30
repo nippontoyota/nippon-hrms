@@ -18,7 +18,7 @@ export default function VaultLock({ isCollapsed }: { isCollapsed: boolean }) {
   const handleToggle = () => {
     if (unlocked) {
       setVaultToken(null);
-      toast.success('Vault locked. Sensitive data masked.');
+      toast.success('Privacy mode enabled. Sensitive data masked.');
     } else {
       setIsOpen(true);
     }
@@ -36,14 +36,14 @@ export default function VaultLock({ isCollapsed }: { isCollapsed: boolean }) {
       setVaultToken(password);
       setPassword('');
       setIsOpen(false);
-      toast.success('Vault unlocked! Sensitive data visible.');
+      toast.success('Privacy mode disabled. Sensitive data visible.');
       // Force a small delay then reload to refetch without masking
       setTimeout(() => {
           window.location.reload();
       }, 500);
     } catch (error) {
       setPassword('');
-      toast.error('Invalid Root Password');
+      toast.error('Invalid Administrator Password');
     } finally {
       setIsLoading(false);
     }
@@ -75,14 +75,14 @@ export default function VaultLock({ isCollapsed }: { isCollapsed: boolean }) {
               exit={{ opacity: 0, width: 0 }}
               className="truncate whitespace-nowrap"
             >
-              {unlocked ? 'Vault Unlocked' : 'Vault Locked'}
+              {unlocked ? 'Privacy Mode: Off' : 'Privacy Mode: On'}
             </motion.span>
           )}
         </AnimatePresence>
 
         {isCollapsed && (
           <div className="absolute left-full ml-4 px-3 py-1.5 bg-slate-800 dark:bg-slate-700 text-white text-xs font-semibold rounded shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50 translate-x-[-4px] group-hover:translate-x-0 pointer-events-none border border-slate-700 dark:border-slate-600">
-            {unlocked ? 'Vault Unlocked' : 'Vault Locked'}
+            {unlocked ? 'Privacy Mode: Off' : 'Privacy Mode: On'}
             <div className="absolute top-1/2 -translate-y-1/2 -left-1 w-2 h-2 bg-slate-800 dark:bg-slate-700 rotate-45 border-l border-b border-slate-700 dark:border-slate-600"></div>
           </div>
         )}
@@ -101,10 +101,10 @@ export default function VaultLock({ isCollapsed }: { isCollapsed: boolean }) {
               <div className="p-6">
                 <div className="flex items-center gap-3 mb-4 text-slate-800 dark:text-slate-200">
                   <LockKey size={24} weight="fill" />
-                  <h3 className="font-bold text-lg text-slate-900 dark:text-white">Unlock Vault</h3>
+                  <h3 className="font-bold text-lg text-slate-900 dark:text-white">Disable Privacy Mode</h3>
                 </div>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
-                  Enter the HR Root Password to reveal sensitive payroll and employee data.
+                  Enter the Administrator Password to reveal sensitive payroll and employee data.
                 </p>
                 <form onSubmit={handleUnlock} className="space-y-4">
                   <div className="relative">
@@ -112,7 +112,7 @@ export default function VaultLock({ isCollapsed }: { isCollapsed: boolean }) {
                       type={showPassword ? "text" : "password"}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Root Password"
+                      placeholder="Administrator Password"
                       autoFocus
                       disabled={isLoading}
                       className="w-full px-4 py-2.5 pr-10 bg-slate-50 dark:bg-slate-900/50 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-500/50 dark:text-white"
@@ -143,10 +143,10 @@ export default function VaultLock({ isCollapsed }: { isCollapsed: boolean }) {
                       {isLoading ? (
                         <>
                           <CircleNotch size={16} weight="bold" className="animate-spin" />
-                          Unlocking...
+                          Authenticating...
                         </>
                       ) : (
-                        'Unlock'
+                        'Authenticate'
                       )}
                     </button>
                   </div>
