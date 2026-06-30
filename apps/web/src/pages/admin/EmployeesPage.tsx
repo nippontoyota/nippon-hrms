@@ -1,3 +1,4 @@
+import { useVaultStore } from '@/stores/vaultStore';
 import { useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
@@ -35,7 +36,13 @@ const Cell = ({
   editingId: string | null, editForm: Partial<Employee>, setEditForm: React.Dispatch<React.SetStateAction<Partial<Employee>>>,
   onSave?: () => void
 }) => {
+  const isUnlocked = useVaultStore.getState().isUnlocked();
   const isEditing = editingId === emp.id;
+  
+  if (!isUnlocked && ['basic', 'revisedBasicDa', 'hra', 'totalSalary', 'accountNumber', 'ifscCode', 'bankName'].includes(field as string)) {
+      return <td className={`${className} p-1 opacity-50`}>***</td>;
+  }
+
   
   if (isEditing) {
     return (
