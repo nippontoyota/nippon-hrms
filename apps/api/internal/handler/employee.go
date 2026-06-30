@@ -12,16 +12,18 @@ import (
 	"github.com/nippon-toyota/hrms/pkg/logger"
 	"github.com/nippon-toyota/hrms/pkg/respond"
 	"github.com/xuri/excelize/v2"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // EmployeeHandler provides HTTP endpoints for employee management.
 type EmployeeHandler struct {
 	repo employee.Repository
+	pool *pgxpool.Pool
 }
 
 // NewEmployeeHandler constructs an EmployeeHandler.
-func NewEmployeeHandler(repo employee.Repository) *EmployeeHandler {
-	return &EmployeeHandler{repo: repo}
+func NewEmployeeHandler(repo employee.Repository, pool *pgxpool.Pool) *EmployeeHandler {
+	return &EmployeeHandler{repo: repo, pool: pool}
 }
 
 func (h *EmployeeHandler) BulkUpload(w http.ResponseWriter, r *http.Request) {
@@ -102,7 +104,7 @@ func (h *EmployeeHandler) List(w http.ResponseWriter, r *http.Request) {
 		employees = []employee.Employee{}
 	}
 
-	if !vault.IsUnlocked(r) {
+	if !vault.IsUnlocked(r.Context(), h.pool, r) {
 		for i := range employees {
 			emp := &employees[i]
 			emp.Basic = 0

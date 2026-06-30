@@ -12,14 +12,16 @@ import (
 	"github.com/nippon-toyota/hrms/pkg/logger"
 	"github.com/nippon-toyota/hrms/pkg/respond"
 	"github.com/xuri/excelize/v2"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type EpfHandler struct {
 	repo epf.Repository
+	pool *pgxpool.Pool
 }
 
-func NewEpfHandler(repo epf.Repository) *EpfHandler {
-	return &EpfHandler{repo: repo}
+func NewEpfHandler(repo epf.Repository, pool *pgxpool.Pool) *EpfHandler {
+	return &EpfHandler{repo: repo, pool: pool}
 }
 
 func (h *EpfHandler) BulkUpload(w http.ResponseWriter, r *http.Request) {
@@ -87,7 +89,7 @@ func (h *EpfHandler) List(w http.ResponseWriter, r *http.Request) {
 		records = []epf.Record{}
 	}
 
-	if !vault.IsUnlocked(r) {
+	if !vault.IsUnlocked(r.Context(), h.pool, r) {
 		for i := range records {
 			rec := &records[i]
 			if rec.EPFNumber != "" {
