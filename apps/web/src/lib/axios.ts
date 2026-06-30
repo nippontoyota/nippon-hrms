@@ -11,6 +11,17 @@ const api = axios.create({
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
+  
+  const vaultData = localStorage.getItem('vault-storage');
+  if (vaultData) {
+    try {
+      const parsed = JSON.parse(vaultData);
+      if (parsed?.state?.vaultToken) {
+        config.headers['X-Vault-Token'] = parsed.state.vaultToken;
+      }
+    } catch(e) {}
+  }
+
   if (config.data instanceof FormData) {
     delete config.headers['Content-Type'];
   }

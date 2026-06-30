@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/nippon-toyota/hrms/internal/epf"
+	"github.com/nippon-toyota/hrms/internal/vault"
 	"github.com/nippon-toyota/hrms/pkg/downloadname"
 	"github.com/nippon-toyota/hrms/pkg/logger"
 	"github.com/nippon-toyota/hrms/pkg/respond"
@@ -85,6 +86,22 @@ func (h *EpfHandler) List(w http.ResponseWriter, r *http.Request) {
 	if records == nil {
 		records = []epf.Record{}
 	}
+
+	if !vault.IsUnlocked(r) {
+		for i := range records {
+			rec := &records[i]
+			if rec.EPFNumber != "" {
+				rec.EPFNumber = "********"
+			}
+			if rec.UAN != "" {
+				rec.UAN = "********"
+			}
+			if rec.ESINumber != "" {
+				rec.ESINumber = "********"
+			}
+		}
+	}
+
 	respond.JSON(w, http.StatusOK, respond.Envelope{Success: true, Data: records})
 }
 

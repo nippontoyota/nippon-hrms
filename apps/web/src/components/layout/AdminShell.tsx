@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '@/stores/authStore';
 import { useThemeStore } from '@/stores/themeStore';
 import { refreshAccessToken } from '@/lib/authRefresh';
+import VaultLock from './VaultLock';
 
 const sideNav = [
   { to: '/admin', icon: SquaresFour, label: 'HR Overview', end: true },
@@ -141,6 +142,7 @@ export default function AdminShell() {
               </div>
             )}
           </button>
+          <VaultLock isCollapsed={isCollapsed} />
           <button 
             onClick={handleLogout} 
             className={`group relative flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 text-slate-500 hover:text-[#eb0a1e] dark:text-slate-400 dark:hover:text-[#eb0a1e] transition-colors font-semibold text-[13px] rounded-md hover:bg-red-50 dark:hover:bg-red-950/30`}
