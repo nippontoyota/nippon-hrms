@@ -1,7 +1,14 @@
-version: '3.8'
+# Payslip Portal — run everything with:
+#   docker compose up --build -d
+#
+# Uses Supabase for database + auth (set DATABASE_URL in .env).
+# Optional local Postgres for offline dev:
+#   docker compose --profile local-db up --build -d
 
 services:
   db:
+    profiles:
+      - local-db
     image: postgres:15-alpine
     container_name: nippon-hrms-db
     environment:
@@ -26,19 +33,25 @@ services:
     container_name: nippon-hrms-api
     ports:
       - "8080:8080"
+    env_file:
+      - .env
     environment:
-      - PORT=8080
-      - DATABASE_URL=postgres://postgres:password@db:5432/nippon_hrms?sslmode=disable
-      - DOUBLETICK_API_KEY=${DOUBLETICK_API_KEY}
+      HOST: 0.0.0.0
+      PORT: 8080
+      DATABASE_URL: ${DATABASE_URL:-postgres://postgres:password@db:5432/nippon_hrms?sslmode=disable}
     depends_on:
       db:
         condition: service_healthy
+        required: false
     restart: unless-stopped
 
   web:
     build:
       context: ./apps/web
       dockerfile: Dockerfile
+      args:
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
+        VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY}
     container_name: nippon-hrms-web
     ports:
       - "3000:80"

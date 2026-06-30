@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Nippon Toyota Payslip Portal: Complete Hosting Guide</title>
+  <style>body {
+  font-family: "Segoe UI", Calibri, Arial, sans-serif;
+  font-size: 11pt;
+  line-height: 1.5;
+  color: #1a1a1a;
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 24px 32px;
+}
+h1 {
+  font-size: 22pt;
+  color: #0f172a;
+  border-bottom: 3px solid #dc2626;
+  padding-bottom: 8px;
+  margin-top: 0;
+}
+h2 {
+  font-size: 15pt;
+  color: #1e293b;
+  margin-top: 28px;
+  page-break-after: avoid;
+}
+h3 {
+  font-size: 12pt;
+  color: #334155;
+  margin-top: 20px;
+  page-break-after: avoid;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0 20px;
+  font-size: 10pt;
+}
+th, td {
+  border: 1px solid #cbd5e1;
+  padding: 8px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+th {
+  background: #f1f5f9;
+  font-weight: 600;
+}
+code, pre {
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 9.5pt;
+  background: #f8fafc;
+}
+pre {
+  border: 1px solid #e2e8f0;
+  padding: 12px 14px;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+  page-break-inside: avoid;
+}
+blockquote {
+  border-left: 4px solid #f59e0b;
+  margin: 12px 0;
+  padding: 8px 16px;
+  background: #fffbeb;
+  color: #78350f;
+}
+hr {
+  border: none;
+  border-top: 1px solid #e2e8f0;
+  margin: 24px 0;
+}
+ul, ol {
+  padding-left: 22px;
+}
+li {
+  margin-bottom: 4px;
+}
+a {
+  color: #2563eb;
+  word-break: break-all;
+}
+@media print {
+  body { padding: 0; }
+  h2 { page-break-before: auto; }
+}
+</style>
+</head>
+<body>
+<h1>Nippon Toyota Payslip Portal</h1>
+<h2>Complete Hosting Guide — Step by Step</h2>
+<p><strong>Who this is for:</strong> A first-year computer science student (or anyone new to deployment) who needs to put the entire Payslip Portal online — website, API, database, and WhatsApp — so HR can use it from any browser without keeping a laptop running.</p>
+<p><strong>Time needed:</strong> Plan 4–8 hours for your first time. Take breaks between sections.</p>
+<p><strong>What you will have when done:</strong></p>
+<ul>
+<li>HR dashboard in a browser (example: <code>http://your-server:3000</code> or <code>https://payslip.yourcompany.com</code>)</li>
+<li>Go API running 24/7 behind the website (Docker handles the connection automatically)</li>
+<li>Database and HR login on Supabase</li>
+<li>WhatsApp working through DoubleTick</li>
+</ul>
+<hr>
+<h2>Choose your hosting path</h2>
+<p>This project ships with <strong>Docker Compose</strong> — the intended way to run the full stack (API + website + optional local database) with one command:</p>
+<pre><code>docker compose up --build -d</code></pre>
+<table>
+<thead><tr><th>Path</th><th>Best for</th><th>Main command</th></tr></thead>
+<tbody>
+<tr><td><strong>Path 1 — Docker (recommended)</strong></td><td>One server (VPS), your PC for testing, or on-prem</td><td><code>docker compose up --build -d</code></td></tr>
+<tr><td><strong>Path 2 — Railway + Vercel</strong></td><td>No server to manage; separate cloud hosts for API and website</td><td>Deploy via Railway and Vercel dashboards</td></tr>
+</tbody></table>
+<p><strong>Both paths still use Supabase</strong> (database + HR login) and <strong>DoubleTick</strong> (WhatsApp). Docker bundles the Go API and React website; it does not replace Supabase auth.</p>
+<p><strong>Start with Path 1</strong> if you have (or can rent) a Linux server, or want to test production locally with Docker Desktop.</p>
+<hr>
+<h2>Before you start — gather these accounts</h2>
+<p>Create or get access to each of these <strong>before</strong> you begin. Use a personal email you control, or your company email if IT requires it.</p>
+<table>
+<thead><tr><th>#</th><th>Service</th><th>Website</th><th>What you need it for</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>GitHub</td><td>https://github.com</td><td>Stores the project code</td></tr>
+<tr><td>2</td><td>Supabase</td><td>https://supabase.com</td><td>Database + HR login</td></tr>
+<tr><td>3</td><td>DoubleTick</td><td>https://doubletick.io</td><td>Sends/receives WhatsApp</td></tr>
+<tr><td>4</td><td>Meta Business</td><td>https://business.facebook.com</td><td>WhatsApp billing (required for template messages)</td></tr>
+<tr><td>5</td><td><strong>Docker</strong></td><td>https://www.docker.com/products/docker-desktop</td><td>Runs API + website together (Path 1)</td></tr>
+<tr><td>6</td><td>Railway</td><td>https://railway.app</td><td>Hosts API only (Path 2)</td></tr>
+<tr><td>7</td><td>Vercel</td><td>https://vercel.com</td><td>Hosts website only (Path 2)</td></tr>
+</tbody></table>
+<p><strong>On your Windows PC, install these once:</strong></p>
+<ol>
+<li><strong>Git</strong> — https://git-scm.com/download/win — run the installer, click Next through defaults.</li>
+<li><strong>Docker Desktop</strong> — https://www.docker.com/products/docker-desktop/ — install, restart PC if asked, open Docker Desktop and wait until it says <strong>Docker is running</strong> (whale icon in system tray).</li>
+<li><strong>A code editor</strong> — VS Code from https://code.visualstudio.com is fine.</li>
+</ol>
+<p><strong>For Path 2 only</strong>, also install Node.js LTS and Go (see Path 2 intro).</p>
+<p><strong>Verify Docker</strong> — open PowerShell and run:</p>
+<pre><code>docker --version
+docker compose version</code></pre>
+<p>Both should print version numbers. If you see "error during connect", open Docker Desktop and wait until it is fully started.</p>
+<p><strong>Verify Git:</strong></p>
+<pre><code>git --version</code></pre>
+<h2>How the pieces connect (read this once)</h2>
+<p><strong>Path 1 — Docker:</strong></p>
+<pre><code>HR browser  →  port 3000 (web container / nginx)  →  /api proxied internally  →  api container  →  Supabase
+Employee phone  →  WhatsApp  →  DoubleTick  →  webhook  →  your server:3000/api/...  →  api container</code></pre>
+<p><strong>Path 2 — Railway + Vercel:</strong></p>
+<pre><code>HR browser  →  Vercel (website)  →  /api/...  →  Railway (Go API)  →  Supabase
+Employee phone  →  WhatsApp  →  DoubleTick  →  webhook  →  Railway API  →  Supabase</code></pre>
+<hr>
+<h1>PATH 1 — Docker Compose (recommended)</h1>
+<p>Docker runs three containers from <code>docker-compose.yml</code> in the project root:</p>
+<table>
+<thead><tr><th>Container</th><th>What it does</th><th>Port on your machine</th></tr></thead>
+<tbody>
+<tr><td><strong>web</strong></td><td>React dashboard + nginx (proxies <code>/api</code> to the API container)</td><td><strong>3000</strong></td></tr>
+<tr><td><strong>api</strong></td><td>Go backend (PDFs, payroll, WhatsApp logic)</td><td><strong>8080</strong></td></tr>
+<tr><td><strong>db</strong></td><td>Local Postgres <em>(optional — only with <code>--profile local-db</code>)</em></td><td>5432</td></tr>
+</tbody></table>
+<p>For production hosting, use <strong>Supabase</strong> as the database (<code>DATABASE_URL</code> in <code>.env</code>) and skip the <code>db</code> container.</p>
+<hr>
+<h2>PATH 1 — Step 1: Set up Supabase</h2>
+<p>Follow <strong>Part B</strong> below (sections B1–B4): create project, run migrations, create HR users, copy keys. Come back here when you have <code>DATABASE_URL</code>, <code>SUPABASE_URL</code>, and <code>SUPABASE_ANON_KEY</code> in Notepad.</p>
+<hr>
+<h2>PATH 1 — Step 2: Create the root <code>.env</code> file</h2>
+<p>Docker Compose reads environment variables from a file named <code>.env</code> in the <strong>project root</strong> (not <code>apps/api/.env</code>).</p>
+<ol>
+<li>Open File Explorer → go to <code>E:\Projects\NipponToyota\PayslipPortal</code></li>
+<li>Find the file <code>.env.example</code></li>
+<li>Right-click → <strong>Copy</strong> → <strong>Paste</strong> → rename the copy to <code>.env</code> (no <code>.example</code>)</li>
+<li>Open <code>.env</code> in Notepad or VS Code</li>
+<li>Fill in every value using your Supabase keys from Part B:</li>
+</ol>
+<pre><code>HOST=0.0.0.0
+PORT=8080
+APP_ENV=production
+
+DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@db.YOUR_REF.supabase.co:5432/postgres
+JWT_SECRET=make-up-a-long-random-string-at-least-32-characters
+
+SUPABASE_URL=https://YOUR_REF.supabase.co
+SUPABASE_ANON_KEY=your-anon-key-here
+
+DOUBLETICK_API_KEY=your-doubletick-api-key
+WABA_PHONE_NUMBER_ID=919876543210
+DOUBLETICK_WEBHOOK_SECRET=your-webhook-secret
+
+VITE_SUPABASE_URL=https://YOUR_REF.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key-here</code></pre>
+<ol>
+<li>Save and close. <strong>Never commit <code>.env</code> to Git</strong> — it is already in <code>.gitignore</code>.</li>
+</ol>
+<blockquote><p><strong>Tip:</strong> <code>VITE_*</code> variables are used when the <strong>web</strong> image is <strong>built</strong>. If you change them later, you must rebuild: <code>docker compose up --build -d</code></p></blockquote>
+<hr>
+<h2>PATH 1 — Step 3: Allow your server URL in CORS (one code edit)</h2>
+<p>The API only accepts browser requests from allowed origins. You must add your Docker website address.</p>
+<ol>
+<li>Open VS Code → file <code>apps\api\internal\router\router.go</code></li>
+<li>Find (around line 33):</li>
+</ol>
+<pre><code>AllowedOrigins:   []string{"http://localhost:5173"},</code></pre>
+<ol>
+<li>Change to include Docker's port <strong>3000</strong> and your production domain when you have one:</li>
+</ol>
+<pre><code>AllowedOrigins:   []string{"http://localhost:5173", "http://localhost:3000", "http://YOUR-SERVER-IP:3000", "https://payslip.yourcompany.com"},</code></pre>
+<p>Replace <code>YOUR-SERVER-IP</code> with your VPS public IP, or remove that line until you have one.</p>
+<ol>
+<li>Save the file.</li>
+</ol>
+<hr>
+<h2>PATH 1 — Step 4: Build and start all containers</h2>
+<ol>
+<li>Open <strong>PowerShell</strong></li>
+<li>Go to the project root:</li>
+</ol>
+<pre><code>cd E:\Projects\NipponToyota\PayslipPortal</code></pre>
+<ol>
+<li>Run:</li>
+</ol>
+<pre><code>docker compose up --build -d</code></pre>
+<p><strong>What this does:</strong></p>
+<ul>
+<li><code>up</code> — start services</li>
+<li><code>--build</code> — rebuild images (needed after code or <code>VITE_*</code> changes)</li>
+<li><code>-d</code> — run in background (detached)</li>
+</ul>
+<ol>
+<li>First run takes <strong>5–15 minutes</strong> (downloads base images, compiles Go, builds React). Wait until the command returns.</li>
+</ol>
+<ol>
+<li>Check all containers are running:</li>
+</ol>
+<pre><code>docker compose ps</code></pre>
+<p><strong>Good output:</strong> <code>api</code>, <code>web</code> show <strong>State</strong> = <code>running</code>. (No <code>db</code> row unless you used <code>--profile local-db</code>.)</p>
+<ol>
+<li>View logs if something fails:</li>
+</ol>
+<pre><code>docker compose logs api
+docker compose logs web</code></pre>
+<p>Common API failure: <code>required environment variable "JWT_SECRET" is not set</code> → fix <code>.env</code> and run <code>docker compose up --build -d</code> again.</p>
+<hr>
+<h2>PATH 1 — Step 5: Test on your machine</h2>
+<table>
+<thead><tr><th>Test</th><th>URL</th><th>Expected result</th></tr></thead>
+<tbody>
+<tr><td>API health</td><td>http://localhost:8080/health</td><td>JSON success / OK</td></tr>
+<tr><td>Website</td><td>http://localhost:3000</td><td>Login page</td></tr>
+<tr><td>API via website proxy</td><td>http://localhost:3000/api/v1/...</td><td>(after login) dashboard loads data</td></tr>
+</tbody></table>
+<ol>
+<li>Open http://localhost:3000 in Chrome or Edge</li>
+<li>Log in with the HR user you created in Supabase</li>
+<li>Click <strong>Employees</strong> — list should load without errors</li>
+</ol>
+<hr>
+<h2>PATH 1 — Step 6: Put Docker on a public server (VPS)</h2>
+<p>To host 24/7 on the internet (not just your laptop):</p>
+<h3>6a. Rent a Linux server</h3>
+<p>Examples: DigitalOcean Droplet, Hetzner Cloud, AWS EC2, Azure VM. Choose <strong>Ubuntu 22.04</strong>, at least <strong>2 GB RAM</strong>, region near India.</p>
+<h3>6b. Install Docker on the server</h3>
+<p>SSH into the server (your provider emails you <code>ssh root@YOUR-IP</code>):</p>
+<pre><code>ssh root@YOUR-SERVER-IP</code></pre>
+<p>Then run (Ubuntu):</p>
+<pre><code>apt-get update
+apt-get install -y ca-certificates curl
+install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+chmod a+r /etc/apt/keyrings/docker.asc
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release &amp;&amp; echo "$VERSION_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list &gt; /dev/null
+apt-get update
+apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin</code></pre>
+<p>Verify: <code>docker compose version</code></p>
+<h3>6c. Clone the project on the server</h3>
+<pre><code>git clone https://github.com/YOUR-USERNAME/PayslipPortal.git
+cd PayslipPortal</code></pre>
+<h3>6d. Create <code>.env</code> on the server</h3>
+<pre><code>cp .env.example .env
+nano .env</code></pre>
+<p>Paste your real Supabase and DoubleTick values. Save: <strong>Ctrl+O</strong>, Enter, <strong>Ctrl+X</strong>.</p>
+<h3>6e. Update CORS with the server IP</h3>
+<p>Edit <code>apps/api/internal/router/router.go</code> on the server (<code>nano apps/api/internal/router/router.go</code>) and add <code>http://YOUR-SERVER-IP:3000</code> to <code>AllowedOrigins</code>.</p>
+<h3>6f. Open firewall ports</h3>
+<p>On the server (if <code>ufw</code> is enabled):</p>
+<pre><code>ufw allow 3000/tcp
+ufw allow 8080/tcp
+ufw reload</code></pre>
+<p>Also open ports <strong>3000</strong> and <strong>8080</strong> in your cloud provider's <strong>Security Group / Firewall</strong> web console.</p>
+<h3>6g. Start Docker on the server</h3>
+<pre><code>docker compose up --build -d</code></pre>
+<h3>6h. Test from your PC browser</h3>
+<ul>
+<li>Website: <code>http://YOUR-SERVER-IP:3000</code></li>
+<li>API health: <code>http://YOUR-SERVER-IP:8080/health</code></li>
+</ul>
+<h3>6i. HTTPS (recommended for production)</h3>
+<p>Browsers and Supabase login work better with HTTPS. Install <strong>Caddy</strong> on the server to get a free certificate:</p>
+<ol>
+<li>Point a domain DNS <strong>A record</strong> to your server IP (e.g. <code>payslip.yourcompany.com</code> → <code>YOUR-SERVER-IP</code>)</li>
+<li>Install Caddy: https://caddyserver.com/docs/install#debian-ubuntu-raspbian</li>
+<li>Create <code>/etc/caddy/Caddyfile</code>:</li>
+</ol>
+<pre><code>payslip.yourcompany.com {
+    reverse_proxy localhost:3000
+}</code></pre>
+<ol>
+<li><code>systemctl reload caddy</code></li>
+<li>Update Supabase <strong>Authentication</strong> → <strong>URL Configuration</strong> → Site URL = <code>https://payslip.yourcompany.com</code></li>
+<li>Add <code>https://payslip.yourcompany.com</code> to CORS in <code>router.go</code>, rebuild: <code>docker compose up --build -d</code></li>
+</ol>
+<hr>
+<h2>PATH 1 — Step 7: DoubleTick webhook (Docker)</h2>
+<p>The <strong>web</strong> container's nginx forwards <code>/api/*</code> to the API. You can use <strong>one public URL</strong> on port 3000:</p>
+<p><strong>Webhook URL:</strong></p>
+<pre><code>http://YOUR-SERVER-IP:3000/api/v1/whatsapp/webhook</code></pre>
+<p>Or with HTTPS domain:</p>
+<pre><code>https://payslip.yourcompany.com/api/v1/whatsapp/webhook</code></pre>
+<ol>
+<li>Log in to DoubleTick → <strong>Webhooks</strong> / <strong>Integrations</strong></li>
+<li>Paste the URL above</li>
+<li>Set <strong>webhook secret</strong> = same as <code>DOUBLETICK_WEBHOOK_SECRET</code> in your <code>.env</code></li>
+<li>Save</li>
+</ol>
+<p>Test: send <strong>Hi</strong> from an employee phone to your business WhatsApp number.</p>
+<blockquote><p><strong>Local dev only:</strong> DoubleTick cannot reach <code>localhost</code>. Use a Cloudflare quick tunnel to port 3000: <code>cloudflared tunnel --url http://localhost:3000</code>, then put the tunnel URL in DoubleTick.</p></blockquote>
+<hr>
+<h2>PATH 1 — Useful Docker commands</h2>
+<table>
+<thead><tr><th>Task</th><th>Command</th></tr></thead>
+<tbody>
+<tr><td>Start (background)</td><td><code>docker compose up --build -d</code></td></tr>
+<tr><td>Stop</td><td><code>docker compose down</code></td></tr>
+<tr><td>View logs (follow)</td><td><code>docker compose logs -f api</code></td></tr>
+<tr><td>Restart after <code>.env</code> change (API vars)</td><td><code>docker compose up --build -d</code></td></tr>
+<tr><td>Rebuild web after <code>VITE_*</code> change</td><td><code>docker compose up --build -d</code></td></tr>
+<tr><td>See running containers</td><td><code>docker compose ps</code></td></tr>
+<tr><td>Optional local Postgres instead of Supabase</td><td><code>docker compose --profile local-db up --build -d</code></td></tr>
+</tbody></table>
+<p>After changing <strong>only</strong> API code (not env), rebuild API:</p>
+<pre><code>docker compose up --build -d api</code></pre>
+<hr>
+<h2>PATH 1 — Go-live checklist (Docker)</h2>
+<table>
+<thead><tr><th>#</th><th>Test</th><th>Pass?</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><code>docker compose ps</code> — api + web running</td><td></td></tr>
+<tr><td>2</td><td><code>http://YOUR-URL:3000</code> — login page</td><td></td></tr>
+<tr><td>3</td><td><code>http://YOUR-URL:8080/health</code> — OK</td><td></td></tr>
+<tr><td>4</td><td>Log in → <strong>Employees</strong> loads</td><td></td></tr>
+<tr><td>5</td><td>Upload payroll → send test payslip → WhatsApp PDF</td><td></td></tr>
+<tr><td>6</td><td>Employee sends <strong>Hi</strong> → bot replies</td><td></td></tr>
+</tbody></table>
+<hr>
+<h1>PATH 2 — Railway + Vercel (cloud hosting)</h1>
+<p>Use this path if you do <strong>not</strong> want to manage a server or Docker. You deploy the API and website separately.</p>
+<p><strong>Extra installs for local code edits on Path 2:</strong> Node.js LTS (https://nodejs.org) and Go 1.26+ (https://go.dev/dl/).</p>
+<h2>How Path 2 pieces connect</h2>
+<p>You host <strong>two</strong> cloud services. Supabase and DoubleTick are configured the same as Path 1.</p>
+<hr>
+<h1>PART A — Get the code on GitHub (Path 2 or VPS)</h1>
+<p>Skip this section if the code is already on GitHub and you have access.</p>
+<h3>A1. Open the project folder in PowerShell</h3>
+<pre><code>cd E:\Projects\NipponToyota\PayslipPortal</code></pre>
+<p>(Change the path if your project lives somewhere else.)</p>
+<h3>A2. Create a GitHub repository</h3>
+<ol>
+<li>Open https://github.com in your browser and log in.</li>
+<li>Click the <strong>+</strong> icon in the top-right corner.</li>
+<li>Click <strong>New repository</strong>.</li>
+<li>In <strong>Repository name</strong>, type: <code>PayslipPortal</code></li>
+<li>Leave it <strong>Private</strong> if this is company code.</li>
+<li><strong>Do not</strong> check "Add a README" (you already have code).</li>
+<li>Click the green <strong>Create repository</strong> button.</li>
+<li>GitHub shows a page with setup commands. Keep this tab open.</li>
+</ol>
+<h3>A3. Push your local code to GitHub</h3>
+<p>In PowerShell (still in the project folder):</p>
+<pre><code>git remote -v</code></pre>
+<p>If nothing prints, add your GitHub repo (replace <code>YOUR-USERNAME</code> with your GitHub username):</p>
+<pre><code>git remote add origin https://github.com/YOUR-USERNAME/PayslipPortal.git</code></pre>
+<p>Push the code:</p>
+<pre><code>git branch -M main
+git push -u origin main</code></pre>
+<p>If GitHub asks you to log in, follow the browser prompt. When it finishes, refresh your GitHub repo page — you should see folders like <code>apps</code>, <code>docs</code>, etc.</p>
+<hr>
+<h1>PART B — Set up Supabase (database + HR login)</h1>
+<h3>B1. Create a production project</h3>
+<ol>
+<li>Go to https://supabase.com and click <strong>Start your project</strong> (or <strong>Sign in</strong> if you have an account).</li>
+<li>Sign in with GitHub or email.</li>
+<li>On the dashboard, click the green <strong>New project</strong> button.</li>
+<li>Fill in:</li>
+</ol>
+<p>   - <strong>Organization:</strong> pick yours or create one (name it anything, e.g. <code>Nippon Toyota</code>).</p>
+<p>   - <strong>Name:</strong> <code>payslip-portal-prod</code></p>
+<p>   - <strong>Database Password:</strong> click <strong>Generate a password</strong>, then <strong>copy it immediately</strong> into Notepad or a password manager. You cannot recover this later without a reset.</p>
+<p>   - <strong>Region:</strong> choose <strong>South Asia (Mumbai)</strong> or <strong>Southeast Asia (Singapore)</strong> — closest to India.</p>
+<ol>
+<li>Click <strong>Create new project</strong>.</li>
+<li>Wait 2–5 minutes. The dashboard shows "Setting up project..." then becomes ready.</li>
+</ol>
+<h3>B2. Run database migrations (create all tables)</h3>
+<p>Migrations are SQL scripts in the project folder. You run them <strong>manually</strong> in Supabase.</p>
+<ol>
+<li>On your PC, open File Explorer and go to:</li>
+</ol>
+<p>   ```</p>
+<p>   E:\Projects\NipponToyota\PayslipPortal\apps\api\migrations</p>
+<p>   ```</p>
+<ol>
+<li>In Supabase, look at the <strong>left sidebar</strong>. Click <strong>SQL Editor</strong> (icon looks like <code>&gt;_</code>).</li>
+<li>Click <strong>+ New query</strong> (top right of the SQL Editor area).</li>
+</ol>
+<p><strong>Run each file below, one at a time, in this exact order.</strong> For each file:</p>
+<ul>
+<li>Open the <code>.sql</code> file in Notepad or VS Code</li>
+<li>Select all text (Ctrl+A), copy (Ctrl+C)</li>
+<li>Paste into the Supabase SQL Editor</li>
+<li>Click the green <strong>Run</strong> button (or press Ctrl+Enter)</li>
+<li>Wait for "Success" at the bottom. If you see "already exists," that is usually OK — continue to the next file.</li>
+</ul>
+<table>
+<thead><tr><th>Order</th><th>File name</th><th>Required for production?</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><code>000001_create_employees.sql</code></td><td>Yes</td></tr>
+<tr><td>2</td><td><code>000002_create_leaves.sql</code></td><td>Yes</td></tr>
+<tr><td>3</td><td><code>000003_create_whatsapp.sql</code></td><td>Yes</td></tr>
+<tr><td>4</td><td><code>000004_drop_epf_employee_columns.sql</code></td><td>Yes</td></tr>
+<tr><td>5</td><td><code>000005_create_epf_records.sql</code></td><td>Yes</td></tr>
+<tr><td>6</td><td><code>000008_create_dispatch_jobs.sql</code></td><td>Yes</td></tr>
+<tr><td>7</td><td><code>000009_fix_leaves_table.sql</code></td><td>Yes</td></tr>
+<tr><td>8</td><td><code>000010_create_payroll_records.sql</code></td><td>Yes</td></tr>
+<tr><td>9</td><td><code>000014_add_leaves_rejection_reason.sql</code></td><td>Yes</td></tr>
+<tr><td>10</td><td><code>000015_whatsapp_last_inbound.sql</code></td><td>Yes</td></tr>
+<tr><td>11</td><td><code>000006_seed_epf_sample_data.sql</code></td><td>No — test data only</td></tr>
+<tr><td>12</td><td><code>000007_seed_krishnanand_test_user.sql</code></td><td>No — test employee only</td></tr>
+<tr><td>13</td><td><code>000011_seed_payroll_jan_may_2026.sql</code></td><td>No — test payroll only</td></tr>
+<tr><td>14</td><td><code>000012_seed_payroll_june_2026.sql</code></td><td>No — test payroll only</td></tr>
+<tr><td>15</td><td><code>000013_reset_four_employees.sql</code></td><td>No — test data only</td></tr>
+<tr><td>16</td><td><code>000016_seed_bharath_chandra.sql</code></td><td>No — test data only</td></tr>
+</tbody></table>
+<p><strong>Verify tables exist:</strong></p>
+<ol>
+<li>In the left sidebar, click <strong>Table Editor</strong>.</li>
+<li>You should see tables such as <code>employees</code>, <code>leaves</code>, <code>payroll_records</code>, <code>dispatch_jobs</code>, <code>epf_records</code>.</li>
+</ol>
+<h3>B3. Create HR login users</h3>
+<ol>
+<li>In the left sidebar, click <strong>Authentication</strong>.</li>
+<li>Click <strong>Users</strong> (under Authentication).</li>
+<li>Click the green <strong>Add user</strong> button (top right).</li>
+<li>Select <strong>Create new user</strong>.</li>
+<li>Enter:</li>
+</ol>
+<p>   - <strong>Email:</strong> e.g. <code>hr@yourcompany.com</code></p>
+<p>   - <strong>Password:</strong> a strong password (share securely with that HR person)</p>
+<ol>
+<li>Leave <strong>Auto Confirm User</strong> turned <strong>on</strong>.</li>
+<li>Click <strong>Create user</strong>.</li>
+<li>Repeat for each HR person who needs access.</li>
+</ol>
+<h3>B4. Copy Supabase keys (you need these many times)</h3>
+<p><strong>Project URL and anon key:</strong></p>
+<ol>
+<li>In the left sidebar, scroll down and click <strong>Project Settings</strong> (gear icon at the bottom).</li>
+<li>Click <strong>API</strong> in the sub-menu.</li>
+<li>On the <strong>Project URL</strong> row, click <strong>Copy</strong>. Paste into Notepad. Label it <code>SUPABASE_URL</code>.</li>
+<li>Under <strong>Project API keys</strong>, find the row labeled <strong>anon</strong> <strong>public</strong>. Click <strong>Copy</strong> on that key. Label it <code>SUPABASE_ANON_KEY</code>.</li>
+</ol>
+<p><strong>Database connection string:</strong></p>
+<ol>
+<li>Still in Project Settings, click <strong>Database</strong> in the sub-menu.</li>
+<li>Scroll to <strong>Connection string</strong>.</li>
+<li>Click the <strong>URI</strong> tab.</li>
+<li>You see something like:</li>
+</ol>
+<p>   ```</p>
+<p>   postgresql://postgres.[ref]:[YOUR-PASSWORD]@aws-0-ap-south-1.pooler.supabase.com:6543/postgres</p>
+<p>   ```</p>
+<ol>
+<li>Click <strong>Copy</strong>. Paste into Notepad. Label it <code>DATABASE_URL</code>.</li>
+<li><strong>Important:</strong> Replace <code>[YOUR-PASSWORD]</code> in the string with the database password you saved in step B1. If your password has special characters like <code>@</code> or <code>#</code>, they must be URL-encoded (<code>@</code> → <code>%40</code>, <code>#</code> → <code>%23</code>).</li>
+</ol>
+<h3>B5. Allow your hosted website to log in</h3>
+<p>Do this <strong>after</strong> you know your Vercel URL (Part D). You can come back to this step later.</p>
+<ol>
+<li>Left sidebar → <strong>Authentication</strong> → <strong>URL Configuration</strong>.</li>
+<li><strong>Site URL:</strong> paste your production website URL, e.g. <code>https://payslip-portal.vercel.app</code> (no trailing slash).</li>
+<li><strong>Redirect URLs:</strong> click <strong>Add URL</strong>, paste the same URL, click save. Add a second URL: <code>https://payslip-portal.vercel.app/<strong></code> (with <code>/</strong></code> at the end).</li>
+<li>Click <strong>Save</strong> at the bottom.</li>
+</ol>
+<p>Without this, login works on localhost but fails on the hosted site.</p>
+<hr>
+<h1>PART C — Host the API on Railway</h1>
+<p>Railway runs your Go backend 24/7 on the internet.</p>
+<h3>C1. Sign up and connect GitHub</h3>
+<ol>
+<li>Go to https://railway.app</li>
+<li>Click <strong>Login</strong> → <strong>Login with GitHub</strong>.</li>
+<li>Authorize Railway when GitHub asks.</li>
+<li>You land on the Railway dashboard.</li>
+</ol>
+<h3>C2. Create a new project from your repo</h3>
+<ol>
+<li>Click <strong>New Project</strong> (purple button).</li>
+<li>Click <strong>Deploy from GitHub repo</strong>.</li>
+<li>If Railway asks to <strong>Configure GitHub App</strong>, click <strong>Configure GitHub App</strong> → select your account → choose <strong>Only select repositories</strong> → pick <code>PayslipPortal</code> → <strong>Save</strong>.</li>
+<li>Back on Railway, click your <code>PayslipPortal</code> repository.</li>
+<li>Railway creates a project and starts deploying. It may fail the first time — that is normal until we configure it.</li>
+</ol>
+<h3>C3. Point Railway at the API folder</h3>
+<ol>
+<li>Click the service card (it may be named <code>PayslipPortal</code> or similar).</li>
+<li>Click the <strong>Settings</strong> tab (top of the service panel).</li>
+<li>Scroll to <strong>Source</strong>.</li>
+<li>Find <strong>Root Directory</strong> (or <strong>Add Root Directory</strong>). Click it.</li>
+<li>Type: <code>apps/api</code></li>
+<li>Click <strong>Update</strong> or checkmark to save.</li>
+</ol>
+<h3>C4. Set the build and start commands</h3>
+<p>Still on the <strong>Settings</strong> tab:</p>
+<ol>
+<li>Scroll to <strong>Deploy</strong> section.</li>
+<li><strong>Custom Build Command:</strong> click <strong>Add</strong>, then enter:</li>
+</ol>
+<p>   ```</p>
+<p>   go build -o server ./cmd/server</p>
+<p>   ```</p>
+<ol>
+<li><strong>Custom Start Command:</strong> click <strong>Add</strong>, then enter:</li>
+</ol>
+<p>   ```</p>
+<p>   ./server</p>
+<p>   ```</p>
+<ol>
+<li>Railway saves automatically.</li>
+</ol>
+<p><strong>Alternative:</strong> Railway can use the Dockerfile in <code>apps/api</code>. If build fails with the commands above, remove custom commands and set <strong>Builder</strong> to <strong>Dockerfile</strong> in Settings → Build.</p>
+<h3>C5. Add environment variables</h3>
+<ol>
+<li>Click the <strong>Variables</strong> tab (next to Settings).</li>
+<li>Click <strong>+ New Variable</strong> or <strong>Raw Editor</strong> (Raw Editor is faster for many vars).</li>
+<li>Add <strong>every</strong> variable below. Replace placeholder text with your real values from Notepad.</li>
+</ol>
+<pre><code>HOST=0.0.0.0
+PORT=8080
+APP_ENV=production
+DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@db.YOUR_REF.supabase.co:5432/postgres
+JWT_SECRET=make-up-a-random-string-at-least-32-characters-long
+SUPABASE_URL=https://YOUR_REF.supabase.co
+SUPABASE_ANON_KEY=paste-your-anon-key-here
+DOUBLETICK_API_KEY=paste-from-doubletick-dashboard
+WABA_PHONE_NUMBER_ID=919876543210
+DOUBLETICK_WEBHOOK_SECRET=pick-a-strong-random-secret-you-will-reuse-in-doubletick</code></pre>
+<p><strong>What each variable means:</strong></p>
+<table>
+<thead><tr><th>Variable</th><th>Where to get it</th></tr></thead>
+<tbody>
+<tr><td><code>DATABASE_URL</code></td><td>Supabase → Project Settings → Database → URI (step B4)</td></tr>
+<tr><td><code>JWT_SECRET</code></td><td>Make up a new long random string for production. Do not reuse a simple word.</td></tr>
+<tr><td><code>SUPABASE_URL</code></td><td>Supabase → Project Settings → API → Project URL</td></tr>
+<tr><td><code>SUPABASE_ANON_KEY</code></td><td>Supabase → Project Settings → API → anon public key</td></tr>
+<tr><td><code>DOUBLETICK_API_KEY</code></td><td>DoubleTick dashboard → Settings / Developer → API Key (Part F)</td></tr>
+<tr><td><code>WABA_PHONE_NUMBER_ID</code></td><td>Your company WhatsApp number: country code + number, <strong>no</strong> plus sign. India example: <code>919876543210</code></td></tr>
+<tr><td><code>DOUBLETICK_WEBHOOK_SECRET</code></td><td>You invent this string; same value goes in DoubleTick webhook settings later</td></tr>
+</tbody></table>
+<p><strong>Optional for large payroll runs (~2000 employees):</strong></p>
+<pre><code>DISPATCH_WORKERS=30
+DISPATCH_ITEM_DELAY_MS=50</code></pre>
+<ol>
+<li>After adding variables, Railway redeploys automatically. Wait until the deployment shows <strong>Active</strong> / green.</li>
+</ol>
+<h3>C6. Generate a public URL for the API</h3>
+<ol>
+<li>Click the <strong>Settings</strong> tab.</li>
+<li>Scroll to <strong>Networking</strong> → <strong>Public Networking</strong>.</li>
+<li>Click <strong>Generate Domain</strong>.</li>
+<li>Railway shows a URL like <code>payslipportal-production.up.railway.app</code>.</li>
+<li>Copy the full URL including <code>https://</code>. Label it <code>API_URL</code> in Notepad.</li>
+</ol>
+<h3>C7. Test the API</h3>
+<ol>
+<li>Open a browser.</li>
+<li>Go to: <code>https://YOUR-RAILWAY-URL/health</code>  </li>
+</ol>
+<p>   Example: <code>https://payslipportal-production.up.railway.app/health</code></p>
+<ol>
+<li><strong>Good result:</strong> JSON like <code>{"status":"ok"}</code> or similar success message.</li>
+<li><strong>Bad result:</strong> Error page or connection refused → open Railway → <strong>Deployments</strong> tab → click latest deploy → read <strong>View Logs</strong> for errors. Common fix: wrong <code>DATABASE_URL</code> or missing <code>JWT_SECRET</code>.</li>
+</ol>
+<hr>
+<h1>PART D — Code changes required before the website works online</h1>
+<p>The website and API need two small code changes. Do these on your PC, then push to GitHub so Railway and Vercel pick them up.</p>
+<h3>D1. Add your website URL to CORS (API must trust your domain)</h3>
+<p>Browsers block the website from calling the API unless the API explicitly allows your website address.</p>
+<ol>
+<li>Open VS Code.</li>
+<li>Open file: <code>apps\api\internal\router\router.go</code></li>
+<li>Find this block (around line 32):</li>
+</ol>
+<pre><code>AllowedOrigins:   []string{"http://localhost:5173"},</code></pre>
+<ol>
+<li>Change it to include <strong>both</strong> localhost (for local dev) and your production website URL:</li>
+</ol>
+<pre><code>AllowedOrigins:   []string{"http://localhost:5173", "https://payslip-portal.vercel.app"},</code></pre>
+<p>Replace <code>https://payslip-portal.vercel.app</code> with your real Vercel URL once you have it. If you use a custom domain later, add that URL too as another string in the list.</p>
+<ol>
+<li>Save the file (Ctrl+S).</li>
+</ol>
+<h3>D2. Create API proxy file for Vercel</h3>
+<p>On your laptop, Vite forwards <code>/api</code> to localhost. On Vercel, you need a rewrite rule.</p>
+<ol>
+<li>In VS Code, create a new file: <code>apps\web\vercel.json</code></li>
+<li>Paste this (replace the destination URL with your Railway API URL from step C6 — <strong>no trailing slash</strong>):</li>
+</ol>
+<pre><code>{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://payslipportal-production.up.railway.app/api/:path*"
+    }
+  ]
+}</code></pre>
+<ol>
+<li>Save the file.</li>
+</ol>
+<h3>D3. Push changes to GitHub</h3>
+<p>In PowerShell, from the project root:</p>
+<pre><code>cd E:\Projects\NipponToyota\PayslipPortal
+git add apps/api/internal/router/router.go apps/web/vercel.json
+git commit -m "Configure CORS and Vercel API proxy for production hosting"
+git push</code></pre>
+<p>Railway will auto-redeploy the API when it sees the push. Vercel will redeploy when you set it up in Part E.</p>
+<hr>
+<h1>PART E — Host the website on Vercel</h1>
+<h3>E1. Sign up and import the project</h3>
+<ol>
+<li>Go to https://vercel.com</li>
+<li>Click <strong>Sign Up</strong> → <strong>Continue with GitHub</strong>.</li>
+<li>Authorize Vercel.</li>
+<li>On the dashboard, click <strong>Add New...</strong> → <strong>Project</strong>.</li>
+<li>Find <code>PayslipPortal</code> in the list. Click <strong>Import</strong> next to it.</li>
+<li>If you do not see it, click <strong>Adjust GitHub App Permissions</strong> and grant access to the repo.</li>
+</ol>
+<h3>E2. Configure build settings</h3>
+<p>On the <strong>Configure Project</strong> screen:</p>
+<table>
+<thead><tr><th>Field</th><th>Value</th></tr></thead>
+<tbody>
+<tr><td><strong>Framework Preset</strong></td><td>Vite (should auto-detect)</td></tr>
+<tr><td><strong>Root Directory</strong></td><td>Click <strong>Edit</strong> → type <code>apps/web</code> → <strong>Continue</strong></td></tr>
+<tr><td><strong>Build Command</strong></td><td><code>npm run build</code> (default is fine)</td></tr>
+<tr><td><strong>Output Directory</strong></td><td><code>dist</code> (default for Vite)</td></tr>
+<tr><td><strong>Install Command</strong></td><td><code>npm install</code> (default)</td></tr>
+</tbody></table>
+<h3>E3. Add environment variables (before first deploy)</h3>
+<p>Scroll down to <strong>Environment Variables</strong>. Add these two:</p>
+<table>
+<thead><tr><th>Name</th><th>Value</th></tr></thead>
+<tbody>
+<tr><td><code>VITE_SUPABASE_URL</code></td><td>Your Supabase Project URL from step B4</td></tr>
+<tr><td><code>VITE_SUPABASE_ANON_KEY</code></td><td>Your Supabase anon public key from step B4</td></tr>
+</tbody></table>
+<p>Make sure <strong>Production</strong> is checked for both.</p>
+<h3>E4. Deploy</h3>
+<ol>
+<li>Click the <strong>Deploy</strong> button.</li>
+<li>Wait 1–3 minutes. Vercel shows build logs scrolling.</li>
+<li>When finished, you see <strong>Congratulations</strong> and a preview image.</li>
+<li>Click <strong>Visit</strong> or copy the URL (e.g. <code>https://payslip-portal-abc123.vercel.app</code>).</li>
+<li>Save this URL as <code>WEBSITE_URL</code> in Notepad.</li>
+</ol>
+<h3>E5. Update CORS and Supabase if your URL differs from what you guessed</h3>
+<p>If your real Vercel URL is different from what you put in <code>router.go</code>:</p>
+<ol>
+<li>Edit <code>router.go</code> again with the correct URL.</li>
+<li><code>git commit</code> and <code>git push</code> — Railway redeploys.</li>
+<li>Go back to Supabase <strong>Authentication</strong> → <strong>URL Configuration</strong> (step B5) and set Site URL + Redirect URLs to your real Vercel URL.</li>
+</ol>
+<h3>E6. Redeploy after vercel.json is on main branch</h3>
+<p>If you created <code>vercel.json</code> <strong>after</strong> the first Vercel deploy:</p>
+<ol>
+<li>Vercel dashboard → your project → <strong>Deployments</strong> tab.</li>
+<li>Click the <strong>...</strong> menu on the latest deployment → <strong>Redeploy</strong>.</li>
+</ol>
+<p>Or push any small change to trigger a new build.</p>
+<h3>E7. Test the website</h3>
+<ol>
+<li>Open <code>WEBSITE_URL</code> in Chrome or Edge.</li>
+<li>You should see the Payslip Portal <strong>login page</strong>.</li>
+<li>Log in with the HR email/password you created in Supabase (step B3).</li>
+<li>After login, click <strong>Employees</strong> in the sidebar.</li>
+<li><strong>Good:</strong> employee list loads (may be empty). <strong>Bad:</strong> red errors or blank page → see Troubleshooting at the end.</li>
+</ol>
+<hr>
+<h1>PART F — Configure DoubleTick (WhatsApp)</h1>
+<h3>F1. Get your API key and phone number ID</h3>
+<ol>
+<li>Log in to your DoubleTick dashboard (https://app.doubletick.io or your team's portal).</li>
+<li>Look for <strong>Settings</strong>, <strong>Developer</strong>, or <strong>API</strong> in the left menu or top navigation.</li>
+<li>Copy the <strong>API Key</strong> → paste into Railway variable <code>DOUBLETICK_API_KEY</code> if not done already (Railway → Variables → edit → redeploy).</li>
+<li>Note your <strong>WhatsApp Business phone number</strong> in international format without <code>+</code>. Example: India number <code>+91 98765 43210</code> becomes <code>919876543210</code> → Railway variable <code>WABA_PHONE_NUMBER_ID</code>.</li>
+</ol>
+<h3>F2. Set the webhook URL (production — no laptop tunnel)</h3>
+<ol>
+<li>In DoubleTick, find <strong>Webhooks</strong>, <strong>Integrations</strong>, or <strong>Developer</strong> → <strong>Webhook</strong>.</li>
+<li><strong>Webhook URL</strong> field — paste exactly:</li>
+</ol>
+<pre><code>https://YOUR-RAILWAY-URL/api/v1/whatsapp/webhook</code></pre>
+<p>Example:</p>
+<pre><code>https://payslipportal-production.up.railway.app/api/v1/whatsapp/webhook</code></pre>
+<ol>
+<li><strong>Webhook secret</strong> — paste the <strong>same</strong> string you set as <code>DOUBLETICK_WEBHOOK_SECRET</code> in Railway.</li>
+<li>Click <strong>Save</strong>.</li>
+</ol>
+<h3>F3. Approve the payslip WhatsApp template (for bulk send)</h3>
+<p>Before sending payslips to many employees, submit this template in DoubleTick / Meta Business Manager:</p>
+<table>
+<thead><tr><th>Field</th><th>Value</th></tr></thead>
+<tbody>
+<tr><td>Name</td><td><code>notification_of_payslip</code></td></tr>
+<tr><td>Language</td><td><code>en</code></td></tr>
+<tr><td>Category</td><td>UTILITY</td></tr>
+<tr><td>Header</td><td>DOCUMENT (dynamic PDF per employee)</td></tr>
+</tbody></table>
+<p><strong>Body text</strong> (exactly 5 variables):</p>
+<pre><code>📄 *Payslip - {{2}} {{3}}*
+
+Dear *{{1}}*,
+
+Please find attached your payslip for the month of *{{2}} {{3}}*.
+
+For any discrepancies, please reach out to HR.</code></pre>
+<p>Wait for Meta to approve the template (can take hours to days).</p>
+<hr>
+<h1>PART G — Meta Business Manager (WhatsApp billing)</h1>
+<p>Template messages fail with <strong>"Business eligibility payment issue"</strong> if Meta has no payment method.</p>
+<ol>
+<li>Go to https://business.facebook.com and log in with the account that owns your WhatsApp Business number.</li>
+<li>Click the <strong>gear icon</strong> (Settings) in the bottom-left corner.</li>
+<li>Click <strong>Accounts</strong> in the left menu → <strong>WhatsApp accounts</strong>.</li>
+<li>Click your WhatsApp Business account (matches your <code>WABA_PHONE_NUMBER_ID</code>).</li>
+<li>Click <strong>Payment settings</strong> (or the three-dot menu → Payment settings).</li>
+<li>Click <strong>Add payment method</strong>.</li>
+<li>Enter credit/debit card details. Confirm this card is linked to <strong>this WhatsApp account</strong>, not only to Business Manager in general.</li>
+<li>Set it as <strong>default</strong> for this account.</li>
+<li>Under <strong>Business info</strong>, confirm timezone and currency (INR for India).</li>
+</ol>
+<hr>
+<h1>PART H — Final go-live test checklist</h1>
+<p>Run every test on the <strong>hosted</strong> URLs, not localhost.</p>
+<table>
+<thead><tr><th>#</th><th>What to do</th><th>Pass?</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Browser → <code>https://YOUR-RAILWAY-URL/health</code></td><td>Success JSON</td></tr>
+<tr><td>2</td><td>Browser → <code>https://YOUR-VERCEL-URL</code></td><td>Login page appears</td></tr>
+<tr><td>3</td><td>Log in with Supabase HR user</td><td>Dashboard loads</td></tr>
+<tr><td>4</td><td>Click <strong>Employees</strong></td><td>List loads, no error toast</td></tr>
+<tr><td>5</td><td>Add or upload a test employee</td><td>Saves successfully</td></tr>
+<tr><td>6</td><td>Go to <strong>Salary</strong>, upload payroll for a month</td><td>Records appear</td></tr>
+<tr><td>7</td><td>Preview one payslip</td><td>PDF opens</td></tr>
+<tr><td>8</td><td>Send payslip to one employee with valid mobile</td><td>PDF arrives on WhatsApp</td></tr>
+<tr><td>9</td><td>From that phone, send <strong>Hi</strong> to business WhatsApp</td><td>Bot replies with menu</td></tr>
+<tr><td>10</td><td>Check DoubleTick after template send</td><td>Utility charge (~₹0.11), not payment error</td></tr>
+</tbody></table>
+<hr>
+<h1>PART I — Optional: custom domain</h1>
+<h3>Website on Vercel</h3>
+<ol>
+<li>Vercel dashboard → your project → <strong>Settings</strong> → <strong>Domains</strong>.</li>
+<li>Type your domain, e.g. <code>payslip.yourcompany.com</code> → <strong>Add</strong>.</li>
+<li>Vercel shows DNS records (usually a CNAME). Log in to your domain registrar (GoDaddy, Cloudflare, etc.).</li>
+<li>Add the CNAME record Vercel specifies.</li>
+<li>Wait up to 48 hours (often minutes). Vercel shows <strong>Valid Configuration</strong> when ready.</li>
+<li>Update Supabase URL Configuration, CORS in <code>router.go</code>, and redeploy.</li>
+</ol>
+<h3>API on Railway</h3>
+<ol>
+<li>Railway → service → <strong>Settings</strong> → <strong>Networking</strong> → <strong>Custom Domain</strong>.</li>
+<li>Enter e.g. <code>api-payslip.yourcompany.com</code>.</li>
+<li>Add the CNAME Railway gives you at your DNS provider.</li>
+<li>Update <code>vercel.json</code> destination URL and DoubleTick webhook to use the new API domain.</li>
+</ol>
+<hr>
+<h1>PART J — Troubleshooting</h1>
+<h3>API crashes on Railway (deploy logs show error)</h3>
+<ol>
+<li>Railway → your service → <strong>Deployments</strong> → latest → <strong>View Logs</strong>.</li>
+<li><strong>"DATABASE_URL"</strong> or connection refused → fix connection string in Variables; check password encoding.</li>
+<li><strong>"JWT_SECRET"</strong> → add the variable in Railway Variables.</li>
+<li>Redeploy: <strong>Deployments</strong> → <strong>...</strong> → <strong>Redeploy</strong>.</li>
+</ol>
+<h3>Website loads but pages show errors / "Network Error"</h3>
+<p><strong>Docker:</strong> Check <code>docker compose logs api</code> for crashes. Confirm <code>.env</code> has <code>JWT_SECRET</code> and <code>DATABASE_URL</code>. Confirm CORS includes <code>http://localhost:3000</code> or your server URL.</p>
+<p><strong>Path 2 (Vercel):</strong></p>
+<ol>
+<li>Press <strong>F12</strong> in the browser → <strong>Console</strong> tab. Look for red CORS errors.</li>
+</ol>
+<p>   - Fix: add your exact Vercel URL to <code>AllowedOrigins</code> in <code>router.go</code>, push, wait for Railway redeploy.</p>
+<ol>
+<li>Press <strong>F12</strong> → <strong>Network</strong> tab → reload → click a failed red <code>/api/v1/...</code> request.</li>
+</ol>
+<p>   - Fix: check <code>apps/web/vercel.json</code> has correct Railway URL; redeploy Vercel.</p>
+<h3>Login fails on hosted site only</h3>
+<ol>
+<li>Supabase → <strong>Authentication</strong> → <strong>URL Configuration</strong> — Site URL and Redirect URLs must match your Vercel URL exactly.</li>
+<li>Vercel → <strong>Settings</strong> → <strong>Environment Variables</strong> — <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> must match production Supabase (not a dev project).</li>
+<li>Redeploy Vercel after changing env vars.</li>
+</ol>
+<h3>WhatsApp inbound does nothing (no bot reply)</h3>
+<ol>
+<li>Confirm DoubleTick webhook URL ends with <code>/api/v1/whatsapp/webhook</code>.</li>
+<li>Confirm <code>DOUBLETICK_WEBHOOK_SECRET</code> in Railway <strong>exactly matches</strong> DoubleTick dashboard.</li>
+<li>Test webhook reachability: browser → <code>https://YOUR-RAILWAY-URL/health</code> must work.</li>
+<li>Employee phone number must exist in the <code>employees</code> table with correct mobile format.</li>
+</ol>
+<h3>Payslip send fails</h3>
+<ol>
+<li>Check <code>DOUBLETICK_API_KEY</code> and <code>WABA_PHONE_NUMBER_ID</code> in Railway.</li>
+<li>Phone format: country code, no <code>+</code> (e.g. <code>919876543210</code>).</li>
+<li>Template <code>notification_of_payslip</code> must be approved in Meta.</li>
+<li>Meta payment method must be linked (Part G).</li>
+</ol>
+<h3>Works on localhost, broken online</h3>
+<p>Almost always one of: missing CORS entry, wrong <code>vercel.json</code> API URL, wrong Supabase env vars on Vercel, or Supabase URL Configuration not updated.</p>
+<hr>
+<h1>Quick reference — where everything lives</h1>
+<table>
+<thead><tr><th>What</th><th>Where</th></tr></thead>
+<tbody>
+<tr><td><strong>Docker start command</strong></td><td><code>docker compose up --build -d</code> (project root)</td></tr>
+<tr><td><strong>Docker env file</strong></td><td><code>.env</code> at project root (copy from <code>.env.example</code>)</td></tr>
+<tr><td><strong>docker-compose.yml</strong></td><td>Project root — defines <code>api</code>, <code>web</code>, optional <code>db</code></td></tr>
+<tr><td>Website (Docker)</td><td>http://localhost:3000 or your server IP:3000</td></tr>
+<tr><td>API (Docker)</td><td>http://localhost:8080/health</td></tr>
+<tr><td>Website (Path 2)</td><td>Vercel dashboard → your project URL</td></tr>
+<tr><td>API (Path 2)</td><td>Railway dashboard → Networking → domain</td></tr>
+<tr><td>Database</td><td>supabase.com → your project → Table Editor</td></tr>
+<tr><td>HR logins</td><td>supabase.com → Authentication → Users</td></tr>
+<tr><td>SQL migrations</td><td><code>apps\api\migrations\</code> — run in Supabase SQL Editor</td></tr>
+<tr><td>CORS config</td><td><code>apps\api\internal\router\router.go</code></td></tr>
+<tr><td>API proxy (Path 2 only)</td><td><code>apps\web\vercel.json</code></td></tr>
+<tr><td>Nginx API proxy (Docker)</td><td><code>apps\web\nginx.conf</code> — automatic inside web container</td></tr>
+</tbody></table>
+<hr>
+<h1>Order of operations (summary)</h1>
+<p><strong>Path 1 — Docker (recommended):</strong></p>
+<ol>
+<li>Install Docker Desktop (or Docker on Linux VPS)</li>
+<li>Set up Supabase — Part B (migrations, HR users, keys)</li>
+<li>Copy <code>.env.example</code> → <code>.env</code> at project root; fill in all values</li>
+<li>Add <code>http://localhost:3000</code> (and server IP/domain) to CORS in <code>router.go</code></li>
+<li>Run <code>docker compose up --build -d</code></li>
+<li>Test http://localhost:3000 (or server IP)</li>
+<li>Set DoubleTick webhook to <code>http(s)://YOUR-URL:3000/api/v1/whatsapp/webhook</code></li>
+<li>Link Meta payment method — Part G</li>
+<li>Run Path 1 go-live checklist</li>
+</ol>
+<p><strong>Path 2 — Railway + Vercel:</strong></p>
+<ol>
+<li>Install Git, Node, Go on your PC</li>
+<li>Push code to GitHub — Part A</li>
+<li>Create Supabase project — Part B</li>
+<li>Deploy API on Railway — Part C</li>
+<li>Edit CORS + create <code>vercel.json</code> — Part D</li>
+<li>Deploy website on Vercel — Part E</li>
+<li>Update Supabase URL Configuration — Part B5</li>
+<li>Set DoubleTick webhook to Railway URL — Part F</li>
+<li>Link Meta payment — Part G</li>
+<li>Run Part H go-live tests</li>
+</ol>
+<p>When all tests pass, share the website URL with HR.</p>
+<hr>
+<p><em>Nippon Toyota Payslip Portal — Complete Hosting Guide — Internal use only</em></p>
+</body>
+</html>

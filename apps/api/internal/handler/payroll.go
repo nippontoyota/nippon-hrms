@@ -81,6 +81,11 @@ func (h *PayrollHandler) PreviewPDF(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !vault.IsUnlocked(r.Context(), h.pool, r) {
+		respond.Forbidden(w)
+		return
+	}
+
 	pdfBytes, err := h.dispatcher.GeneratePreviewPDF(r.Context(), empID, month, year)
 	if err != nil {
 		logger.Error("failed to generate preview pdf", "emp", empID, "month", month, "year", year, "err", err)

@@ -7,6 +7,12 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 
+# Supabase keys are baked in at build time (Vite)
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_ANON_KEY
+ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
+ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
+
 # Copy source code and build
 COPY . .
 RUN npm run build
