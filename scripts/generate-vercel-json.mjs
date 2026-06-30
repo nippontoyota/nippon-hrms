@@ -46,6 +46,10 @@ const vercel = {
       source: '/api/:path*',
       destination,
     },
+    {
+      source: '/(.*)',
+      destination: '/index.html',
+    },
   ],
 };
 
