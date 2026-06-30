@@ -80,8 +80,6 @@ const msgLeaveAwaitStart = `Leave Application
 
 Please enter your leave start date.
 
-Please enter your leave start date.
-
 Format: DD/MM/YYYY
 Example: 01/07/2026`
 
@@ -134,3 +132,13 @@ Reply Hi to return to the main menu.`
 const msgLeaveSubmitError = `Your leave request could not be submitted due to a system error.
 
 Please try again or contact the HR department.`
+
+const msgIdleNudge = `Reply *Hi* when you need something else.`
+
+const msgIdleNudgePayslip = `Your payslip has been sent.
+
+Reply *Hi* when you need something else.`
+
+const msgSessionExpired = `Your previous session expired.
+
+Reply *Hi* and start your request again.`

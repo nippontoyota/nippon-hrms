@@ -81,6 +81,26 @@ func TestDedupStore_tryAcquirePayslip(t *testing.T) {
 	}
 }
 
+func TestDedupStore_sameLeaveDateStartAndEnd(t *testing.T) {
+	d := newDedupStore(0)
+
+	if d.isDuplicate("msg-start", "+911", "02/07/2026", "text") {
+		t.Fatal("first leave start date should not be duplicate")
+	}
+	if d.isDuplicate("msg-end", "+911", "02/07/2026", "text") {
+		t.Fatal("same leave end date as start should not be duplicate within leave flow")
+	}
+}
+
+func TestDedupStore_leaveDateNotPeriodAttempt(t *testing.T) {
+	if looksLikePeriodAttempt("02/07/2026") {
+		t.Fatal("DD/MM/YYYY should not be treated as payslip period attempt")
+	}
+	if !looksLikePeriodAttempt("06/2026") {
+		t.Fatal("MM/YYYY should be treated as payslip period attempt")
+	}
+}
+
 func TestDedupStore_clearPayslipDelivery(t *testing.T) {
 	d := newDedupStore(0)
 

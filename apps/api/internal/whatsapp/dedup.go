@@ -58,12 +58,16 @@ func (d *dedupStore) isDuplicate(messageID, phone, input, msgType string) bool {
 		d.byMessageID[messageID] = now
 	}
 
-	if msgType == "text" && !looksLikePeriodAttempt(input) {
+	if msgType == "text" && !looksLikePeriodAttempt(input) && !looksLikeLeaveDateAttempt(input) {
 		if seenAt, ok := d.lastStructuredAt[phone]; ok && now.Sub(seenAt) < d.echoWindow {
 			return true
 		}
 	} else if msgType == "button" || msgType == "interactive" {
 		d.lastStructuredAt[phone] = now
+	}
+
+	if looksLikeLeaveDateAttempt(input) {
+		return false
 	}
 
 	actionKey := phone + "|" + canonicalInput(input)
@@ -170,8 +174,19 @@ func canonicalInput(input string) string {
 }
 
 func looksLikePeriodAttempt(input string) bool {
-	input = strings.TrimSpace(input)
-	return strings.Contains(input, "/") || strings.Contains(input, ";")
+	input = strings.ReplaceAll(strings.TrimSpace(input), ";", "/")
+	if !strings.Contains(input, "/") {
+		return false
+	}
+	return len(strings.Split(input, "/")) == 2
+}
+
+func looksLikeLeaveDateAttempt(input string) bool {
+	input = strings.ReplaceAll(strings.TrimSpace(input), ";", "/")
+	if !strings.Contains(input, "/") {
+		return false
+	}
+	return len(strings.Split(input, "/")) == 3
 }
 
 func normalizeMenuSelection(input string) string {

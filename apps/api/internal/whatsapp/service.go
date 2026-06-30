@@ -177,6 +177,30 @@ func isGreeting(input string) bool {
 	return false
 }
 
+func isAcknowledgment(input string) bool {
+	switch normalizeGreetingInput(input) {
+	case "ok", "okay", "thanks", "thank you", "thx", "ty":
+		return true
+	default:
+		return false
+	}
+}
+
+func parseLeaveDate(input string) (time.Time, bool) {
+	input = strings.TrimSpace(input)
+	for _, layout := range []string{"02/01/2006", "2/1/2006"} {
+		if t, err := time.ParseInLocation(layout, input, time.Local); err == nil {
+			return t, true
+		}
+	}
+	return time.Time{}, false
+}
+
+func startOfDayLocal(t time.Time) time.Time {
+	y, m, d := t.In(time.Local).Date()
+	return time.Date(y, m, d, 0, 0, 0, 0, time.Local)
+}
+
 func (s *Service) handleIdle(ctx context.Context, sess *Session, from, input string) error {
 	switch normalizeMenuSelection(input) {
 	case payloadGeneratePay, payloadRequestSalary:
@@ -206,14 +230,25 @@ func (s *Service) handleIdle(ctx context.Context, sess *Session, from, input str
 		return s.sendText(ctx, from, msgPayslipInvalidPeriod)
 	}
 
+	if looksLikeLeaveDateAttempt(input) {
+		return s.sendText(ctx, from, msgSessionExpired)
+	}
+
+	if isAcknowledgment(input) {
+		if !sess.LastPayslipSentAt.IsZero() && time.Since(sess.LastPayslipSentAt) < postPayslipMenuSuppress {
+			return s.sendText(ctx, from, msgIdleNudgePayslip)
+		}
+		return s.sendText(ctx, from, msgIdleNudge)
+	}
+
 	if !sess.LastMenuSentAt.IsZero() && time.Since(sess.LastMenuSentAt) < menuCooldown {
 		slog.Info("whatsapp menu cooldown", "from", from)
-		return nil
+		return s.sendText(ctx, from, msgIdleNudge)
 	}
 
 	if !isGreeting(input) && !sess.LastPayslipSentAt.IsZero() && time.Since(sess.LastPayslipSentAt) < postPayslipMenuSuppress {
 		slog.Info("whatsapp post-payslip menu suppress", "from", from)
-		return nil
+		return s.sendText(ctx, from, msgIdleNudgePayslip)
 	}
 
 	empName := ""
@@ -241,6 +276,7 @@ func (s *Service) beginPayslipFlow(ctx context.Context, sess *Session, from stri
 		s.sessions.Set(from, sess)
 		return s.sendText(ctx, from, msgNotEmployee)
 	}
+	sess.LastPayslipSentAt = time.Time{}
 	sess.State = StateAwaitPeriod
 	s.sessions.Set(from, sess)
 	return s.sendPeriodPrompt(ctx, sess, from)
@@ -253,6 +289,7 @@ func (s *Service) beginLeaveFlow(ctx context.Context, sess *Session, from string
 		s.sessions.Set(from, sess)
 		return s.sendText(ctx, from, msgNotEmployee)
 	}
+	sess.LastPayslipSentAt = time.Time{}
 	sess.TempLeaveType = ""
 	sess.TempLeaveStart = ""
 	sess.TempLeaveEnd = ""
@@ -494,15 +531,12 @@ func (s *Service) handleLeaveAwaitStart(ctx context.Context, sess *Session, from
 		return s.handleIdle(ctx, sess, from, input)
 	}
 
-	parsed, err := time.Parse("02/01/2006", input)
-	if err != nil {
+	parsed, ok := parseLeaveDate(input)
+	if !ok {
 		return s.sendText(ctx, from, msgLeaveInvalidDate)
 	}
 
-	todayStr := time.Now().Format("2006-01-02")
-	today, _ := time.Parse("2006-01-02", todayStr)
-
-	if parsed.Before(today) {
+	if startOfDayLocal(parsed).Before(startOfDayLocal(time.Now())) {
 		return s.sendText(ctx, from, msgLeaveStartInPast)
 	}
 
@@ -519,8 +553,8 @@ func (s *Service) handleLeaveAwaitEnd(ctx context.Context, sess *Session, from, 
 		return s.handleIdle(ctx, sess, from, input)
 	}
 
-	endDate, err := time.Parse("02/01/2006", input)
-	if err != nil {
+	endDate, ok := parseLeaveDate(input)
+	if !ok {
 		return s.sendText(ctx, from, msgLeaveInvalidDate)
 	}
 
