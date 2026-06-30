@@ -6,42 +6,60 @@ import (
 )
 
 func TestShouldSkipInboundEcho_generatePayText(t *testing.T) {
-	if !shouldSkipInboundEcho("Generate Pay", "text") {
+	if !shouldSkipInboundEcho("Generate Pay", "text", StateIdle) {
 		t.Fatal("expected generate pay text echo to be skipped in idle state")
 	}
 }
 
 func TestShouldSkipInboundEcho_generatePayTextAwaitPeriod(t *testing.T) {
-	if !shouldSkipInboundEcho("Generate Pay", "text") {
-		t.Fatal("expected generate pay text echo to be skipped in await-period state")
+	// Legacy "Generate Pay" at await-period re-sends the period prompt — not skipped.
+	if shouldSkipInboundEcho("Generate Pay", "text", StateAwaitPeriod) {
+		t.Fatal("generate pay at await-period should be processed as payslip menu re-tap")
 	}
 }
 
 func TestShouldSkipInboundEcho_interactiveBodyEcho(t *testing.T) {
 	echo := "Welcome to Nippon Toyota HR Assistant!\nTap the button below to download your payslip.\nGenerate Pay"
-	if !shouldSkipInboundEcho(echo, "text") {
+	if !shouldSkipInboundEcho(echo, "text", StateIdle) {
 		t.Fatal("expected full interactive body text echo to be skipped")
 	}
 }
 
 func TestShouldSkipInboundEcho_monthNameText(t *testing.T) {
-	if shouldSkipInboundEcho("June 2026", "text") {
+	if shouldSkipInboundEcho("June 2026", "text", StateAwaitPeriod) {
 		t.Fatal("month name text should be handled by await-period handler, not skipped")
 	}
 }
 
 func TestShouldSkipInboundEcho_manualPeriod(t *testing.T) {
-	if shouldSkipInboundEcho("06/2026", "text") {
+	if shouldSkipInboundEcho("06/2026", "text", StateAwaitPeriod) {
 		t.Fatal("manual MM/YYYY entry should not be skipped")
 	}
 }
 
-func TestShouldSkipInboundEcho_leaveTypeButtons(t *testing.T) {
-	if !shouldSkipInboundEcho("Casual Leave", "text") {
-		t.Fatal("expected casual leave text echo to be skipped")
+func TestShouldSkipInboundEcho_leaveTypeButtonsIdle(t *testing.T) {
+	// At idle, leave-type text is accepted for session-loss recovery — not skipped.
+	if shouldSkipInboundEcho("Casual Leave", "text", StateIdle) {
+		t.Fatal("casual leave at idle should be processed for recovery, not skipped")
 	}
-	if !shouldSkipInboundEcho("Sick Leave", "text") {
-		t.Fatal("expected sick leave text echo to be skipped")
+	if shouldSkipInboundEcho("Sick Leave", "text", StateIdle) {
+		t.Fatal("sick leave at idle should be processed for recovery, not skipped")
+	}
+}
+
+func TestShouldSkipInboundEcho_leaveTypeButtonsAwaitType(t *testing.T) {
+	if shouldSkipInboundEcho("Casual Leave", "text", StateLeaveAwaitType) {
+		t.Fatal("casual leave text should be processed while awaiting leave type")
+	}
+	if shouldSkipInboundEcho(payloadLeaveCasual, "text", StateLeaveAwaitType) {
+		t.Fatal("leave_casual payload text should be processed while awaiting leave type")
+	}
+	if shouldSkipInboundEcho("Sick Leave", "text", StateLeaveAwaitType) {
+		t.Fatal("sick leave text should be processed while awaiting leave type")
+	}
+	echo := "Leave Application\n\nWhat type of leave do you need?\nCasual Leave"
+	if shouldSkipInboundEcho(echo, "text", StateLeaveAwaitType) {
+		t.Fatal("full leave-type interactive echo should be processed while awaiting leave type")
 	}
 }
 
@@ -57,6 +75,8 @@ func TestNormalizeLeaveTypeSelection(t *testing.T) {
 		{"Sick Leave", payloadLeaveSick},
 		{"sick", payloadLeaveSick},
 		{"annual leave", ""},
+		{"Leave Application\n\nWhat type of leave do you need?\nCasual Leave", payloadLeaveCasual},
+		{"Leave Application\n\nWhat type of leave do you need?\nSick Leave", payloadLeaveSick},
 	}
 
 	for _, tc := range tests {

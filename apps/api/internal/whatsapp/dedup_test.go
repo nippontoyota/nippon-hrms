@@ -92,6 +92,17 @@ func TestDedupStore_sameLeaveDateStartAndEnd(t *testing.T) {
 	}
 }
 
+func TestDedupStore_sameDateDifferentLeaveStates(t *testing.T) {
+	d := newDedupStore(0)
+
+	if d.isDuplicate("msg-start", "+911", "10/07/2026", "text", StateLeaveAwaitStart) {
+		t.Fatal("first leave start date should not be duplicate")
+	}
+	if d.isDuplicate("msg-end", "+911", "10/07/2026", "text", StateLeaveAwaitEnd) {
+		t.Fatal("one-day leave: same date at end step must not be treated as duplicate of start date")
+	}
+}
+
 func TestDedupStore_leaveDateNotPeriodAttempt(t *testing.T) {
 	if looksLikePeriodAttempt("02/07/2026") {
 		t.Fatal("DD/MM/YYYY should not be treated as payslip period attempt")
