@@ -163,6 +163,71 @@ func (r *PostgresRepository) List(ctx context.Context) ([]Employee, error) {
 	return employees, rows.Err()
 }
 
+func (r *PostgresRepository) ListPaginated(ctx context.Context, page, limit int, search string) (*ListResult, error) {
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 200 {
+		limit = 50
+	}
+	offset := (page - 1) * limit
+
+	baseWhere := ""
+	args := []interface{}{}
+	if search != "" {
+		baseWhere = ` WHERE (id ILIKE $1 OR name ILIKE $1 OR COALESCE(department,'') ILIKE $1 OR mobile_number ILIKE $1)`
+		args = append(args, "%"+search+"%")
+	}
+
+	countQ := `SELECT COUNT(*) FROM employees` + baseWhere
+	var total int
+	if err := r.db.QueryRow(ctx, countQ, args...).Scan(&total); err != nil {
+		return nil, err
+	}
+
+	listQ := `
+		SELECT 
+			id, name, COALESCE(department, ''), mobile_number, COALESCE(emp_level, ''),
+			COALESCE(doj::text, ''), COALESCE(years_experience, 0),
+			COALESCE(branch, ''), COALESCE(designation, ''), COALESCE(zone, ''),
+			basic, da, revised_basic_da, hra, travel, 
+			hostel, children, total_salary, mobile, conveyance, wash_allowance, 
+			branch_allowance, special_allowance, training, total_allowances, 
+			total_salary_with_allowances, COALESCE(bank_name, ''), COALESCE(account_number, ''),
+			COALESCE(bank_branch, ''), COALESCE(ifsc_code, ''),
+			created_at, updated_at
+		FROM employees` + baseWhere + ` ORDER BY id LIMIT $` + fmt.Sprintf("%d", len(args)+1) + ` OFFSET $` + fmt.Sprintf("%d", len(args)+2)
+	listArgs := append(args, limit, offset)
+
+	rows, err := r.db.Query(ctx, listQ, listArgs...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var employees []Employee
+	for rows.Next() {
+		var e Employee
+		if err := rows.Scan(
+			&e.ID, &e.Name, &e.Department, &e.MobileNumber, &e.Level, &e.DOJ, &e.YearsExperience,
+			&e.Branch, &e.Designation, &e.Zone, &e.Basic, &e.DA, &e.RevisedBasicDA, &e.HRA, &e.Travel,
+			&e.Hostel, &e.Children, &e.TotalSalary, &e.Mobile, &e.Conveyance, &e.WashAllowance,
+			&e.BranchAllowance, &e.SpecialAllowance, &e.Training, &e.TotalAllowances,
+			&e.TotalSalaryWithAllowances, &e.BankName, &e.AccountNumber, &e.BankBranch,
+			&e.IFSCCode, &e.CreatedAt, &e.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		e.EmployeeID = e.ID
+		e.Status = "Active"
+		employees = append(employees, e)
+	}
+	if employees == nil {
+		employees = []Employee{}
+	}
+	return &ListResult{Items: employees, Total: total, Page: page, Limit: limit}, rows.Err()
+}
+
 func (r *PostgresRepository) Create(ctx context.Context, e *Employee) error {
 	_, err := r.db.Exec(ctx, `
 		INSERT INTO employees (

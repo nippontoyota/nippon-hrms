@@ -30,6 +30,7 @@ type UploadResponse struct {
 
 type Repository interface {
 	List(ctx context.Context) ([]Record, error)
+	ListPaginated(ctx context.Context, page, limit int, search string) (*ListResult, error)
 	GetByID(ctx context.Context, employeeID string) (*Record, error)
 	Update(ctx context.Context, employeeID string, rec *Record) error
 	BulkInsert(ctx context.Context, records []Record) error

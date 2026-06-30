@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -12,6 +13,8 @@ type Config struct {
 	Host string
 	Port int
 	Env  string
+
+	AllowedOrigins []string
 
 	SupabaseURL            string
 	SupabaseServiceRoleKey string
@@ -39,6 +42,8 @@ func Load() (*Config, error) {
 		Host: getEnv("HOST", "0.0.0.0"),
 		Port: getEnvInt("PORT", 8080),
 		Env:  getEnv("APP_ENV", "development"),
+
+		AllowedOrigins: parseAllowedOrigins(getEnv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000")),
 
 		SupabaseURL:            getEnv("SUPABASE_URL", ""),
 		SupabaseServiceRoleKey: getEnv("SUPABASE_SERVICE_ROLE_KEY", ""),
@@ -90,4 +95,19 @@ func getEnvInt(key string, fallback int) int {
 		return fallback
 	}
 	return n
+}
+
+func parseAllowedOrigins(raw string) []string {
+	parts := strings.Split(raw, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			out = append(out, p)
+		}
+	}
+	if len(out) == 0 {
+		return []string{"http://localhost:5173"}
+	}
+	return out
 }

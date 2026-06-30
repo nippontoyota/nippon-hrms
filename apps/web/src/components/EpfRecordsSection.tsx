@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -11,12 +11,15 @@ import {
   DownloadSimple,
   FileCsv,
 } from '@phosphor-icons/react';
-import { epfApi, useDeleteEpfRecord, useEpfRecords } from '@/api/hooks';
+import { epfApi, useDeleteEpfRecord, useEpfRecords, useLatestConflictsJob } from '@/api/hooks';
 import type { EpfRecord } from '@/api/types';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { downloadApiBlob, exportCsv } from '@/lib/format';
 import { EPF_DIRECTORY_HEADERS } from '@/lib/exportColumns';
 import { useTableRowHighlight } from '@/lib/useTableRowHighlight';
+import BulkUploadWizard from '@/components/BulkUploadWizard';
+import ImportConflictPanel from '@/components/ImportConflictPanel';
+import TablePagination from '@/components/TablePagination';
 
 type SortKey = 'employeeId' | 'name' | 'department' | 'level' | 'doj' | 'doa';
 type SortDir = 'asc' | 'desc';
@@ -34,12 +37,28 @@ function formatEsi(value: string): string {
 }
 
 export default function EpfRecordsSection() {
-  const { data: records, isLoading, isError, error, refetch } = useEpfRecords();
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [showImport, setShowImport] = useState(false);
+  const limit = 50;
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const { data, isLoading, isError, error, refetch } = useEpfRecords({ page, limit, search: debouncedSearch });
+  const records = data?.items ?? [];
+  const total = data?.total ?? 0;
+  const { data: conflictsJob } = useLatestConflictsJob('epf');
   const deleteMutation = useDeleteEpfRecord();
   const qc = useQueryClient();
   const { tableRef, handleRowClick, rowHighlightClass } = useTableRowHighlight();
 
-  const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [sortKey, setSortKey] = useState<SortKey>('employeeId');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
@@ -78,16 +97,7 @@ export default function EpfRecordsSection() {
   );
 
   const filtered = useMemo(() => {
-    const q = search.toLowerCase();
-    const base = (records ?? []).filter(
-      (r) =>
-        r.name.toLowerCase().includes(q) ||
-        r.employeeId.toLowerCase().includes(q) ||
-        r.department.toLowerCase().includes(q) ||
-        r.uan.includes(search) ||
-        r.epfNumber.includes(search),
-    );
-    return [...base].sort((a, b) => {
+    return [...records].sort((a, b) => {
       const av = (a[sortKey] ?? '') as string;
       const bv = (b[sortKey] ?? '') as string;
       if (sortKey === 'employeeId') {
@@ -97,7 +107,7 @@ export default function EpfRecordsSection() {
       }
       return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
     });
-  }, [records, search, sortKey, sortDir]);
+  }, [records, sortKey, sortDir]);
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
@@ -114,21 +124,10 @@ export default function EpfRecordsSection() {
     setSelectedIds(next);
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    toast.promise(
-      epfApi.commitBulkUpload(file).then((res) => {
-        qc.invalidateQueries({ queryKey: ['epf'] });
-        return res;
-      }),
-      {
-        loading: 'Importing EPF records...',
-        success: (res) => `Successfully imported ${res.successCount} EPF records!`,
-        error: 'Failed to import EPF records',
-      },
-    );
-    e.target.value = '';
+  const handleImportComplete = () => {
+    qc.invalidateQueries({ queryKey: ['epf'] });
+    qc.invalidateQueries({ queryKey: ['import-conflicts-job', 'epf'] });
+    setShowImport(false);
   };
 
   const handleExportExcel = async () => {
@@ -192,7 +191,7 @@ export default function EpfRecordsSection() {
       <div className="flex items-center gap-3 border-b border-slate-200 dark:border-slate-700 pb-3">
         <h2 className="text-lg font-bold text-slate-900 dark:text-white uppercase tracking-wide">EPF Records</h2>
         <span className="text-xs font-mono text-slate-500 dark:text-slate-400">
-          {records?.length ?? 0} records
+          {filtered.length} on page · {total} total
         </span>
       </div>
 
@@ -215,10 +214,13 @@ export default function EpfRecordsSection() {
               <Trash size={16} weight="bold" /> Delete Selected ({selectedIds.size})
             </button>
           )}
-          <label className="btn-success btn-sm !px-4 !py-2 bg-green-700 hover:bg-green-800 text-white border-green-800 cursor-pointer flex items-center gap-2">
-            <MicrosoftExcelLogo size={16} weight="bold" /> Import from Excel
-            <input type="file" className="hidden" accept=".xlsx,.xls" onChange={handleFileUpload} />
-          </label>
+          <button
+            type="button"
+            onClick={() => setShowImport(true)}
+            className="btn-success btn-sm !px-4 !py-2 bg-green-700 hover:bg-green-800 text-white border-green-800 cursor-pointer flex items-center gap-2"
+          >
+            <MicrosoftExcelLogo size={16} weight="bold" /> Import data
+          </button>
           <button
             onClick={handleDownloadTemplate}
             className="btn-sm !px-4 !py-2 bg-blue-700 hover:bg-blue-800 text-white border border-blue-800 cursor-pointer flex items-center gap-2 transition-colors"
@@ -338,6 +340,21 @@ export default function EpfRecordsSection() {
           </div>
         )}
       </div>
+
+      <TablePagination page={page} limit={limit} total={total} onPageChange={setPage} />
+
+      {showImport && (
+        <BulkUploadWizard
+          title="Import EPF records"
+          entityType="epf"
+          onComplete={handleImportComplete}
+          onCancel={() => setShowImport(false)}
+        />
+      )}
+
+      {conflictsJob?.id && (conflictsJob.conflictsPending ?? 0) > 0 && (
+        <ImportConflictPanel jobId={conflictsJob.id} entityType="epf" />
+      )}
     </div>
   );
 }

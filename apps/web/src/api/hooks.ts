@@ -5,6 +5,7 @@ import {
   epfApi,
   salaryApi,
   leaveApi,
+  importsApi,
 } from './endpoints';
 import type { Employee } from './types';
 
@@ -12,8 +13,14 @@ export function useDashboard() {
   return useQuery({ queryKey: ['dashboard'], queryFn: dashboardApi.get });
 }
 
-export function useEmployees() {
-  return useQuery({ queryKey: ['employees'], queryFn: employeesApi.list });
+export function useEmployees(params?: { page?: number; limit?: number; search?: string }) {
+  const page = params?.page ?? 1;
+  const limit = params?.limit ?? 50;
+  const search = params?.search ?? '';
+  return useQuery({
+    queryKey: ['employees', page, limit, search],
+    queryFn: () => employeesApi.list({ page, limit, search }),
+  });
 }
 
 export function useEmployee(id: string | undefined) {
@@ -57,10 +64,13 @@ export function useDeleteEmployee() {
   });
 }
 
-export function useEpfRecords() {
+export function useEpfRecords(params?: { page?: number; limit?: number; search?: string }) {
+  const page = params?.page ?? 1;
+  const limit = params?.limit ?? 50;
+  const search = params?.search ?? '';
   return useQuery({
-    queryKey: ['epf'],
-    queryFn: epfApi.list,
+    queryKey: ['epf', page, limit, search],
+    queryFn: () => epfApi.list({ page, limit, search }),
     retry: 1,
   });
 }
@@ -85,12 +95,45 @@ export function useDeletePayroll() {
   });
 }
 
-export function usePayrollRecords(month: number, year: number) {
+export function usePayrollRecords(month: number, year: number, params?: { page?: number; limit?: number; search?: string }) {
+  const page = params?.page ?? 1;
+  const limit = params?.limit ?? 50;
+  const search = params?.search ?? '';
   return useQuery({
-    queryKey: ['payroll', month, year],
-    queryFn: () => salaryApi.list(month, year),
+    queryKey: ['payroll', month, year, page, limit, search],
+    queryFn: () => salaryApi.list(month, year, { page, limit, search }),
   });
 }
+
+export function useImportJob(jobId: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: ['import-job', jobId],
+    queryFn: () => importsApi.getJob(jobId!),
+    enabled: !!jobId && enabled,
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      if (!status || status === 'COMPLETED' || status === 'FAILED') return false;
+      return 2000;
+    },
+  });
+}
+
+export function useLatestConflictsJob(entityType: 'employees' | 'epf' | 'payroll') {
+  return useQuery({
+    queryKey: ['import-conflicts-job', entityType],
+    queryFn: () => importsApi.latestConflictsJob(entityType),
+  });
+}
+
+export function useImportConflicts(jobId: string | undefined, page = 1, search = '') {
+  return useQuery({
+    queryKey: ['import-conflicts', jobId, page, search],
+    queryFn: () => importsApi.listConflicts(jobId!, { page, limit: 20, search }),
+    enabled: !!jobId,
+  });
+}
+
+export { importsApi };
 
 export function useLeaves() {
   return useQuery({ queryKey: ['leaves'], queryFn: leaveApi.list });

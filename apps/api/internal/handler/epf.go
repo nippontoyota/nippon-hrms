@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/nippon-toyota/hrms/internal/epf"
@@ -79,19 +80,26 @@ func (h *EpfHandler) BulkUpload(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *EpfHandler) List(w http.ResponseWriter, r *http.Request) {
-	records, err := h.repo.List(r.Context())
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	search := r.URL.Query().Get("search")
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 {
+		limit = 50
+	}
+
+	result, err := h.repo.ListPaginated(r.Context(), page, limit, search)
 	if err != nil {
 		logger.Error("failed to list epf records", "err", err)
 		respond.InternalError(w)
 		return
 	}
-	if records == nil {
-		records = []epf.Record{}
-	}
 
 	if !vault.IsUnlocked(r.Context(), h.pool, r) {
-		for i := range records {
-			rec := &records[i]
+		for i := range result.Items {
+			rec := &result.Items[i]
 			if rec.EPFNumber != "" {
 				rec.EPFNumber = "********"
 			}
@@ -104,7 +112,7 @@ func (h *EpfHandler) List(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	respond.JSON(w, http.StatusOK, respond.Envelope{Success: true, Data: records})
+	respond.JSON(w, http.StatusOK, respond.Envelope{Success: true, Data: result})
 }
 
 func (h *EpfHandler) GetByID(w http.ResponseWriter, r *http.Request) {

@@ -81,8 +81,9 @@ func PayslipCaption(monthStr string, year int, empName string) string {
 
 func payslipTemplatePlaceholders(empName, monthStr string, year int) []string {
 	yearStr := strconv.Itoa(year)
-	// notification_of_payslip uses {{1}} name, {{2}}/{{3}} in title, {{2}}/{{3}} again in body (5 slots).
-	return []string{empName, monthStr, yearStr, monthStr, yearStr}
+	// notification_of_payslip body (Meta numbers {{1}}…{{5}} in appearance order):
+	//   {{1}} name (title line), {{2}} month, {{3}} name (greeting), {{4}} month, {{5}} year.
+	return []string{empName, monthStr, empName, monthStr, yearStr}
 }
 
 func (d *Dispatcher) isSessionOpen(ctx context.Context, to string) bool {

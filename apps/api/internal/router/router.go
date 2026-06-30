@@ -16,6 +16,7 @@ import (
 	"github.com/nippon-toyota/hrms/internal/employee"
 	"github.com/nippon-toyota/hrms/internal/epf"
 	"github.com/nippon-toyota/hrms/internal/handler"
+	"github.com/nippon-toyota/hrms/internal/importjob"
 	"github.com/nippon-toyota/hrms/internal/leave"
 	appMiddleware "github.com/nippon-toyota/hrms/internal/middleware"
 	"github.com/nippon-toyota/hrms/internal/payroll"
@@ -29,7 +30,7 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 	r.Use(chiMiddleware.Logger)
 	r.Use(chiMiddleware.Recoverer)
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:5173"},
+		AllowedOrigins:   cfg.AllowedOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-Request-ID", "X-Vault-Token"},
 		ExposedHeaders:   []string{"Link"},
@@ -44,7 +45,7 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 	payrollRepo := payroll.NewPostgresRepository(pgPool)
 	leaveRepo := leave.NewPostgresRepository(pgPool)
 
-	sessionStore := whatsapp.NewInMemoryStore(0)
+	sessionStore := whatsapp.NewSessionStore(pgPool)
 	sessionWindow := whatsapp.NewPostgresSessionWindowStore(pgPool)
 	payrollDispatcher := payroll.NewDispatcher(payrollRepo, empRepo, epfRepo, dtClient, sessionWindow)
 	dispatchRepo := dispatch.NewPostgresRepository(pgPool)
@@ -69,6 +70,9 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 	leaveH := handler.NewLeaveHandler(leaveRepo, empRepo, dtClient, sessionWindow)
 	vaultH := handler.NewVaultHandler(pgPool)
 	adminH := handler.NewAdminHandler(pgPool, supaClient)
+	importRepo := importjob.NewRepository(pgPool)
+	importSvc := importjob.NewService(importRepo, importjob.Config{})
+	importH := handler.NewImportHandler(importSvc)
 
 	r.Get("/health", handler.HealthHandler)
 
@@ -82,6 +86,17 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 			r.Use(appMiddleware.RequireAuth(cfg.SupabaseURL, cfg.SupabaseAnonKey))
 
 			r.Get("/admin/me", adminH.GetMe)
+
+			r.Route("/imports", func(r chi.Router) {
+				r.Use(appMiddleware.RequireVault(pgPool))
+				r.Post("/", importH.Start)
+				r.Get("/latest-conflicts", importH.LatestConflictsJob)
+				r.Get("/{jobId}", importH.GetJob)
+				r.Get("/{jobId}/errors", importH.ListErrors)
+				r.Get("/{jobId}/conflicts", importH.ListConflicts)
+				r.Post("/{jobId}/conflicts/resolve", importH.ResolveConflicts)
+				r.Post("/{jobId}/conflicts/resolve-all", importH.ResolveAllConflicts)
+			})
 
 			r.Route("/employees", func(r chi.Router) {
 				r.Get("/", employeeH.List)

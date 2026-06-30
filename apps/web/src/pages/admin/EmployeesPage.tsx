@@ -1,9 +1,9 @@
 import { useVaultStore } from '@/stores/vaultStore';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { employeesApi, useEmployees, useDeleteEmployee } from '@/api/hooks';
+import { employeesApi, useEmployees, useDeleteEmployee, useLatestConflictsJob } from '@/api/hooks';
 import { Employee } from '@/api/types';
 import { MagnifyingGlass, MicrosoftExcelLogo, Plus, PencilSimple, Trash, ArrowUp, ArrowDown, ArrowsDownUp, WhatsappLogo, FloppyDisk, DownloadSimple, FileCsv } from '@phosphor-icons/react';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -11,6 +11,9 @@ import SendPayslipModal from '@/components/SendPayslipModal';
 import { downloadApiBlob, exportCsv } from '@/lib/format';
 import { EMPLOYEE_DIRECTORY_HEADERS } from '@/lib/exportColumns';
 import { useTableRowHighlight } from '@/lib/useTableRowHighlight';
+import BulkUploadWizard from '@/components/BulkUploadWizard';
+import ImportConflictPanel from '@/components/ImportConflictPanel';
+import TablePagination from '@/components/TablePagination';
 
 type SortKey = 'employeeId' | 'name' | 'department' | 'doj' | 'branch' | 'designation';
 type SortDir = 'asc' | 'desc';
@@ -73,9 +76,25 @@ const Cell = ({
 };
 
 export default function EmployeesPage() {
-  const { data: employees, isLoading } = useEmployees();
-  const deleteMutation = useDeleteEmployee();
+  const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [showImport, setShowImport] = useState(false);
+  const limit = 50;
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const { data, isLoading } = useEmployees({ page, limit, search: debouncedSearch });
+  const employees = data?.items ?? [];
+  const total = data?.total ?? 0;
+  const { data: conflictsJob } = useLatestConflictsJob('employees');
+  const deleteMutation = useDeleteEmployee();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [sortKey, setSortKey] = useState<SortKey>('employeeId');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
@@ -126,16 +145,9 @@ export default function EmployeesPage() {
   );
 
   const filtered = useMemo(() => {
-    const base = (employees ?? []).filter(
-      (e) =>
-        e.name.toLowerCase().includes(search.toLowerCase()) ||
-        e.employeeId.toLowerCase().includes(search.toLowerCase()) ||
-        e.mobileNo.includes(search)
-    );
-    return [...base].sort((a, b) => {
+    return [...employees].sort((a, b) => {
       const av = (a[sortKey] ?? '') as string;
       const bv = (b[sortKey] ?? '') as string;
-      // Numeric sort for employeeId
       if (sortKey === 'employeeId') {
         const an = parseInt(av, 10);
         const bn = parseInt(bv, 10);
@@ -143,7 +155,7 @@ export default function EmployeesPage() {
       }
       return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
     });
-  }, [employees, search, sortKey, sortDir]);
+  }, [employees, sortKey, sortDir]);
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
@@ -163,22 +175,11 @@ export default function EmployeesPage() {
     setSelectedIds(next);
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    toast.promise(
-      employeesApi.commitBulkUpload(file).then((res) => {
-        qc.invalidateQueries({ queryKey: ['employees'] });
-        qc.invalidateQueries({ queryKey: ['dashboard'] });
-        return res;
-      }),
-      {
-        loading: 'Importing employees...',
-        success: (res) => `Successfully imported ${res.successCount} employees!`,
-        error: 'Failed to import employees',
-      }
-    );
-    e.target.value = '';
+  const handleImportComplete = () => {
+    qc.invalidateQueries({ queryKey: ['employees'] });
+    qc.invalidateQueries({ queryKey: ['dashboard'] });
+    qc.invalidateQueries({ queryKey: ['import-conflicts-job', 'employees'] });
+    setShowImport(false);
   };
 
   const handleExportExcel = async () => {
@@ -274,7 +275,7 @@ export default function EmployeesPage() {
       <div className="flex items-center gap-3 border-b border-slate-200 dark:border-slate-700 pb-3">
         <h2 className="text-lg font-bold text-slate-900 dark:text-white uppercase tracking-wide">Employee Directory</h2>
         <span className="text-xs font-mono text-slate-500 dark:text-slate-400">
-          {filtered.length} records
+          {filtered.length} on page · {total} total
         </span>
       </div>
 
@@ -318,10 +319,13 @@ export default function EmployeesPage() {
                   <Trash size={16} weight="bold" /> Delete Selected ({selectedIds.size})
                 </button>
               )}
-              <label className="btn-success btn-sm !px-4 !py-2 bg-green-700 hover:bg-green-800 text-white border-green-800 cursor-pointer flex items-center gap-2">
-                <MicrosoftExcelLogo size={16} weight="bold" /> Import from Excel
-                <input type="file" className="hidden" accept=".xlsx,.xls" onChange={handleFileUpload} />
-              </label>
+              <button
+                type="button"
+                onClick={() => setShowImport(true)}
+                className="btn-success btn-sm !px-4 !py-2 bg-green-700 hover:bg-green-800 text-white border-green-800 cursor-pointer flex items-center gap-2"
+              >
+                <MicrosoftExcelLogo size={16} weight="bold" /> Import data
+              </button>
               <button 
                 onClick={handleDownloadTemplate}
                 className="btn-sm !px-4 !py-2 bg-blue-700 hover:bg-blue-800 text-white border border-blue-800 cursor-pointer flex items-center gap-2 transition-colors"
@@ -516,6 +520,21 @@ export default function EmployeesPage() {
           </div>
         )}
       </div>
+
+      <TablePagination page={page} limit={limit} total={total} onPageChange={setPage} />
+
+      {showImport && (
+        <BulkUploadWizard
+          title="Import employees"
+          entityType="employees"
+          onComplete={handleImportComplete}
+          onCancel={() => setShowImport(false)}
+        />
+      )}
+
+      {conflictsJob?.id && (conflictsJob.conflictsPending ?? 0) > 0 && (
+        <ImportConflictPanel jobId={conflictsJob.id} entityType="employees" />
+      )}
     </div>
   );
 }
