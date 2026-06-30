@@ -269,7 +269,53 @@ export interface ImportResult {
   periodId?: string;
   year?: number;
   month?: number;
-  errors?: { row: number; message: string }[];
+  errors?: { row: number; message: string }[] | string[];
+}
+
+export type ImportEntityType = 'employees' | 'epf' | 'payroll';
+export type ImportMode = 'replace' | 'add';
+export type ImportJobStatus = 'PENDING' | 'PARSING' | 'LOADING' | 'COMPLETED' | 'FAILED';
+
+export interface ImportJob {
+  id: string;
+  entityType: ImportEntityType;
+  mode: ImportMode;
+  month?: number;
+  year?: number;
+  status: ImportJobStatus;
+  fileName: string;
+  fileFormat: string;
+  totalRows: number;
+  inserted: number;
+  skippedIdentical: number;
+  rejected: number;
+  conflictsPending: number;
+  errorMessage?: string;
+  createdAt: string;
+  completedAt?: string;
+}
+
+export interface ImportConflict {
+  id: string;
+  naturalKey: string;
+  fieldName: string;
+  existingValue: string;
+  importedValue: string;
+  resolution: string;
+}
+
+export interface PaginatedResult<T> {
+  items: T[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface PaginatedConflicts {
+  items: ImportConflict[];
+  total: number;
+  page: number;
+  limit: number;
 }
 
 export interface DispatchJobSummary {

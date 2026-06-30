@@ -15,11 +15,14 @@ type dedupStore struct {
 	greetingWindow     time.Duration
 	periodWindow       time.Duration
 	payslipWindow      time.Duration
+	leaveSubmitWindow  time.Duration
 	byMessageID        map[string]time.Time
 	byAction           map[string]time.Time
 	lastStructuredAt   map[string]time.Time
 	byPayslipDelivery  map[string]time.Time
+	byLeaveSubmit      map[string]time.Time
 	inFlightPayslip    map[string]bool
+	inFlightLeaveSubmit map[string]bool
 }
 
 func newDedupStore(ttl time.Duration) *dedupStore {
@@ -32,16 +35,19 @@ func newDedupStore(ttl time.Duration) *dedupStore {
 		actionWindow:      5 * time.Second,
 		greetingWindow:    30 * time.Second,
 		periodWindow:      30 * time.Second,
-		payslipWindow:     1 * time.Minute,
-		byMessageID:       make(map[string]time.Time),
-		byAction:          make(map[string]time.Time),
-		lastStructuredAt:  make(map[string]time.Time),
-		byPayslipDelivery: make(map[string]time.Time),
-		inFlightPayslip:   make(map[string]bool),
+		payslipWindow:       1 * time.Minute,
+		leaveSubmitWindow:   1 * time.Minute,
+		byMessageID:         make(map[string]time.Time),
+		byAction:            make(map[string]time.Time),
+		lastStructuredAt:    make(map[string]time.Time),
+		byPayslipDelivery:   make(map[string]time.Time),
+		byLeaveSubmit:       make(map[string]time.Time),
+		inFlightPayslip:     make(map[string]bool),
+		inFlightLeaveSubmit: make(map[string]bool),
 	}
 }
 
-func (d *dedupStore) isDuplicate(messageID, phone, input, msgType string) bool {
+func (d *dedupStore) isDuplicate(messageID, phone, input, msgType string, state State) bool {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
@@ -58,12 +64,17 @@ func (d *dedupStore) isDuplicate(messageID, phone, input, msgType string) bool {
 		d.byMessageID[messageID] = now
 	}
 
-	if msgType == "text" && !looksLikePeriodAttempt(input) {
+	skipEchoWindow := isInLeaveFlow(state)
+	if !skipEchoWindow && msgType == "text" && !looksLikePeriodAttempt(input) && !looksLikeLeaveDateAttempt(input) {
 		if seenAt, ok := d.lastStructuredAt[phone]; ok && now.Sub(seenAt) < d.echoWindow {
 			return true
 		}
 	} else if msgType == "button" || msgType == "interactive" {
 		d.lastStructuredAt[phone] = now
+	}
+
+	if looksLikeLeaveDateAttempt(input) {
+		return false
 	}
 
 	actionKey := phone + "|" + canonicalInput(input)
@@ -130,6 +141,37 @@ func (d *dedupStore) clearPayslipDelivery(phone string, month, year int) {
 	delete(d.byPayslipDelivery, payslipDeliveryKey(phone, month, year))
 }
 
+func (d *dedupStore) tryAcquireLeaveSubmit(phone string) (acquired bool, silent bool) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	now := time.Now()
+	d.evict(now)
+
+	if d.inFlightLeaveSubmit[phone] {
+		return false, true
+	}
+	if seenAt, ok := d.byLeaveSubmit[phone]; ok && now.Sub(seenAt) < d.leaveSubmitWindow {
+		return false, true
+	}
+
+	d.inFlightLeaveSubmit[phone] = true
+	return true, false
+}
+
+func (d *dedupStore) releaseLeaveSubmit(phone string) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	delete(d.inFlightLeaveSubmit, phone)
+}
+
+func (d *dedupStore) markLeaveSubmitted(phone string) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.byLeaveSubmit[phone] = time.Now()
+	delete(d.inFlightLeaveSubmit, phone)
+}
+
 func payslipDeliveryKey(phone string, month, year int) string {
 	return fmt.Sprintf("%s|%d|%d", phone, month, year)
 }
@@ -155,6 +197,11 @@ func (d *dedupStore) evict(now time.Time) {
 			delete(d.byPayslipDelivery, key)
 		}
 	}
+	for phone, seenAt := range d.byLeaveSubmit {
+		if now.Sub(seenAt) > d.leaveSubmitWindow {
+			delete(d.byLeaveSubmit, phone)
+		}
+	}
 }
 
 func canonicalInput(input string) string {
@@ -170,8 +217,19 @@ func canonicalInput(input string) string {
 }
 
 func looksLikePeriodAttempt(input string) bool {
-	input = strings.TrimSpace(input)
-	return strings.Contains(input, "/") || strings.Contains(input, ";")
+	input = strings.ReplaceAll(strings.TrimSpace(input), ";", "/")
+	if !strings.Contains(input, "/") {
+		return false
+	}
+	return len(strings.Split(input, "/")) == 2
+}
+
+func looksLikeLeaveDateAttempt(input string) bool {
+	input = strings.ReplaceAll(strings.TrimSpace(input), ";", "/")
+	if !strings.Contains(input, "/") {
+		return false
+	}
+	return len(strings.Split(input, "/")) == 3
 }
 
 func normalizeMenuSelection(input string) string {

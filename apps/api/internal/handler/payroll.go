@@ -81,6 +81,11 @@ func (h *PayrollHandler) PreviewPDF(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !vault.IsUnlocked(r.Context(), h.pool, r) {
+		respond.Forbidden(w)
+		return
+	}
+
 	pdfBytes, err := h.dispatcher.GeneratePreviewPDF(r.Context(), empID, month, year)
 	if err != nil {
 		logger.Error("failed to generate preview pdf", "emp", empID, "month", month, "year", year, "err", err)
@@ -354,19 +359,26 @@ func (h *PayrollHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	records, err := h.repo.ListByPeriod(r.Context(), month, year)
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	search := r.URL.Query().Get("search")
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 {
+		limit = 50
+	}
+
+	result, err := h.repo.ListByPeriodPaginated(r.Context(), month, year, page, limit, search)
 	if err != nil {
 		logger.Error("failed to list payroll records", "err", err)
 		respond.InternalError(w)
 		return
 	}
-	if records == nil {
-		records = []payroll.Record{}
-	}
 
 	if !vault.IsUnlocked(r.Context(), h.pool, r) {
-		for i := range records {
-			rec := &records[i]
+		for i := range result.Items {
+			rec := &result.Items[i]
 			rec.Basic = 0
 			rec.DA = 0
 			rec.BasicDA = 0
@@ -408,7 +420,7 @@ func (h *PayrollHandler) List(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	respond.OK(w, records)
+	respond.OK(w, result)
 }
 
 // Delete handles DELETE /api/v1/payroll/{id}

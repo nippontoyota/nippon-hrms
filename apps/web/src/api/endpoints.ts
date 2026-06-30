@@ -6,23 +6,23 @@ import type {
   Employee,
   EpfRecord,
   PayrollRecord,
-  ImportResult,
+  ImportJob,
+  ImportEntityType,
+  ImportMode,
+  PaginatedResult,
+  PaginatedConflicts,
   LeaveRequest,
   LeaveBalance,
 } from './types';
 
 export const employeesApi = {
-  list: () => api.get<Employee[]>('/employees').then((r) => r.data),
+  list: (params?: { page?: number; limit?: number; search?: string }) =>
+    api.get<PaginatedResult<Employee>>('/employees', { params }).then((r) => r.data),
   get: (id: string) => api.get<Employee>(`/employees/${id}`).then((r) => r.data),
   create: (employee: Partial<Employee>) => api.post('/employees', employee).then((r) => r.data),
   update: (id: string, employee: Partial<Employee>) =>
     api.patch(`/employees/${id}`, employee).then((r) => r.data),
   delete: (id: string) => api.delete(`/employees/${id}`).then((r) => r.data),
-  commitBulkUpload: (file: File) => {
-    const form = new FormData();
-    form.append('file', file);
-    return api.post<ImportResult>('/employees/upload', form).then((r) => r.data);
-  },
   downloadTemplate: () =>
     fetch('/templates/employee_template.xlsx').then((r) => r.blob()),
   downloadTemplateCsv: () =>
@@ -32,16 +32,12 @@ export const employeesApi = {
 };
 
 export const epfApi = {
-  list: () => api.get<EpfRecord[]>('/epf').then((r) => r.data),
+  list: (params?: { page?: number; limit?: number; search?: string }) =>
+    api.get<PaginatedResult<EpfRecord>>('/epf', { params }).then((r) => r.data),
   get: (id: string) => api.get<EpfRecord>(`/epf/${id}`).then((r) => r.data),
   update: (id: string, record: Partial<EpfRecord>) =>
     api.patch(`/epf/${id}`, record).then((r) => r.data),
   delete: (id: string) => api.delete(`/epf/${id}`).then((r) => r.data),
-  commitBulkUpload: (file: File) => {
-    const form = new FormData();
-    form.append('file', file);
-    return api.post<ImportResult>('/epf/upload', form).then((r) => r.data);
-  },
   exportExcel: () =>
     api.get('/epf/export', { responseType: 'blob' }).then((r) => r.data),
   downloadTemplateCsv: () =>
@@ -49,22 +45,8 @@ export const epfApi = {
 };
 
 export const salaryApi = {
-  list: (month: number, year: number) =>
-    api.get<PayrollRecord[]>(`/payroll/list?month=${month}&year=${year}`).then((r) => r.data),
-  commitBulkUpload: (file: File, month: number, year: number) => {
-    const form = new FormData();
-    form.append('file', file);
-    form.append('month', String(month));
-    form.append('year', String(year));
-    return api.post<ImportResult>('/payroll/upload', form).then((r) => r.data);
-  },
-  previewBulkUpload: (file: File, month: number, year: number) => {
-    const form = new FormData();
-    form.append('file', file);
-    form.append('month', String(month));
-    form.append('year', String(year));
-    return api.post<{ records: PayrollRecord[]; errors: any[] }>('/payroll/upload-preview', form).then((r) => r.data);
-  },
+  list: (month: number, year: number, params?: { page?: number; limit?: number; search?: string }) =>
+    api.get<PaginatedResult<PayrollRecord>>(`/payroll/list?month=${month}&year=${year}`, { params }).then((r) => r.data),
   dispatch: (month: number, year: number) =>
     api.post<{ jobId: string }>('/payroll/dispatch', { month, year }).then((r) => r.data),
   getLatestDispatchJob: (month: number, year: number) =>
@@ -90,12 +72,33 @@ export const salaryApi = {
 };
 
 
+export const importsApi = {
+  start: (file: File, entityType: ImportEntityType, mode: ImportMode, month?: number, year?: number) => {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('entityType', entityType);
+    form.append('mode', mode);
+    if (month != null) form.append('month', String(month));
+    if (year != null) form.append('year', String(year));
+    return api.post<ImportJob>('/imports', form, { timeout: 300_000 }).then((r) => r.data);
+  },
+  getJob: (jobId: string) => api.get<ImportJob>(`/imports/${jobId}`).then((r) => r.data),
+  latestConflictsJob: (entityType: ImportEntityType) =>
+    api.get<ImportJob | null>('/imports/latest-conflicts', { params: { entityType } }).then((r) => r.data),
+  listConflicts: (jobId: string, params?: { page?: number; limit?: number; search?: string }) =>
+    api.get<PaginatedConflicts>(`/imports/${jobId}/conflicts`, { params }).then((r) => r.data),
+  resolveConflicts: (jobId: string, conflictIds: string[], resolution: 'keep_existing' | 'use_imported') =>
+    api.post(`/imports/${jobId}/conflicts/resolve`, { conflictIds, resolution }).then((r) => r.data),
+  resolveAllConflicts: (jobId: string, resolution: 'keep_existing' | 'use_imported') =>
+    api.post(`/imports/${jobId}/conflicts/resolve-all`, { resolution }).then((r) => r.data),
+};
+
 export const dashboardApi = {
   get: async () => {
     try {
-      const employees = await employeesApi.list();
+      const employees = await employeesApi.list({ page: 1, limit: 1 });
       return {
-        employeeCount: employees.length,
+        employeeCount: employees.total,
         pendingLeaveRequests: 0,
         pendingDispatchJobs: 0,
         attendancePeriods: 0,

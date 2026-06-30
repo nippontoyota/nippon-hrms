@@ -74,6 +74,7 @@ type Repository interface {
 
 	ListPeriodsByEmployee(ctx context.Context, employeeID string) ([]Period, error)
 	ListByPeriod(ctx context.Context, month, year int) ([]Record, error)
+	ListByPeriodPaginated(ctx context.Context, month, year, page, limit int, search string) (*ListResult, error)
 	BulkInsert(ctx context.Context, records []Record) error
 	Delete(ctx context.Context, id string) error
 	DeleteByPeriod(ctx context.Context, month, year int) error

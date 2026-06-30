@@ -107,7 +107,7 @@ func tryParseDocsFormat(raw []byte) (*Webhook, bool) {
 	}
 
 	data := MessageData{
-		MessageID: firstNonEmpty(p.MessageID, p.From),
+		MessageID: strings.TrimSpace(p.MessageID),
 		From:      normalizePhone(p.From),
 		To:        normalizePhone(p.To),
 		Type:      strings.ToLower(msgType),

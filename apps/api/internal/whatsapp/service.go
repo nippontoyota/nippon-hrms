@@ -22,6 +22,7 @@ type Service struct {
 	sessionWindow SessionWindowStore
 	dedup         *dedupStore
 	phoneLock     *phoneLocker
+	inbound       *inboundQueue
 	empRepo       employee.Repository
 	epfRepo       epf.Repository
 	payrollRepo   payroll.Repository
@@ -44,6 +45,7 @@ func NewService(dt *doubletick.Client, sessions SessionStore, sessionWindow Sess
 		sessionWindow: sessionWindow,
 		dedup:         newDedupStore(0),
 		phoneLock:     newPhoneLocker(),
+		inbound:       newInboundQueue(),
 		empRepo:       empRepo,
 		epfRepo:       epfRepo,
 		payrollRepo:   payrollRepo,
@@ -68,11 +70,36 @@ func (s *Service) HandleWebhook(ctx context.Context, wh *doubletick.Webhook) err
 	}
 
 	from := wh.Data.From
+	messageID := wh.Data.MessageID
+
+	if s.dt != nil && s.dt.Configured() && messageID != "" {
+		if err := s.dt.MarkMessageRead(ctx, from, messageID); err != nil {
+			slog.Warn("whatsapp mark read failed", "from", from, "messageId", messageID, "err", err)
+		}
+	}
+
 	input := strings.TrimSpace(wh.Data.Body())
+
+	s.inbound.enqueue(from, inboundMessage{
+		messageID: messageID,
+		input:     input,
+		msgType:   wh.Data.Type,
+		timestamp: wh.Timestamp,
+	})
 
 	var handleErr error
 	s.phoneLock.run(from, func() {
-		handleErr = s.handleWebhookLocked(ctx, from, input, wh.Data.Type, wh.Data.MessageID)
+		for {
+			msgs := s.inbound.drain(from)
+			if len(msgs) == 0 {
+				break
+			}
+			for _, msg := range msgs {
+				if err := s.handleWebhookLocked(ctx, from, msg.input, msg.msgType, msg.messageID); err != nil {
+					handleErr = err
+				}
+			}
+		}
 	})
 	return handleErr
 }
@@ -88,9 +115,13 @@ func (s *Service) handleWebhookLocked(ctx context.Context, from, input, msgType,
 		return nil
 	}
 
-	if s.dedup.isDuplicate(messageID, from, input, msgType) {
+	if s.dedup.isDuplicate(messageID, from, input, msgType, sess.State) {
 		slog.Info("whatsapp inbound skipped duplicate", "from", from, "input", input, "type", msgType, "messageId", messageID)
 		return nil
+	}
+
+	if s.shouldSoftGate(sess, input) {
+		return s.sendText(ctx, from, msgLeavePleaseWait)
 	}
 
 	if s.sessionWindow != nil {
@@ -139,6 +170,7 @@ const (
 	menuCooldown            = 60 * time.Second
 	periodPromptCooldown    = 30 * time.Second
 	postPayslipMenuSuppress = 5 * time.Minute
+	outboundSoftGate        = 600 * time.Millisecond
 )
 
 var greetingWords = []string{"hi", "hello", "hey", "start", "menu", "reset"}
@@ -177,6 +209,30 @@ func isGreeting(input string) bool {
 	return false
 }
 
+func isAcknowledgment(input string) bool {
+	switch normalizeGreetingInput(input) {
+	case "ok", "okay", "thanks", "thank you", "thx", "ty":
+		return true
+	default:
+		return false
+	}
+}
+
+func parseLeaveDate(input string) (time.Time, bool) {
+	input = strings.TrimSpace(input)
+	for _, layout := range []string{"02/01/2006", "2/1/2006"} {
+		if t, err := time.ParseInLocation(layout, input, time.Local); err == nil {
+			return t, true
+		}
+	}
+	return time.Time{}, false
+}
+
+func startOfDayLocal(t time.Time) time.Time {
+	y, m, d := t.In(time.Local).Date()
+	return time.Date(y, m, d, 0, 0, 0, 0, time.Local)
+}
+
 func (s *Service) handleIdle(ctx context.Context, sess *Session, from, input string) error {
 	switch normalizeMenuSelection(input) {
 	case payloadGeneratePay, payloadRequestSalary:
@@ -206,14 +262,25 @@ func (s *Service) handleIdle(ctx context.Context, sess *Session, from, input str
 		return s.sendText(ctx, from, msgPayslipInvalidPeriod)
 	}
 
+	if looksLikeLeaveDateAttempt(input) {
+		return s.sendText(ctx, from, msgSessionExpired)
+	}
+
+	if isAcknowledgment(input) {
+		if !sess.LastPayslipSentAt.IsZero() && time.Since(sess.LastPayslipSentAt) < postPayslipMenuSuppress {
+			return s.sendText(ctx, from, msgIdleNudgePayslip)
+		}
+		return s.sendText(ctx, from, msgIdleNudge)
+	}
+
 	if !sess.LastMenuSentAt.IsZero() && time.Since(sess.LastMenuSentAt) < menuCooldown {
 		slog.Info("whatsapp menu cooldown", "from", from)
-		return nil
+		return s.sendText(ctx, from, msgIdleNudge)
 	}
 
 	if !isGreeting(input) && !sess.LastPayslipSentAt.IsZero() && time.Since(sess.LastPayslipSentAt) < postPayslipMenuSuppress {
 		slog.Info("whatsapp post-payslip menu suppress", "from", from)
-		return nil
+		return s.sendText(ctx, from, msgIdleNudgePayslip)
 	}
 
 	empName := ""
@@ -241,6 +308,7 @@ func (s *Service) beginPayslipFlow(ctx context.Context, sess *Session, from stri
 		s.sessions.Set(from, sess)
 		return s.sendText(ctx, from, msgNotEmployee)
 	}
+	sess.LastPayslipSentAt = time.Time{}
 	sess.State = StateAwaitPeriod
 	s.sessions.Set(from, sess)
 	return s.sendPeriodPrompt(ctx, sess, from)
@@ -253,6 +321,7 @@ func (s *Service) beginLeaveFlow(ctx context.Context, sess *Session, from string
 		s.sessions.Set(from, sess)
 		return s.sendText(ctx, from, msgNotEmployee)
 	}
+	sess.LastPayslipSentAt = time.Time{}
 	sess.TempLeaveType = ""
 	sess.TempLeaveStart = ""
 	sess.TempLeaveEnd = ""
@@ -375,6 +444,7 @@ func (s *Service) deliverPayslip(ctx context.Context, sess *Session, from string
 		return s.sendText(ctx, from, msgPayslipError)
 	}
 
+	s.recordOutbound(from)
 	s.dedup.markPayslipDelivered(from, month, year)
 	sess.LastPayslipSentAt = time.Now()
 	sess.resetFlow()
@@ -390,6 +460,7 @@ func (s *Service) sendMainMenu(ctx context.Context, to, name string) error {
 		_, err = s.dt.SendInteractiveMedia(ctx, to, body, "", mediaURL, "image/png", buttons)
 		if err == nil {
 			slog.Info("whatsapp menu sent", "to", to, "type", "interactive_media")
+			s.recordOutbound(to)
 			return nil
 		}
 		slog.Warn("interactive media send failed, falling back to buttons", "err", err)
@@ -403,6 +474,7 @@ func (s *Service) sendMainMenu(ctx context.Context, to, name string) error {
 		return s.sendText(ctx, to, body+"\n\n"+msgMenuTextFallback)
 	}
 	slog.Info("whatsapp menu sent", "to", to, "type", "buttons")
+	s.recordOutbound(to)
 	return nil
 }
 
@@ -428,8 +500,28 @@ func (s *Service) menuImageMediaURL(ctx context.Context) (string, error) {
 	return mediaURL, nil
 }
 
+func (s *Service) shouldSoftGate(sess *Session, input string) bool {
+	if !isInLeaveFlow(sess.State) {
+		return false
+	}
+	if sess.LastOutboundAt.IsZero() || time.Since(sess.LastOutboundAt) > outboundSoftGate {
+		return false
+	}
+	return !isValidInputForState(sess.State, input)
+}
+
+func (s *Service) recordOutbound(phone string) {
+	if sess, ok := s.sessions.Get(phone); ok {
+		sess.LastOutboundAt = time.Now()
+		s.sessions.Set(phone, sess)
+	}
+}
+
 func (s *Service) sendText(ctx context.Context, to, text string) error {
 	_, err := s.dt.SendText(ctx, to, text)
+	if err == nil {
+		s.recordOutbound(to)
+	}
 	return err
 }
 
@@ -442,6 +534,7 @@ func (s *Service) sendLeaveTypePrompt(ctx context.Context, to string) error {
 		slog.Warn("leave type button send failed, falling back to text", "err", err)
 		return s.sendText(ctx, to, body+"\n\n"+msgLeaveTypeTextFallback)
 	}
+	s.recordOutbound(to)
 	return nil
 }
 
@@ -494,15 +587,12 @@ func (s *Service) handleLeaveAwaitStart(ctx context.Context, sess *Session, from
 		return s.handleIdle(ctx, sess, from, input)
 	}
 
-	parsed, err := time.Parse("02/01/2006", input)
-	if err != nil {
+	parsed, ok := parseLeaveDate(input)
+	if !ok {
 		return s.sendText(ctx, from, msgLeaveInvalidDate)
 	}
 
-	todayStr := time.Now().Format("2006-01-02")
-	today, _ := time.Parse("2006-01-02", todayStr)
-
-	if parsed.Before(today) {
+	if startOfDayLocal(parsed).Before(startOfDayLocal(time.Now())) {
 		return s.sendText(ctx, from, msgLeaveStartInPast)
 	}
 
@@ -519,8 +609,11 @@ func (s *Service) handleLeaveAwaitEnd(ctx context.Context, sess *Session, from, 
 		return s.handleIdle(ctx, sess, from, input)
 	}
 
-	endDate, err := time.Parse("02/01/2006", input)
-	if err != nil {
+	endDate, ok := parseLeaveDate(input)
+	if !ok {
+		if strings.TrimSpace(input) != "" && !looksLikeLeaveDateAttempt(input) {
+			return s.sendText(ctx, from, msgLeaveAwaitEndNotDate)
+		}
 		return s.sendText(ctx, from, msgLeaveInvalidDate)
 	}
 
@@ -557,26 +650,56 @@ func (s *Service) handleLeaveAwaitReason(ctx context.Context, sess *Session, fro
 		return s.handleIdle(ctx, sess, from, input)
 	}
 
-	sess.TempLeaveReason = input
+	trimmed := strings.TrimSpace(input)
+	if len(trimmed) < minLeaveReasonLen {
+		return s.sendText(ctx, from, msgLeaveReasonTooShort)
+	}
+	if looksLikeLeaveDateAttempt(trimmed) || looksLikePeriodAttempt(trimmed) {
+		return s.sendText(ctx, from, msgLeaveInvalidReason)
+	}
+	if isLeaveConfirmKeyword(trimmed) {
+		return s.sendText(ctx, from, msgLeaveInvalidReason)
+	}
+
+	sess.TempLeaveReason = trimmed
 	sess.State = StateLeaveAwaitConfirm
 	s.sessions.Set(from, sess)
+	return s.sendLeaveConfirmSummary(ctx, sess, from)
+}
 
+func (s *Service) sendLeaveConfirmSummary(ctx context.Context, sess *Session, from string) error {
 	sDate, _ := time.Parse("2006-01-02", sess.TempLeaveStart)
 	eDate, _ := time.Parse("2006-01-02", sess.TempLeaveEnd)
 	days := int(eDate.Sub(sDate).Hours()/24) + 1
-	return s.sendText(ctx, from, msgLeaveConfirmPrompt(leaveTypeDisplayName(sess.TempLeaveType), sDate.Format("02/01/2006"), eDate.Format("02/01/2006"), sess.TempLeaveReason, days))
+	return s.sendText(ctx, from, msgLeaveConfirmPrompt(
+		leaveTypeDisplayName(sess.TempLeaveType),
+		sDate.Format("02/01/2006"),
+		eDate.Format("02/01/2006"),
+		sess.TempLeaveReason,
+		days,
+	))
 }
 
 func (s *Service) handleLeaveAwaitConfirm(ctx context.Context, sess *Session, from, input string) error {
-	input = strings.ToLower(strings.TrimSpace(input))
-	if input == "no" || input == "cancel" || input == "0" {
+	normalized := strings.ToLower(strings.TrimSpace(input))
+	if isLeaveConfirmNegative(normalized) {
 		sess.resetFlow()
 		s.sessions.Set(from, sess)
 		return s.sendText(ctx, from, msgLeaveCancelled)
 	}
-	if input != "yes" && input != "confirm" && input != "submit" {
-		return s.sendText(ctx, from, msgLeaveConfirmHelp)
+	if !isLeaveConfirmAffirmative(normalized) {
+		return s.sendLeaveConfirmSummary(ctx, sess, from)
 	}
+
+	acquired, silent := s.dedup.tryAcquireLeaveSubmit(from)
+	if !acquired {
+		if silent {
+			slog.Info("whatsapp leave submit skipped duplicate", "from", from)
+			return nil
+		}
+		return s.sendText(ctx, from, msgLeaveAlreadySubmitted)
+	}
+	defer s.dedup.releaseLeaveSubmit(from)
 
 	startDate, _ := time.Parse("2006-01-02", sess.TempLeaveStart)
 	endDate, _ := time.Parse("2006-01-02", sess.TempLeaveEnd)
@@ -604,6 +727,7 @@ func (s *Service) handleLeaveAwaitConfirm(ctx context.Context, sess *Session, fr
 		return s.sendText(ctx, from, msgLeaveSubmitError)
 	}
 
+	s.dedup.markLeaveSubmitted(from)
 	sess.resetFlow()
 	s.sessions.Set(from, sess)
 	return s.sendText(ctx, from, msgLeaveCreated)

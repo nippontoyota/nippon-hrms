@@ -76,8 +76,6 @@ const msgLeaveAwaitStart = `Leave Application
 
 Please enter your leave start date.
 
-Please enter your leave start date.
-
 Format: DD/MM/YYYY
 Example: 01/07/2026`
 
@@ -89,6 +87,23 @@ Example: 05/07/2026
 For a one-day leave, enter the same date as your start date.`
 
 const msgLeaveAwaitReason = `Please enter the reason for your leave.`
+
+const msgLeaveInvalidReason = `Please enter a short reason in words (not a date).
+
+Example: Family function`
+
+const msgLeaveReasonTooShort = `Please enter a longer reason (at least 3 characters).`
+
+const msgLeaveAwaitEndNotDate = `That doesn't look like an end date.
+
+We're still waiting for your leave end date in DD/MM/YYYY format.
+Example: 05/07/2026`
+
+const msgLeavePleaseWait = `Got it — please wait a moment and answer the latest question above.`
+
+const msgLeaveAlreadySubmitted = `Your leave request has already been submitted.
+
+Reply Hi to return to the main menu.`
 
 const msgLeaveInvalidDate = `Invalid format.
 
@@ -130,3 +145,13 @@ Reply Hi to return to the main menu.`
 const msgLeaveSubmitError = `Your leave request could not be submitted due to a system error.
 
 Please try again or contact the HR department.`
+
+const msgIdleNudge = `Reply *Hi* when you need something else.`
+
+const msgIdleNudgePayslip = `Your payslip has been sent.
+
+Reply *Hi* when you need something else.`
+
+const msgSessionExpired = `Your previous session expired.
+
+Reply *Hi* and start your request again.`
