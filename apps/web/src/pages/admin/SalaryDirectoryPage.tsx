@@ -1,9 +1,9 @@
 import { useVaultStore } from '@/stores/vaultStore';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { usePayrollRecords, salaryApi } from '@/api/hooks';
-import { MicrosoftExcelLogo, CaretLeft, CaretRight, Trash, FloppyDisk, Warning, X, ArrowsDownUp, DownloadSimple, FileCsv, Eye, FilePdf, Spinner } from '@phosphor-icons/react';
+import { MicrosoftExcelLogo, CaretLeft, CaretRight, Trash, FloppyDisk, Warning, X, ArrowsDownUp, DownloadSimple, FileCsv, Eye, EyeSlash, FilePdf, Spinner } from '@phosphor-icons/react';
 import { PayrollRecord } from '@/api/types';
 import { downloadApiBlob, exportCsv } from '@/lib/format';
 import { SALARY_DIRECTORY_HEADERS } from '@/lib/exportColumns';
@@ -239,7 +239,17 @@ export default function SalaryDirectoryPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loadingPreviewId, setLoadingPreviewId] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (!isUnlocked) {
+      setPreviewUrl((url) => {
+        if (url) window.URL.revokeObjectURL(url);
+        return null;
+      });
+    }
+  }, [isUnlocked]);
+
   const handlePreview = async (employeeId: string) => {
+    if (!isUnlocked) return;
     try {
       setLoadingPreviewId(employeeId);
       const blob = await salaryApi.previewPayslip(employeeId, month, year);
@@ -491,15 +501,21 @@ export default function SalaryDirectoryPage() {
                     <td className="text-center px-2" data-ui-only>
                       {!previewFile && (
                         <button
-                          onClick={() => handlePreview(r.employeeId)}
-                          disabled={loadingPreviewId === r.employeeId}
-                          className="inline-flex items-center justify-center p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 dark:hover:bg-blue-950 disabled:opacity-50 cursor-pointer transition-colors rounded"
-                          title="Preview Payslip"
+                          onClick={(e) => { e.stopPropagation(); handlePreview(r.employeeId); }}
+                          disabled={!isUnlocked || loadingPreviewId === r.employeeId}
+                          className={`inline-flex items-center justify-center p-1.5 rounded transition-colors ${
+                            isUnlocked
+                              ? 'text-blue-600 hover:text-blue-800 hover:bg-blue-50 dark:hover:bg-blue-950 disabled:opacity-50 cursor-pointer'
+                              : 'text-slate-400 opacity-40 cursor-not-allowed'
+                          }`}
+                          title={isUnlocked ? 'Preview Payslip' : 'Disable Privacy Mode to preview payslip PDF'}
                         >
                           {loadingPreviewId === r.employeeId ? (
                             <Spinner className="animate-spin" size={16} weight="bold" />
-                          ) : (
+                          ) : isUnlocked ? (
                             <Eye size={16} weight="duotone" />
+                          ) : (
+                            <EyeSlash size={16} weight="duotone" />
                           )}
                         </button>
                       )}
