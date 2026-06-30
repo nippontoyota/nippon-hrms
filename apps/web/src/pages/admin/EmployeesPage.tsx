@@ -36,7 +36,8 @@ const Cell = ({
   editingId: string | null, editForm: Partial<Employee>, setEditForm: React.Dispatch<React.SetStateAction<Partial<Employee>>>,
   onSave?: () => void
 }) => {
-  const isUnlocked = useVaultStore.getState().isUnlocked();
+  const vaultToken = useVaultStore(s => s.vaultToken);
+  const isUnlocked = !!vaultToken;
   const isEditing = editingId === emp.id;
   
   if (!isUnlocked && ['basic', 'revisedBasicDa', 'hra', 'totalSalary', 'accountNumber', 'ifscCode', 'bankName'].includes(field as string)) {
