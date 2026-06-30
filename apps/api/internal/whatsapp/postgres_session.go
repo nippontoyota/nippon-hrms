@@ -3,6 +3,7 @@ package whatsapp
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"sync"
 	"time"
 
@@ -126,6 +127,7 @@ func (s *PostgresSessionStore) Set(phone string, sess *Session) {
 	snap := snapshotFromSession(sess)
 	raw, err := json.Marshal(snap)
 	if err != nil {
+		slog.Error("whatsapp session marshal failed", "phone", phone, "err", err)
 		return
 	}
 
@@ -136,7 +138,7 @@ func (s *PostgresSessionStore) Set(phone string, sess *Session) {
 		SET flow_state = EXCLUDED.flow_state, updated_at = NOW()
 	`, phone, raw)
 	if err != nil {
-		return
+		slog.Error("whatsapp session persist failed, using memory cache", "phone", phone, "state", sess.State, "err", err)
 	}
 
 	s.mu.Lock()

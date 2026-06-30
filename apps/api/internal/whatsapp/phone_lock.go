@@ -22,7 +22,8 @@ func (l *phoneLocker) run(phone string, fn func()) {
 }
 
 // shouldSkipInboundEcho drops WhatsApp text echoes of button selections.
-func shouldSkipInboundEcho(input, msgType string) bool {
+// When the session is waiting for that selection, the text is the user's answer — not an echo.
+func shouldSkipInboundEcho(input, msgType string, state State) bool {
 	if !strings.EqualFold(msgType, "text") {
 		return false
 	}
@@ -30,6 +31,10 @@ func shouldSkipInboundEcho(input, msgType string) bool {
 	input = strings.TrimSpace(input)
 	if input == "" {
 		return true
+	}
+
+	if acceptsInboundAtState(state, input) {
+		return false
 	}
 
 	return isInteractiveMenuEcho(input)

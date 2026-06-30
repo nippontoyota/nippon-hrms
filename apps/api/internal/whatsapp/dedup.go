@@ -77,7 +77,7 @@ func (d *dedupStore) isDuplicate(messageID, phone, input, msgType string, state 
 		return false
 	}
 
-	actionKey := phone + "|" + canonicalInput(input)
+	actionKey := fmt.Sprintf("%s|%d|%s", phone, state, canonicalInput(input))
 	actionWindow := d.actionWindow
 	if isGreeting(input) {
 		actionWindow = d.greetingWindow
@@ -242,9 +242,19 @@ func normalizeMenuSelection(input string) string {
 		return payloadRequestSalary
 	case trimmed == payloadRequestLeave, lower == "request leave":
 		return payloadRequestLeave
-	default:
-		return trimmed
 	}
+	// WhatsApp often echoes the full interactive body plus the chosen button label.
+	if isMainMenuEcho(lower) || strings.Contains(lower, "how may we help") {
+		switch {
+		case strings.Contains(lower, "request leave"):
+			return payloadRequestLeave
+		case strings.Contains(lower, "salary slip"), strings.Contains(lower, "request salary slip"):
+			return payloadRequestSalary
+		case strings.Contains(lower, "generate pay"):
+			return payloadGeneratePay
+		}
+	}
+	return trimmed
 }
 
 func normalizeLeaveTypeSelection(input string) string {
@@ -255,7 +265,13 @@ func normalizeLeaveTypeSelection(input string) string {
 		return payloadLeaveCasual
 	case trimmed == payloadLeaveSick, lower == "sick leave", lower == "sick":
 		return payloadLeaveSick
-	default:
-		return ""
 	}
+	// WhatsApp often echoes the full interactive body plus the chosen button label.
+	if strings.Contains(lower, "casual leave") {
+		return payloadLeaveCasual
+	}
+	if strings.Contains(lower, "sick leave") {
+		return payloadLeaveSick
+	}
+	return ""
 }

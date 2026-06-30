@@ -110,7 +110,7 @@ func (s *Service) handleWebhookLocked(ctx context.Context, from, input, msgType,
 		sess = &Session{Phone: from, State: StateIdle}
 	}
 
-	if shouldSkipInboundEcho(input, msgType) {
+	if shouldSkipInboundEcho(input, msgType, sess.State) {
 		slog.Info("whatsapp inbound skipped echo", "from", from, "input", input, "type", msgType, "state", sess.State)
 		return nil
 	}
@@ -218,6 +218,18 @@ func isAcknowledgment(input string) bool {
 	}
 }
 
+func parseStoredLeaveDate(iso string) (time.Time, bool) {
+	iso = strings.TrimSpace(iso)
+	if iso == "" {
+		return time.Time{}, false
+	}
+	t, err := time.ParseInLocation("2006-01-02", iso, time.Local)
+	if err != nil {
+		return time.Time{}, false
+	}
+	return t, true
+}
+
 func parseLeaveDate(input string) (time.Time, bool) {
 	input = strings.TrimSpace(input)
 	for _, layout := range []string{"02/01/2006", "2/1/2006"} {
@@ -247,6 +259,18 @@ func (s *Service) handleIdle(ctx context.Context, sess *Session, from, input str
 		return s.beginPayslipFlow(ctx, sess, from)
 	case "2", "leave":
 		return s.beginLeaveFlow(ctx, sess, from)
+	}
+
+	if sel := normalizeLeaveTypeSelection(input); sel != "" {
+		s.ensureEmployee(ctx, sess, from)
+		if sess.EmployeeID == "" {
+			sess.resetFlow()
+			s.sessions.Set(from, sess)
+			return s.sendText(ctx, from, msgNotEmployee)
+		}
+		sess.State = StateLeaveAwaitType
+		s.sessions.Set(from, sess)
+		return s.handleLeaveAwaitType(ctx, sess, from, input)
 	}
 
 	if looksLikePeriodAttempt(input) {
@@ -617,7 +641,10 @@ func (s *Service) handleLeaveAwaitEnd(ctx context.Context, sess *Session, from, 
 		return s.sendText(ctx, from, msgLeaveInvalidDate)
 	}
 
-	startDate, _ := time.Parse("2006-01-02", sess.TempLeaveStart)
+	startDate, ok := parseStoredLeaveDate(sess.TempLeaveStart)
+	if !ok {
+		return s.sendText(ctx, from, msgLeaveInvalidDate)
+	}
 	if endDate.Before(startDate) {
 		return s.sendText(ctx, from, msgLeaveEndBeforeStart)
 	}
@@ -668,8 +695,14 @@ func (s *Service) handleLeaveAwaitReason(ctx context.Context, sess *Session, fro
 }
 
 func (s *Service) sendLeaveConfirmSummary(ctx context.Context, sess *Session, from string) error {
-	sDate, _ := time.Parse("2006-01-02", sess.TempLeaveStart)
-	eDate, _ := time.Parse("2006-01-02", sess.TempLeaveEnd)
+	sDate, ok := parseStoredLeaveDate(sess.TempLeaveStart)
+	if !ok {
+		return s.sendText(ctx, from, msgLeaveInvalidDate)
+	}
+	eDate, ok := parseStoredLeaveDate(sess.TempLeaveEnd)
+	if !ok {
+		return s.sendText(ctx, from, msgLeaveInvalidDate)
+	}
 	days := int(eDate.Sub(sDate).Hours()/24) + 1
 	return s.sendText(ctx, from, msgLeaveConfirmPrompt(
 		leaveTypeDisplayName(sess.TempLeaveType),
@@ -701,8 +734,18 @@ func (s *Service) handleLeaveAwaitConfirm(ctx context.Context, sess *Session, fr
 	}
 	defer s.dedup.releaseLeaveSubmit(from)
 
-	startDate, _ := time.Parse("2006-01-02", sess.TempLeaveStart)
-	endDate, _ := time.Parse("2006-01-02", sess.TempLeaveEnd)
+	startDate, ok := parseStoredLeaveDate(sess.TempLeaveStart)
+	if !ok {
+		sess.resetFlow()
+		s.sessions.Set(from, sess)
+		return s.sendText(ctx, from, msgLeaveSubmitError)
+	}
+	endDate, ok := parseStoredLeaveDate(sess.TempLeaveEnd)
+	if !ok {
+		sess.resetFlow()
+		s.sessions.Set(from, sess)
+		return s.sendText(ctx, from, msgLeaveSubmitError)
+	}
 	days := int(endDate.Sub(startDate).Hours()/24) + 1
 
 	leaveType := sess.TempLeaveType
