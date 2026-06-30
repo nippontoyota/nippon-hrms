@@ -2,12 +2,15 @@ import { useVaultStore } from '@/stores/vaultStore';
 import { useState, useMemo, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useQueryClient } from '@tanstack/react-query';
-import { usePayrollRecords, salaryApi } from '@/api/hooks';
-import { MicrosoftExcelLogo, CaretLeft, CaretRight, Trash, FloppyDisk, Warning, X, ArrowsDownUp, DownloadSimple, FileCsv, Eye, EyeSlash, FilePdf, Spinner } from '@phosphor-icons/react';
+import { usePayrollRecords, salaryApi, useLatestConflictsJob } from '@/api/hooks';
+import { MicrosoftExcelLogo, CaretLeft, CaretRight, Trash, X, ArrowsDownUp, DownloadSimple, FileCsv, Eye, EyeSlash, FilePdf, Spinner } from '@phosphor-icons/react';
 import { PayrollRecord } from '@/api/types';
 import { downloadApiBlob, exportCsv } from '@/lib/format';
 import { SALARY_DIRECTORY_HEADERS } from '@/lib/exportColumns';
 import { useTableRowHighlight } from '@/lib/useTableRowHighlight';
+import BulkUploadWizard from '@/components/BulkUploadWizard';
+import ImportConflictPanel from '@/components/ImportConflictPanel';
+import TablePagination from '@/components/TablePagination';
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -32,19 +35,27 @@ export default function SalaryDirectoryPage() {
 
   const [month, setMonth] = useState(currentMonth);
   const [year, setYear]   = useState(currentYear);
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [showImport, setShowImport] = useState(false);
+  const limit = 50;
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [confirmState, setConfirmState] = useState<{
     open: boolean; title: string; message: string; confirmLabel: string; onConfirm: () => void;
   }>({ open: false, title: '', message: '', confirmLabel: '', onConfirm: () => {} });
 
-  // Preview Mode States
-  const [previewFile, setPreviewFile] = useState<File | null>(null);
-  const [previewData, setPreviewData] = useState<{ records: any[] } | null>(null);
-
   // Sorting
   const [sortKey, setSortKey] = useState<SortKey>('employeeId');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
 
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [search]);
 
   const qc = useQueryClient();
 
@@ -56,7 +67,10 @@ export default function SalaryDirectoryPage() {
   };
 
   const { tableRef, handleRowClick, rowHighlightClass } = useTableRowHighlight();
-  const { data: records, isLoading } = usePayrollRecords(month, year);
+  const { data, isLoading } = usePayrollRecords(month, year, { page, limit, search: debouncedSearch });
+  const records = data?.items ?? [];
+  const total = data?.total ?? 0;
+  const { data: conflictsJob } = useLatestConflictsJob('payroll');
 
   const isNextMonthDisabled = year === currentYear && month === currentMonth;
   const isNextYearDisabled = year === currentYear;
@@ -65,14 +79,14 @@ export default function SalaryDirectoryPage() {
     if (month === 1) { setMonth(12); setYear(y => y - 1); }
     else setMonth(m => m - 1);
     setSelectedIds(new Set());
-    cancelPreview();
+    setPage(1);
   };
   const nextMonth = () => {
     if (isNextMonthDisabled) return;
     if (month === 12) { setMonth(1); setYear(y => y + 1); }
     else setMonth(m => m + 1);
     setSelectedIds(new Set());
-    cancelPreview();
+    setPage(1);
   };
 
   const handleSort = (col: SortKey) => {
@@ -97,8 +111,7 @@ export default function SalaryDirectoryPage() {
   );
 
   const filtered = useMemo(() => {
-    const base = previewData ? previewData.records : (records ?? []);
-    let result = [...base].sort((a, b) => {
+    return [...records].sort((a, b) => {
       const av = a[sortKey];
       const bv = b[sortKey];
 
@@ -116,9 +129,7 @@ export default function SalaryDirectoryPage() {
       }
       return sortDir === 'asc' ? avStr.localeCompare(bvStr) : bvStr.localeCompare(avStr);
     });
-
-    return result;
-  }, [records, previewData, sortKey, sortDir]);
+  }, [records, sortKey, sortDir]);
 
   const allSelected = filtered.length > 0 && selectedIds.size === filtered.length;
 
@@ -169,54 +180,15 @@ export default function SalaryDirectoryPage() {
     );
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    toast.promise(
-      salaryApi.previewBulkUpload(file, month, year).then((res) => {
-        setPreviewFile(file);
-        setPreviewData(res);
-        return res;
-      }),
-      {
-        loading: `Parsing Excel file for ${MONTHS[month - 1]} ${year}...`,
-        success: (res) => `Preview ready! Found ${res.records.length} records.`,
-        error: 'Failed to parse Excel file',
-      }
-    );
-    e.target.value = '';
-  };
-
-  const handleCommit = async () => {
-    if (!previewFile) return;
-    toast.promise(
-      salaryApi.commitBulkUpload(previewFile, month, year).then((res) => {
-        qc.invalidateQueries({ queryKey: ['payroll'] });
-        qc.invalidateQueries({ queryKey: ['dashboard'] });
-        setPreviewFile(null);
-        setPreviewData(null);
-        setSelectedIds(new Set());
-        return res;
-      }),
-      {
-        loading: `Saving payroll data to database...`,
-        success: (res) => `Successfully committed ${res.successCount} payroll records!`,
-        error: 'Failed to save payroll data',
-      }
-    );
-  };
-
-  const cancelPreview = () => {
-    setPreviewFile(null);
-    setPreviewData(null);
+  const handleImportComplete = () => {
+    qc.invalidateQueries({ queryKey: ['payroll'] });
+    qc.invalidateQueries({ queryKey: ['dashboard'] });
+    qc.invalidateQueries({ queryKey: ['import-conflicts-job', 'payroll'] });
+    setShowImport(false);
     setSelectedIds(new Set());
   };
 
   const handleExportExcel = async () => {
-    if (previewFile || previewData) {
-      toast.error('Save payroll data to the database before exporting');
-      return;
-    }
     try {
       const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-').replace('T', '_');
       await downloadApiBlob(
@@ -300,7 +272,7 @@ export default function SalaryDirectoryPage() {
                 return (
                   <button
                     key={m}
-                    onClick={() => { setMonth(i + 1); setSelectedIds(new Set()); cancelPreview(); }}
+                    onClick={() => { setMonth(i + 1); setSelectedIds(new Set()); setPage(1); }}
                     disabled={isDisabled}
                     className={`px-1.5 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors ${
                       isDisabled ? 'text-slate-200 cursor-not-allowed' :
@@ -318,7 +290,7 @@ export default function SalaryDirectoryPage() {
             {/* Year */}
             <div className="flex items-center gap-1 px-2">
               <button
-                onClick={() => { setYear(y => y - 1); setSelectedIds(new Set()); cancelPreview(); }}
+                onClick={() => { setYear(y => y - 1); setSelectedIds(new Set()); setPage(1); }}
                 className="text-slate-400 hover:text-slate-700 dark:text-slate-200 cursor-pointer"
                 title="Previous year"
               >
@@ -328,7 +300,7 @@ export default function SalaryDirectoryPage() {
                 {year}
               </span>
               <button
-                onClick={() => { setYear(y => y + 1); setSelectedIds(new Set()); cancelPreview(); }}
+                onClick={() => { setYear(y => y + 1); setSelectedIds(new Set()); setPage(1); }}
                 disabled={isNextYearDisabled}
                 className={`transition-colors ${isNextYearDisabled ? 'text-slate-200 cursor-not-allowed' : 'text-slate-400 hover:text-slate-700 dark:text-slate-200 cursor-pointer'}`}
                 title="Next year"
@@ -350,66 +322,49 @@ export default function SalaryDirectoryPage() {
 
         {/* ── Right: Actions ─────────────────────────── */}
         <div className="flex items-center gap-3">
-          {previewFile ? (
-            <>
-              <button
-                onClick={cancelPreview}
-                className="btn-sm !px-4 !py-2 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 cursor-pointer flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-colors"
-              >
-                <X size={15} weight="bold" /> Cancel
-              </button>
-              <button
-                onClick={handleCommit}
-                className="btn-sm !px-5 !py-2 bg-green-700 hover:bg-green-800 text-white border border-green-800 cursor-pointer flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-colors shadow-lg"
-              >
-                <FloppyDisk size={16} weight="bold" /> Save Payroll to Database
-              </button>
-            </>
-          ) : (
-            <>
-              {selectedIds.size > 0 && (
-                <button
-                  onClick={handleBulkDelete}
-                  className="btn-sm !px-4 !py-2 bg-white dark:bg-slate-800 text-green-600 hover:bg-green-50 border border-green-200 cursor-pointer flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-colors"
-                >
-                  <Trash size={15} weight="bold" /> Delete ({selectedIds.size})
-                </button>
-              )}
-              <label className="btn-success btn-sm !px-4 !py-2 bg-green-700 hover:bg-green-800 text-white border border-green-800 cursor-pointer flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-colors">
-                <MicrosoftExcelLogo size={16} weight="bold" /> Import from Excel
-                <input type="file" className="hidden" accept=".xlsx,.xls" onChange={handleFileUpload} />
-              </label>
-              <button 
-                onClick={handleDownloadTemplate}
-                className="btn-sm !px-4 !py-2 bg-blue-700 hover:bg-blue-800 text-white border border-blue-800 cursor-pointer flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-colors"
-              >
-                <FileCsv size={14} weight="bold" /> Download Template
-              </button>
-              <button 
-                onClick={handleExportExcel}
-                className="btn-sm !px-4 !py-2 bg-purple-700 hover:bg-purple-800 text-white border border-purple-800 cursor-pointer flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-colors"
-              >
-                <DownloadSimple size={14} weight="bold" /> Export to Excel
-              </button>
-            </>
+          {selectedIds.size > 0 && (
+            <button
+              onClick={handleBulkDelete}
+              className="btn-sm !px-4 !py-2 bg-white dark:bg-slate-800 text-green-600 hover:bg-green-50 border border-green-200 cursor-pointer flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-colors"
+            >
+              <Trash size={15} weight="bold" /> Delete ({selectedIds.size})
+            </button>
           )}
+          <button
+            type="button"
+            onClick={() => setShowImport(true)}
+            className="btn-success btn-sm !px-4 !py-2 bg-green-700 hover:bg-green-800 text-white border border-green-800 cursor-pointer flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-colors"
+          >
+            <MicrosoftExcelLogo size={16} weight="bold" /> Import data
+          </button>
+          <button 
+            onClick={handleDownloadTemplate}
+            className="btn-sm !px-4 !py-2 bg-blue-700 hover:bg-blue-800 text-white border border-blue-800 cursor-pointer flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-colors"
+          >
+            <FileCsv size={14} weight="bold" /> Download Template
+          </button>
+          <button 
+            onClick={handleExportExcel}
+            className="btn-sm !px-4 !py-2 bg-purple-700 hover:bg-purple-800 text-white border border-purple-800 cursor-pointer flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-colors"
+          >
+            <DownloadSimple size={14} weight="bold" /> Export to Excel
+          </button>
         </div>
       </div>
 
-      {/* ── Preview Banner ──────────────────────────────────────── */}
-      {previewFile && (
-        <div className="bg-yellow-50 border border-yellow-200 px-4 py-3 flex items-center gap-3">
-          <Warning size={20} weight="fill" className="text-yellow-600 shrink-0" />
-          <div className="text-xs text-yellow-800">
-            <strong className="uppercase tracking-wider font-bold block mb-0.5">Preview Mode</strong>
-            This data is parsed from <strong>{previewFile.name}</strong> but has <strong>not</strong> been saved to the database yet. Please review the records and click "Save Payroll to Database" to commit them.
-          </div>
-        </div>
-      )}
+      <div className="flex items-center gap-3 px-1">
+        <input
+          type="search"
+          placeholder="Search employee ID or name…"
+          className="input text-sm max-w-xs"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <span className="text-xs text-slate-500">{filtered.length} on page · {total} total</span>
+      </div>
 
-      {/* ── Table ───────────────────────────────────────────────── */}
       <div className="mt-4 border-t border-l border-slate-300 dark:border-slate-600">
-        {isLoading && !previewFile ? (
+        {isLoading ? (
           <div className="p-12 flex flex-col items-center justify-center gap-4 bg-white dark:bg-slate-800 border-b border-r border-slate-300 dark:border-slate-600">
             <div className="spinner-dashed"></div>
             <p className="text-slate-500 dark:text-slate-400 font-mono text-[10px] uppercase tracking-widest">Fetching records...</p>
@@ -425,7 +380,7 @@ export default function SalaryDirectoryPage() {
                       className="w-3.5 h-3.5 accent-green-600 cursor-pointer align-middle"
                       checked={allSelected}
                       onChange={toggleAll}
-                      disabled={!!previewFile}
+                      disabled={false}
                     />
                   </th>
                   <th className="px-5 py-3 font-semibold w-12 text-center border-r border-slate-300 dark:border-slate-600">Sl. No.</th>
@@ -481,7 +436,7 @@ export default function SalaryDirectoryPage() {
               </thead>
               <tbody>
                 {filtered.map((r, idx) => {
-                  const rowId = r.id || `preview-${idx}`;
+                  const rowId = r.id || r.employeeId;
                   return (
                   <tr
                     key={rowId}
@@ -494,12 +449,11 @@ export default function SalaryDirectoryPage() {
                         className="w-3.5 h-3.5 accent-green-600 cursor-pointer align-middle"
                         checked={r.id ? selectedIds.has(r.id) : false}
                         onChange={() => r.id && toggleOne(r.id)}
-                        disabled={!!previewFile}
+                        disabled={false}
                       />
                     </td>
                     <td className="text-center font-mono text-slate-500 dark:text-slate-400 text-xs px-2 border-r border-slate-300 dark:border-slate-600">{idx + 1}</td>
                     <td className="text-center px-2" data-ui-only>
-                      {!previewFile && (
                         <button
                           onClick={(e) => { e.stopPropagation(); handlePreview(r.employeeId); }}
                           disabled={!isUnlocked || loadingPreviewId === r.employeeId}
@@ -518,7 +472,6 @@ export default function SalaryDirectoryPage() {
                             <EyeSlash size={16} weight="duotone" />
                           )}
                         </button>
-                      )}
                     </td>
                     <td className="font-mono font-bold text-slate-900 dark:text-white">{r.employeeId}</td>
                     <td className="font-semibold text-slate-900 dark:text-white">{r.empNameSnapshot}</td>
@@ -573,7 +526,7 @@ export default function SalaryDirectoryPage() {
                 {filtered.length === 0 && (
                   <tr>
                     <td colSpan={50} className="text-center p-8 text-slate-400 font-mono text-xs uppercase tracking-widest">
-                      {previewFile ? 'No valid records found in the Excel file' : `No payroll records for ${MONTHS[month - 1]} ${year}`}
+                      {`No payroll records for ${MONTHS[month - 1]} ${year}`}
                     </td>
                   </tr>
                 )}
@@ -582,6 +535,26 @@ export default function SalaryDirectoryPage() {
           </div>
         )}
       </div>
+
+      <TablePagination page={page} limit={limit} total={total} onPageChange={setPage} />
+
+      {showImport && (
+        <BulkUploadWizard
+          title={`Import payroll — ${MONTHS[month - 1]} ${year}`}
+          entityType="payroll"
+          showMonthYear
+          month={month}
+          year={year}
+          onMonthChange={setMonth}
+          onYearChange={setYear}
+          onComplete={handleImportComplete}
+          onCancel={() => setShowImport(false)}
+        />
+      )}
+
+      {conflictsJob?.id && (conflictsJob.conflictsPending ?? 0) > 0 && (
+        <ImportConflictPanel jobId={conflictsJob.id} entityType="payroll" />
+      )}
 
       {/* Confirmation Modal */}
       {confirmState.open && (
