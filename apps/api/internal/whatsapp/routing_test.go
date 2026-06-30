@@ -3,7 +3,6 @@ package whatsapp
 import (
 	"strings"
 	"testing"
-	"time"
 )
 
 func TestAcceptsInboundAtState(t *testing.T) {
@@ -196,17 +195,6 @@ func TestIsBotPromptEcho_leavePromptBodies(t *testing.T) {
 func TestShouldSkipInboundEcho_promptOnlyAtLeaveAwaitType(t *testing.T) {
 	if !shouldSkipInboundEcho(msgLeaveAwaitType, "text", StateLeaveAwaitType) {
 		t.Fatal("prompt-only echo should be skipped while awaiting leave type")
-	}
-}
-
-func TestShouldSoftGate_promptEchoNotGated(t *testing.T) {
-	s := &Service{}
-	sess := &Session{
-		State:          StateLeaveAwaitType,
-		LastOutboundAt: time.Now(),
-	}
-	if s.shouldSoftGate(sess, msgLeaveAwaitType) {
-		t.Fatal("prompt echo should not trigger soft gate")
 	}
 }
 

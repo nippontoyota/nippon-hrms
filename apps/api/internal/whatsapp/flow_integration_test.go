@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/nippon-toyota/hrms/internal/doubletick"
 	"github.com/nippon-toyota/hrms/internal/employee"
@@ -263,8 +264,10 @@ func TestFlow_fullLeaveSubmit_stepByStep(t *testing.T) {
 		{"m5", "text", "Family function", StateLeaveAwaitConfirm},
 		{"m6", "text", "yes", StateIdle},
 	}
-
 	for _, step := range steps {
+		if step.id == "m4" {
+			time.Sleep(leaveDateBurstWindow + 50 * time.Millisecond)
+		}
 		_ = svc.HandleWebhook(ctx, inbound(phone, step.id, step.typ, step.body))
 		sess, ok := store.Get(phone)
 		if !ok {
@@ -284,6 +287,7 @@ func TestFlow_fullLeaveSubmit(t *testing.T) {
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m1", "interactive", payloadRequestLeave))
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m2", "text", "Casual Leave"))
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m3", "text", "10/07/2026"))
+	time.Sleep(leaveDateBurstWindow + 50*time.Millisecond)
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m4", "text", "10/07/2026"))
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m5", "text", "Family function"))
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m6", "text", "yes"))

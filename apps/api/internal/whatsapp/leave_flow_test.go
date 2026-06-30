@@ -18,20 +18,6 @@ func TestMsgLeaveConfirmPromptIncludesReason(t *testing.T) {
 	}
 }
 
-func TestShouldSoftGate_blocksInvalidDuringLeaveFlow(t *testing.T) {
-	s := &Service{}
-	sess := &Session{
-		State:          StateLeaveAwaitReason,
-		LastOutboundAt: time.Now(),
-	}
-	if !s.shouldSoftGate(sess, "01/07/2026") {
-		t.Fatal("date at reason step should be soft-gated right after outbound")
-	}
-	if s.shouldSoftGate(sess, "Doctor visit") {
-		t.Fatal("valid reason should not be soft-gated")
-	}
-}
-
 func TestLeaveConfirmSummaryUsesStoredFields(t *testing.T) {
 	sDate, _ := time.Parse("2006-01-02", "2026-07-01")
 	eDate, _ := time.Parse("2006-01-02", "2026-07-01")

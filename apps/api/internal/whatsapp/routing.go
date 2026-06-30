@@ -85,3 +85,9 @@ func isMainMenuEcho(input string) bool {
 	return strings.Contains(lower, "nippon hr connect") &&
 		(strings.Contains(lower, "please select an option") || strings.Contains(lower, "how may we help"))
 }
+
+// isStalePromptEcho reports inbound text that repeats an outbound prompt body but is not
+// a valid answer for the current state (e.g. the leave-type question without a selection).
+func isStalePromptEcho(state State, input string) bool {
+	return isBotPromptEcho(input) && !acceptsInboundAtState(state, input)
+}

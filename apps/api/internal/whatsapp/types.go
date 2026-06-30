@@ -31,9 +31,13 @@ type Session struct {
 	State              State
 	EmployeeID         string
 	LastMenuSentAt     time.Time
-	LastPeriodPromptAt time.Time
-	LastPayslipSentAt  time.Time
-	LastOutboundAt     time.Time
+	LastPeriodPromptAt    time.Time
+	LastPayslipSentAt     time.Time
+	LastLeaveTypePromptAt time.Time
+	LastLeaveSubmittedAt  time.Time
+	LastLeaveDateAt     time.Time
+	LastOutboundAt        time.Time
+	LastOutboundText      string
 	UpdatedAt          time.Time
 
 	TempLeaveType   leave.LeaveType
