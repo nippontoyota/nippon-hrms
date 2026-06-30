@@ -3,10 +3,13 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"os"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/nippon-toyota/hrms/internal/db"
+	"github.com/nippon-toyota/hrms/internal/middleware"
 	"github.com/nippon-toyota/hrms/pkg/respond"
 	"github.com/supabase-community/gotrue-go/types"
 	"github.com/google/uuid"
@@ -40,7 +43,7 @@ func (h *AdminHandler) CreateHRUser(w http.ResponseWriter, r *http.Request) {
 		EmailConfirm: true,
 	}
 
-	user, err := h.supa.Auth.AdminCreateUser(userParams)
+	user, err := h.supa.Auth.WithToken(os.Getenv("SUPABASE_SERVICE_ROLE_KEY")).AdminCreateUser(userParams)
 	if err != nil {
 		respond.JSON(w, http.StatusInternalServerError, respond.Envelope{Success: false, Data: err.Error()})
 		return
@@ -66,7 +69,8 @@ func (h *AdminHandler) ListHRUsers(w http.ResponseWriter, r *http.Request) {
 
 	var users []map[string]interface{}
 	for rows.Next() {
-		var id, email, role, createdAt string
+		var id, email, role string
+		var createdAt time.Time
 		if err := rows.Scan(&id, &email, &role, &createdAt); err != nil {
 			continue
 		}
@@ -94,7 +98,7 @@ func (h *AdminHandler) DeleteHRUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.supa.Auth.AdminDeleteUser(types.AdminDeleteUserRequest{UserID: uid})
+	err = h.supa.Auth.WithToken(os.Getenv("SUPABASE_SERVICE_ROLE_KEY")).AdminDeleteUser(types.AdminDeleteUserRequest{UserID: uid})
 	if err != nil {
 		respond.JSON(w, http.StatusInternalServerError, respond.Envelope{Success: false, Data: err.Error()})
 		return
@@ -110,19 +114,14 @@ func (h *AdminHandler) DeleteHRUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AdminHandler) GetMe(w http.ResponseWriter, r *http.Request) {
-	token := r.Header.Get("Authorization")
-	if len(token) > 7 && token[:7] == "Bearer " {
-		token = token[7:]
-	}
-
-	user, err := h.supa.Auth.GetUser(token)
-	if err != nil || user == nil {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok || claims == nil {
 		respond.Unauthorized(w)
 		return
 	}
 
 	var role string
-	err = h.pool.QueryRow(r.Context(), "SELECT role FROM hr_profiles WHERE user_id = $1", user.ID).Scan(&role)
+	err := h.pool.QueryRow(r.Context(), "SELECT role FROM hr_profiles WHERE user_id = $1", claims.UserID).Scan(&role)
 	if err != nil {
 		// Default to hr_admin if not found
 		role = "hr_admin"
@@ -131,8 +130,8 @@ func (h *AdminHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	respond.JSON(w, http.StatusOK, respond.Envelope{
 		Success: true,
 		Data: map[string]interface{}{
-			"id":    user.ID,
-			"email": user.Email,
+			"id":    claims.UserID,
+			"email": claims.Email,
 			"role":  role,
 		},
 	})

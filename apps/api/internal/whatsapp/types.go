@@ -51,7 +51,3 @@ func (s *Session) resetFlow() {
 	s.TempLeaveReason = ""
 }
 
-func (s *Session) reset() {
-	s.State = StateIdle
-	s.EmployeeID = ""
-}

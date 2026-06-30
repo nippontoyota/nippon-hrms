@@ -24,10 +24,6 @@ const msgMainMenuBody = `How may we help you today?`
 
 const msgMenuTextFallback = `Please reply *Salary Slip* or *Request Leave*.`
 
-const msgNoPayslips = `No payslip records are available for your account.
-
-Please contact the HR department.`
-
 const msgPayslipNotFound = `No payslip was found for the month you entered.
 
 Please try another month or contact the HR department.`

@@ -30,7 +30,7 @@ export default function LoginPage() {
       let role = 'HR_ADMIN';
       try {
         const res = await api.get('/admin/me') as any;
-        if (res?.role) role = res.role.toUpperCase();
+        if (res?.data?.role) role = res.data.role.toUpperCase();
       } catch (e) {
         console.warn('Failed to fetch role, defaulting to HR_ADMIN', e);
       }
