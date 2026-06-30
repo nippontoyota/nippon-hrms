@@ -36,7 +36,8 @@ export default function SalaryPage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const { tableRef, handleRowClick, rowHighlightClass } = useTableRowHighlight();
-  const { data: records, isLoading: recordsLoading } = usePayrollRecords(month, year);
+  const { data: payrollData, isLoading: recordsLoading } = usePayrollRecords(month, year);
+  const records = payrollData?.items ?? [];
 
   const isNextMonthDisabled = year === currentYear && month === currentMonth;
   const isNextYearDisabled = year === currentYear;
@@ -89,8 +90,8 @@ export default function SalaryPage() {
   const hasPartialFailure = latestJob?.status === 'COMPLETED' && (latestJob.failed ?? 0) > 0;
   const isFullyDispatched = latestJob
     ? latestJob.status === 'COMPLETED' && (latestJob.failed ?? 0) === 0 && (latestJob.sent ?? 0) > 0
-    : (records?.some(r => r.dispatchedAt) ?? false);
-  const recordCount = records?.length ?? 0;
+    : (records.some(r => r.dispatchedAt) ?? false);
+  const recordCount = payrollData?.total ?? records.length;
 
   const handleDispatch = async () => {
     setDispatching(true);

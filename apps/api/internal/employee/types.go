@@ -51,6 +51,7 @@ type UploadResponse struct {
 
 type Repository interface {
 	List(ctx context.Context) ([]Employee, error)
+	ListPaginated(ctx context.Context, page, limit int, search string) (*ListResult, error)
 	GetByID(ctx context.Context, id string) (*Employee, error)
 	Create(ctx context.Context, emp *Employee) error
 	Update(ctx context.Context, id string, emp *Employee) error

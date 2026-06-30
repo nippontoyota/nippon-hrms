@@ -57,6 +57,50 @@ func (r *PostgresRepository) List(ctx context.Context) ([]Record, error) {
 	return records, rows.Err()
 }
 
+func (r *PostgresRepository) ListPaginated(ctx context.Context, page, limit int, search string) (*ListResult, error) {
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 200 {
+		limit = 50
+	}
+	offset := (page - 1) * limit
+
+	baseWhere := ""
+	args := []interface{}{}
+	if search != "" {
+		baseWhere = ` WHERE (employee_id ILIKE $1 OR name ILIKE $1 OR COALESCE(department,'') ILIKE $1 OR COALESCE(uan,'') ILIKE $1)`
+		args = append(args, "%"+search+"%")
+	}
+
+	var total int
+	if err := r.db.QueryRow(ctx, `SELECT COUNT(*) FROM epf_records`+baseWhere, args...).Scan(&total); err != nil {
+		return nil, err
+	}
+
+	listQ := listQuery + baseWhere + fmt.Sprintf(` ORDER BY employee_id LIMIT $%d OFFSET $%d`, len(args)+1, len(args)+2)
+	listArgs := append(args, limit, offset)
+
+	rows, err := r.db.Query(ctx, listQ, listArgs...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var records []Record
+	for rows.Next() {
+		rec, err := scanRecord(rows)
+		if err != nil {
+			return nil, err
+		}
+		records = append(records, rec)
+	}
+	if records == nil {
+		records = []Record{}
+	}
+	return &ListResult{Items: records, Total: total, Page: page, Limit: limit}, rows.Err()
+}
+
 func (r *PostgresRepository) GetByID(ctx context.Context, employeeID string) (*Record, error) {
 	rec, err := scanRecord(r.db.QueryRow(ctx, listQuery+" WHERE employee_id = $1 LIMIT 1", employeeID))
 	if err != nil {

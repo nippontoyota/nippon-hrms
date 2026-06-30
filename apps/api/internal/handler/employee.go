@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/nippon-toyota/hrms/internal/employee"
@@ -94,19 +95,26 @@ func (h *EmployeeHandler) BulkUpload(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *EmployeeHandler) List(w http.ResponseWriter, r *http.Request) {
-	employees, err := h.repo.List(r.Context())
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	search := r.URL.Query().Get("search")
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 {
+		limit = 50
+	}
+
+	result, err := h.repo.ListPaginated(r.Context(), page, limit, search)
 	if err != nil {
 		logger.Error("failed to list employees", "err", err)
 		respond.InternalError(w)
 		return
 	}
-	if employees == nil {
-		employees = []employee.Employee{}
-	}
 
 	if !vault.IsUnlocked(r.Context(), h.pool, r) {
-		for i := range employees {
-			emp := &employees[i]
+		for i := range result.Items {
+			emp := &result.Items[i]
 			emp.Basic = 0
 			emp.DA = 0
 			emp.RevisedBasicDA = 0
@@ -134,7 +142,7 @@ func (h *EmployeeHandler) List(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	respond.OK(w, employees)
+	respond.OK(w, result)
 }
 
 func (h *EmployeeHandler) Create(w http.ResponseWriter, r *http.Request) {
