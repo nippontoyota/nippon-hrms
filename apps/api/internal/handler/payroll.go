@@ -132,6 +132,32 @@ func (h *PayrollHandler) GetDispatchJob(w http.ResponseWriter, r *http.Request) 
 	respond.OK(w, job)
 }
 
+func (h *PayrollHandler) GetLatestDispatchJob(w http.ResponseWriter, r *http.Request) {
+	month, _ := strconv.Atoi(r.URL.Query().Get("month"))
+	year, _ := strconv.Atoi(r.URL.Query().Get("year"))
+	if month < 1 || month > 12 || year < 2000 {
+		respond.BadRequest(w, "invalid month or year")
+		return
+	}
+
+	job, err := h.dispatchService.GetLatestJobForPeriod(r.Context(), month, year)
+	if err != nil {
+		logger.Error("get latest dispatch job failed", "month", month, "year", year, "err", err)
+		respond.InternalError(w)
+		return
+	}
+	if job == nil {
+		respond.OK(w, nil)
+		return
+	}
+	if job.Failed > 0 {
+		if err := h.repo.ClearDispatched(r.Context(), month, year); err != nil {
+			logger.Error("clear dispatched flag failed", "month", month, "year", year, "err", err)
+		}
+	}
+	respond.OK(w, job)
+}
+
 func (h *PayrollHandler) ListDispatchJobItems(w http.ResponseWriter, r *http.Request) {
 	jobID := chi.URLParam(r, "jobId")
 	status := dispatch.ItemStatus(r.URL.Query().Get("status"))

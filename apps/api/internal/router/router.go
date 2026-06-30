@@ -45,7 +45,9 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 	payrollRepo := payroll.NewPostgresRepository(pgPool)
 	leaveRepo := leave.NewPostgresRepository(pgPool)
 
-	payrollDispatcher := payroll.NewDispatcher(payrollRepo, empRepo, epfRepo, dtClient)
+	sessionStore := whatsapp.NewInMemoryStore(0)
+	sessionWindow := whatsapp.NewPostgresSessionWindowStore(pgPool)
+	payrollDispatcher := payroll.NewDispatcher(payrollRepo, empRepo, epfRepo, dtClient, sessionWindow)
 	dispatchRepo := dispatch.NewPostgresRepository(pgPool)
 	dispatchService := dispatch.NewService(
 		dispatchRepo,
@@ -53,14 +55,12 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 		empRepo,
 		epfRepo,
 		payrollDispatcher,
+		sessionWindow,
 		dispatch.RunnerConfig{
 			Workers:   cfg.DispatchWorkers,
 			ItemDelay: time.Duration(cfg.DispatchItemDelay) * time.Millisecond,
 		},
 	)
-
-	sessionStore := whatsapp.NewInMemoryStore(0)
-	sessionWindow := whatsapp.NewPostgresSessionWindowStore(pgPool)
 	waSvc := whatsapp.NewService(dtClient, sessionStore, sessionWindow, empRepo, epfRepo, payrollRepo, leaveRepo)
 	waHandler := whatsapp.NewHandler(waSvc, cfg.DoubleTickWebhookSecret)
 
@@ -108,6 +108,7 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 				r.Get("/preview", payrollH.PreviewPDF)
 				r.Post("/validate", payrollH.Validate)
 				r.Post("/dispatch", payrollH.Dispatch)
+				r.Get("/dispatch/latest", payrollH.GetLatestDispatchJob)
 				r.Get("/dispatch/{jobId}", payrollH.GetDispatchJob)
 				r.Get("/dispatch/{jobId}/items", payrollH.ListDispatchJobItems)
 				r.Post("/dispatch/{jobId}/retry-failed", payrollH.RetryFailedDispatch)

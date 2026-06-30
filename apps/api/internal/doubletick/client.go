@@ -110,14 +110,31 @@ func (c *Client) SendTemplate(
 	to, templateName, language string,
 	placeholders []string,
 ) (*Response, error) {
+	return c.SendTemplateWithDocument(ctx, to, templateName, language, placeholders, "", "")
+}
+
+func (c *Client) SendTemplateWithDocument(
+	ctx context.Context,
+	to, templateName, language string,
+	placeholders []string,
+	mediaURL, filename string,
+) (*Response, error) {
+	templateData := &TemplateData{
+		Body: TemplateBodyData{Placeholders: placeholders},
+	}
+	if mediaURL != "" {
+		templateData.Header = &TemplateHeaderData{
+			Type:     "DOCUMENT",
+			MediaURL: mediaURL,
+			Filename: filename,
+		}
+	}
 	body := TemplateRequest{
 		Messages: []TemplateMessage{{
 			Content: TemplateContent{
 				TemplateName: templateName,
 				Language:     language,
-				TemplateData: &TemplateData{
-					Body: TemplateBodyData{Placeholders: placeholders},
-				},
+				TemplateData: templateData,
 			},
 			From: c.formatFrom(),
 			To:   c.formatTo(to),
@@ -126,7 +143,7 @@ func (c *Client) SendTemplate(
 	return c.do(ctx, http.MethodPost, "/whatsapp/message/template", body)
 }
 
-// IsSessionExpiredError reports whether a SendText failure indicates the 24-hour session window is closed.
+// IsSessionExpiredError reports whether an outbound send failed because the 24-hour chat window is closed.
 func IsSessionExpiredError(err error) bool {
 	var apiErr *APIError
 	if !errors.As(err, &apiErr) {
@@ -137,7 +154,10 @@ func IsSessionExpiredError(err error) bool {
 		strings.Contains(body, "re-engagement") ||
 		strings.Contains(body, "session") ||
 		strings.Contains(body, "24 hour") ||
-		strings.Contains(body, "outside")
+		strings.Contains(body, "outside") ||
+		strings.Contains(body, "chat window is closed") ||
+		strings.Contains(body, "closed window") ||
+		strings.Contains(body, "send template message")
 }
 
 // SendDocument sends a WhatsApp document message pointing at a hosted media URL.
@@ -317,5 +337,30 @@ func (c *Client) do(ctx context.Context, method, path string, payload any) (*Res
 		return nil, fmt.Errorf("doubletick: decode response: %w", err)
 	}
 
+	if err := result.Validate(); err != nil {
+		return nil, err
+	}
+
 	return &result, nil
+}
+
+func (r *Response) Validate() error {
+	if r == nil || len(r.Messages) == 0 {
+		return nil
+	}
+	for _, m := range r.Messages {
+		status := strings.ToUpper(strings.TrimSpace(m.Status))
+		switch status {
+		case "", "ENQUEUED", "SENT", "DELIVERED", "READ", "ACCEPTED", "SUCCESS":
+			continue
+		case "FAILED", "REJECTED", "ERROR":
+			if m.ErrorMessage != "" {
+				return &APIError{StatusCode: 422, Body: []byte(m.ErrorMessage)}
+			}
+			return &APIError{StatusCode: 422, Body: []byte("message " + status)}
+		default:
+			continue
+		}
+	}
+	return nil
 }

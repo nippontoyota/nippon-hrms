@@ -54,8 +54,8 @@ func Load() (*Config, error) {
 		DoubleTickWebhookSecret: getEnv("DOUBLETICK_WEBHOOK_SECRET", ""),
 		WABAPhoneNumberID:       getEnv("WABA_PHONE_NUMBER_ID", ""),
 
-		DispatchWorkers:   getEnvInt("DISPATCH_WORKERS", 15),
-		DispatchItemDelay: getEnvInt("DISPATCH_ITEM_DELAY_MS", 100),
+		DispatchWorkers:   getEnvInt("DISPATCH_WORKERS", 30),
+		DispatchItemDelay: getEnvInt("DISPATCH_ITEM_DELAY_MS", 50),
 	}
 
 	return cfg, nil

@@ -236,8 +236,8 @@ func addIdentityBlock(m core.Maroto, v PayslipView) {
 		{[2]string{"Bank IFSC Code :", v.IFSCCode}, [2]string{"Employee Location", v.Location}},
 	}
 
-	labelProp := props.Text{Size: 9, Align: align.Left, Top: 1, Left: 1}
-	valueProp := props.Text{Size: 9, Style: fontstyle.Bold, Align: align.Left, Top: 1}
+	labelProp := props.Text{Size: 9, Align: align.Left, Top: 1, Left: 1, Bottom: 1}
+	valueProp := props.Text{Size: 9, Style: fontstyle.Bold, Align: align.Left, Top: 1, Left: 1, Bottom: 1}
 
 	for i, r := range rows {
 		leftBorder := border.Left
@@ -252,7 +252,7 @@ func addIdentityBlock(m core.Maroto, v PayslipView) {
 			bottom = border.Bottom
 		}
 
-		m.AddRow(6,
+		m.AddAutoRow(
 			col.New(3).
 				Add(text.New(r.left[0], labelProp)).
 				WithStyle(styleCell(colorBeige, leftBorder)),
@@ -281,8 +281,8 @@ func addEarningsDeductions(m core.Maroto, v PayslipView) {
 		col.New(2).Add(text.New("Amount", headAmt)).WithStyle(styleCell(colorGray, border.Top|border.Bottom|border.Right)),
 	)
 
-	descProp := props.Text{Size: 9, Align: align.Left, Top: 0.5, Left: 1}
-	amtProp := props.Text{Size: 9, Align: align.Right, Top: 0.5, Right: 1}
+	descProp := props.Text{Size: 9, Align: align.Left, Top: 0.5, Left: 1, Bottom: 0.5}
+	amtProp := props.Text{Size: 9, Align: align.Right, Top: 0.5, Right: 1, Bottom: 0.5}
 
 	n := len(v.Earnings)
 	if len(v.Deductions) > n {
@@ -300,7 +300,7 @@ func addEarningsDeductions(m core.Maroto, v PayslipView) {
 			dAmt = v.Deductions[i].Amount
 		}
 
-		m.AddRow(5.5,
+		m.AddAutoRow(
 			col.New(4).Add(text.New(eLabel, descProp)).WithStyle(styleCell(nil, border.Left)),
 			col.New(2).Add(text.New(eAmt, amtProp)).WithStyle(styleCell(nil, border.Right)),
 			col.New(4).Add(text.New(dLabel, descProp)),

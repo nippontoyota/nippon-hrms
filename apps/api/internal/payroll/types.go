@@ -78,4 +78,5 @@ type Repository interface {
 	Delete(ctx context.Context, id string) error
 	DeleteByPeriod(ctx context.Context, month, year int) error
 	MarkAsDispatched(ctx context.Context, month, year int) error
+	ClearDispatched(ctx context.Context, month, year int) error
 }

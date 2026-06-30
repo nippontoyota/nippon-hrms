@@ -366,7 +366,7 @@ func (s *Service) deliverPayslip(ctx context.Context, sess *Session, from string
 	if emp != nil && emp.Name != "" {
 		empName = emp.Name
 	}
-	caption := msgPayslipCaption(empName, monthStr, year)
+	caption := payroll.PayslipCaption(monthStr, year, empName)
 
 	if _, err := s.dt.SendDocument(ctx, from, mediaURL, filename, caption); err != nil {
 		slog.Error("document send failed", "err", err)
@@ -506,11 +506,6 @@ func (s *Service) handleLeaveAwaitStart(ctx context.Context, sess *Session, from
 		return s.sendText(ctx, from, msgLeaveStartInPast)
 	}
 
-	maxDate := today.AddDate(0, 0, 30)
-	if parsed.After(maxDate) {
-		return s.sendText(ctx, from, msgLeaveTooFarAhead)
-	}
-
 	sess.TempLeaveStart = parsed.Format("2006-01-02")
 	sess.State = StateLeaveAwaitEnd
 	s.sessions.Set(from, sess)
@@ -532,14 +527,6 @@ func (s *Service) handleLeaveAwaitEnd(ctx context.Context, sess *Session, from, 
 	startDate, _ := time.Parse("2006-01-02", sess.TempLeaveStart)
 	if endDate.Before(startDate) {
 		return s.sendText(ctx, from, msgLeaveEndBeforeStart)
-	}
-
-	todayStr := time.Now().Format("2006-01-02")
-	today, _ := time.Parse("2006-01-02", todayStr)
-	maxDate := today.AddDate(0, 0, 30)
-
-	if endDate.After(maxDate) {
-		return s.sendText(ctx, from, msgLeaveTooFarAhead)
 	}
 
 	days := int(endDate.Sub(startDate).Hours()/24) + 1

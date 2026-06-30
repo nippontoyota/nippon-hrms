@@ -6,6 +6,7 @@ import { salaryApi } from '@/api/endpoints';
 import type { DispatchJob, DispatchJobItem } from '@/api/types';
 import { dispatchItemBadge } from '@/lib/format';
 import { useTableRowHighlight } from '@/lib/useTableRowHighlight';
+import DispatchProgressBar from '@/components/DispatchProgressBar';
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -92,8 +93,6 @@ export default function DispatchJobPage() {
     );
   }
 
-  const processed = job.sent + job.failed + job.skipped;
-  const progress = job.total > 0 ? Math.round((processed / job.total) * 100) : 0;
   const isActive = job.status === 'PENDING' || job.status === 'RUNNING';
 
   return (
@@ -125,18 +124,14 @@ export default function DispatchJobPage() {
           <span className={`badge ${jobStatusBadge(job.status)}`}>{job.status}</span>
         </div>
 
-        <div className="mb-6">
-          <div className="flex justify-between text-sm font-semibold text-slate-600 dark:text-slate-300 mb-2">
-            <span>Progress</span>
-            <span>{progress}% ({processed}/{job.total})</span>
-          </div>
-          <div className="h-3 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-[#eb0a1e] transition-all duration-500 ease-out"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-        </div>
+        <DispatchProgressBar
+          total={job.total}
+          sent={job.sent}
+          failed={job.failed}
+          skipped={job.skipped}
+          createdAt={job.createdAt}
+          isActive={isActive}
+        />
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <StatCard label="Total" value={job.total} icon={<CheckCircle size={18} className="text-slate-400" />} />

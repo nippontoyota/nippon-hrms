@@ -67,6 +67,8 @@ export const salaryApi = {
   },
   dispatch: (month: number, year: number) =>
     api.post<{ jobId: string }>('/payroll/dispatch', { month, year }).then((r) => r.data),
+  getLatestDispatchJob: (month: number, year: number) =>
+    api.get<DispatchJob | null>(`/payroll/dispatch/latest?month=${month}&year=${year}`).then((r) => r.data),
   getDispatchJob: (jobId: string) =>
     api.get<DispatchJob>(`/payroll/dispatch/${jobId}`).then((r) => r.data),
   getDispatchJobItems: (jobId: string, params?: { status?: string; page?: number; limit?: number }) =>
