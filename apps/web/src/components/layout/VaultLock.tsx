@@ -57,8 +57,8 @@ export default function VaultLock({ isCollapsed }: { isCollapsed: boolean }) {
           isCollapsed ? 'justify-center' : 'gap-3'
         } px-3 py-2.5 transition-colors font-semibold text-[13px] rounded-md ${
           unlocked
-            ? 'text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-900/30'
-            : 'text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-900/30'
+            ? 'text-[#eb0a1e] hover:bg-red-50 dark:text-[#eb0a1e] dark:hover:bg-red-900/30'
+            : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
         }`}
       >
         {unlocked ? (
@@ -99,7 +99,7 @@ export default function VaultLock({ isCollapsed }: { isCollapsed: boolean }) {
               className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-sm overflow-hidden border border-slate-200 dark:border-slate-700"
             >
               <div className="p-6">
-                <div className="flex items-center gap-3 mb-4 text-amber-600 dark:text-amber-500">
+                <div className="flex items-center gap-3 mb-4 text-slate-800 dark:text-slate-200">
                   <LockKey size={24} weight="fill" />
                   <h3 className="font-bold text-lg text-slate-900 dark:text-white">Unlock Vault</h3>
                 </div>
@@ -115,7 +115,7 @@ export default function VaultLock({ isCollapsed }: { isCollapsed: boolean }) {
                       placeholder="Root Password"
                       autoFocus
                       disabled={isLoading}
-                      className="w-full px-4 py-2.5 pr-10 bg-slate-50 dark:bg-slate-900/50 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/50 dark:text-white"
+                      className="w-full px-4 py-2.5 pr-10 bg-slate-50 dark:bg-slate-900/50 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-500/50 dark:text-white"
                     />
                     <button
                       type="button"
@@ -138,7 +138,7 @@ export default function VaultLock({ isCollapsed }: { isCollapsed: boolean }) {
                     <button
                       type="submit"
                       disabled={!password.trim() || isLoading}
-                      className="flex flex-1 items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-amber-500 rounded-lg hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="flex flex-1 items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-slate-900 rounded-lg hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                       {isLoading ? (
                         <>
