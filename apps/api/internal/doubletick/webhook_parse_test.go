@@ -106,3 +106,21 @@ func TestParseWebhook_docsFormatTextNoType(t *testing.T) {
 		t.Fatalf("body = %q", wh.Data.Body())
 	}
 }
+
+func TestParseWebhook_docsFormatNoMessageID(t *testing.T) {
+	raw := []byte(`{"to":"917594086900","from":"918590215315","message":{"type":"TEXT","text":"hi"}}`)
+
+	wh, ok, err := ParseWebhook(raw)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !ok || wh == nil {
+		t.Fatal("expected inbound webhook")
+	}
+	if wh.Data.MessageID != "" {
+		t.Fatalf("message id should be empty when omitted, got %q", wh.Data.MessageID)
+	}
+	if wh.Data.MessageID == wh.Data.From {
+		t.Fatal("message id must not fall back to phone number")
+	}
+}

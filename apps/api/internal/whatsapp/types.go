@@ -33,6 +33,7 @@ type Session struct {
 	LastMenuSentAt     time.Time
 	LastPeriodPromptAt time.Time
 	LastPayslipSentAt  time.Time
+	LastOutboundAt     time.Time
 	UpdatedAt          time.Time
 
 	TempLeaveType   leave.LeaveType

@@ -88,6 +88,23 @@ For a one-day leave, enter the same date as your start date.`
 
 const msgLeaveAwaitReason = `Please enter the reason for your leave.`
 
+const msgLeaveInvalidReason = `Please enter a short reason in words (not a date).
+
+Example: Family function`
+
+const msgLeaveReasonTooShort = `Please enter a longer reason (at least 3 characters).`
+
+const msgLeaveAwaitEndNotDate = `That doesn't look like an end date.
+
+We're still waiting for your leave end date in DD/MM/YYYY format.
+Example: 05/07/2026`
+
+const msgLeavePleaseWait = `Got it — please wait a moment and answer the latest question above.`
+
+const msgLeaveAlreadySubmitted = `Your leave request has already been submitted.
+
+Reply Hi to return to the main menu.`
+
 const msgLeaveInvalidDate = `Invalid format.
 
 Please enter the date as DD/MM/YYYY.

@@ -1,0 +1,189 @@
+package whatsapp
+
+import (
+	"context"
+	"encoding/json"
+	"sync"
+	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/nippon-toyota/hrms/internal/leave"
+)
+
+type sessionSnapshot struct {
+	State              State           `json:"state"`
+	EmployeeID         string          `json:"employeeId,omitempty"`
+	LastMenuSentAt     time.Time       `json:"lastMenuSentAt,omitempty"`
+	LastPeriodPromptAt time.Time       `json:"lastPeriodPromptAt,omitempty"`
+	LastPayslipSentAt  time.Time       `json:"lastPayslipSentAt,omitempty"`
+	LastOutboundAt     time.Time       `json:"lastOutboundAt,omitempty"`
+	UpdatedAt          time.Time       `json:"updatedAt,omitempty"`
+	TempLeaveType      leave.LeaveType `json:"tempLeaveType,omitempty"`
+	TempLeaveStart     string          `json:"tempLeaveStart,omitempty"`
+	TempLeaveEnd       string          `json:"tempLeaveEnd,omitempty"`
+	TempLeaveReason    string          `json:"tempLeaveReason,omitempty"`
+}
+
+func snapshotFromSession(sess *Session) sessionSnapshot {
+	return sessionSnapshot{
+		State:              sess.State,
+		EmployeeID:         sess.EmployeeID,
+		LastMenuSentAt:     sess.LastMenuSentAt,
+		LastPeriodPromptAt: sess.LastPeriodPromptAt,
+		LastPayslipSentAt:  sess.LastPayslipSentAt,
+		LastOutboundAt:     sess.LastOutboundAt,
+		UpdatedAt:          sess.UpdatedAt,
+		TempLeaveType:      sess.TempLeaveType,
+		TempLeaveStart:     sess.TempLeaveStart,
+		TempLeaveEnd:       sess.TempLeaveEnd,
+		TempLeaveReason:    sess.TempLeaveReason,
+	}
+}
+
+func sessionFromSnapshot(phone string, snap sessionSnapshot) *Session {
+	return &Session{
+		Phone:              phone,
+		State:              snap.State,
+		EmployeeID:         snap.EmployeeID,
+		LastMenuSentAt:     snap.LastMenuSentAt,
+		LastPeriodPromptAt: snap.LastPeriodPromptAt,
+		LastPayslipSentAt:  snap.LastPayslipSentAt,
+		LastOutboundAt:     snap.LastOutboundAt,
+		UpdatedAt:          snap.UpdatedAt,
+		TempLeaveType:      snap.TempLeaveType,
+		TempLeaveStart:     snap.TempLeaveStart,
+		TempLeaveEnd:       snap.TempLeaveEnd,
+		TempLeaveReason:    snap.TempLeaveReason,
+	}
+}
+
+type PostgresSessionStore struct {
+	db  *pgxpool.Pool
+	ttl time.Duration
+	mu  sync.RWMutex
+	cache map[string]*Session
+}
+
+func NewPostgresSessionStore(db *pgxpool.Pool, ttl time.Duration) *PostgresSessionStore {
+	if ttl == 0 {
+		ttl = defaultTTL
+	}
+	store := &PostgresSessionStore{
+		db:    db,
+		ttl:   ttl,
+		cache: make(map[string]*Session),
+	}
+	go store.cleanup()
+	return store
+}
+
+func (s *PostgresSessionStore) Get(phone string) (*Session, bool) {
+	phone = normalizeSessionPhone(phone)
+	if phone == "" {
+		return nil, false
+	}
+
+	s.mu.RLock()
+	if cached, ok := s.cache[phone]; ok && time.Since(cached.UpdatedAt) <= s.ttl {
+		s.mu.RUnlock()
+		return cached, true
+	}
+	s.mu.RUnlock()
+
+	var raw []byte
+	err := s.db.QueryRow(context.Background(), `
+		SELECT flow_state FROM whatsapp_conversations WHERE phone = $1
+	`, phone).Scan(&raw)
+	if err != nil || len(raw) == 0 {
+		return nil, false
+	}
+
+	var snap sessionSnapshot
+	if err := json.Unmarshal(raw, &snap); err != nil {
+		return nil, false
+	}
+	if !snap.UpdatedAt.IsZero() && time.Since(snap.UpdatedAt) > s.ttl {
+		s.Delete(phone)
+		return nil, false
+	}
+
+	sess := sessionFromSnapshot(phone, snap)
+	s.mu.Lock()
+	s.cache[phone] = sess
+	s.mu.Unlock()
+	return sess, true
+}
+
+func (s *PostgresSessionStore) Set(phone string, sess *Session) {
+	phone = normalizeSessionPhone(phone)
+	if phone == "" || sess == nil {
+		return
+	}
+
+	sess.Phone = phone
+	sess.UpdatedAt = time.Now()
+	snap := snapshotFromSession(sess)
+	raw, err := json.Marshal(snap)
+	if err != nil {
+		return
+	}
+
+	_, err = s.db.Exec(context.Background(), `
+		INSERT INTO whatsapp_conversations (phone, flow_state, updated_at)
+		VALUES ($1, $2, NOW())
+		ON CONFLICT (phone) DO UPDATE
+		SET flow_state = EXCLUDED.flow_state, updated_at = NOW()
+	`, phone, raw)
+	if err != nil {
+		return
+	}
+
+	s.mu.Lock()
+	s.cache[phone] = sess
+	s.mu.Unlock()
+}
+
+func (s *PostgresSessionStore) Delete(phone string) {
+	phone = normalizeSessionPhone(phone)
+	if phone == "" {
+		return
+	}
+
+	_, _ = s.db.Exec(context.Background(), `
+		UPDATE whatsapp_conversations
+		SET flow_state = NULL, updated_at = NOW()
+		WHERE phone = $1
+	`, phone)
+
+	s.mu.Lock()
+	delete(s.cache, phone)
+	s.mu.Unlock()
+}
+
+func (s *PostgresSessionStore) cleanup() {
+	ticker := time.NewTicker(s.ttl / 2)
+	defer ticker.Stop()
+	for range ticker.C {
+		s.mu.Lock()
+		for phone, sess := range s.cache {
+			if time.Since(sess.UpdatedAt) > s.ttl {
+				delete(s.cache, phone)
+			}
+		}
+		s.mu.Unlock()
+	}
+}
+
+func NewSessionStore(db *pgxpool.Pool) SessionStore {
+	if db == nil {
+		return NewInMemoryStore(0)
+	}
+	return NewPostgresSessionStore(db, 0)
+}
+
+// Ensure interface compliance at compile time.
+var (
+	_ SessionStore = (*InMemoryStore)(nil)
+	_ SessionStore = (*PostgresSessionStore)(nil)
+)
