@@ -68,12 +68,14 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 	epfH := handler.NewEpfHandler(epfRepo)
 	payrollH := handler.NewPayrollHandler(payrollRepo, payrollDispatcher, dispatchService)
 	leaveH := handler.NewLeaveHandler(leaveRepo, empRepo, dtClient, sessionWindow)
+	vaultH := handler.NewVaultHandler()
 
 	r.Get("/health", handler.HealthHandler)
 
 	r.Route("/api/v1", func(r chi.Router) {
 
 		r.Post("/whatsapp/webhook", waHandler.Webhook)
+		r.Post("/vault/verify", vaultH.Verify)
 
 		r.Group(func(r chi.Router) {
 			r.Use(appMiddleware.RequireAuth(cfg.SupabaseURL, cfg.SupabaseAnonKey))
