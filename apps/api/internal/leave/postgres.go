@@ -76,7 +76,7 @@ func (r *PostgresRepository) ListAll(ctx context.Context) ([]LeaveRequest, error
 		l.RejectionReason = rejectionReason
 		l.ReviewedBy = reviewedBy
 		l.ReviewedAt = reviewedAt
-		
+
 		emp.ID = l.EmployeeID
 		l.Employee = &emp
 
@@ -132,7 +132,7 @@ func (r *PostgresRepository) GetByID(ctx context.Context, id string) (*LeaveRequ
 	l.RejectionReason = rejectionReason
 	l.ReviewedBy = reviewedBy
 	l.ReviewedAt = reviewedAt
-	
+
 	emp.ID = l.EmployeeID
 	l.Employee = &emp
 

@@ -80,9 +80,9 @@ func (h *LeaveHandler) NotifyLeaveStatus(
 	}
 
 	var (
-		textMsg       string
-		templateName  string
-		placeholders  []string
+		textMsg      string
+		templateName string
+		placeholders []string
 	)
 	switch status {
 	case leave.StatusApproved:

@@ -6,19 +6,19 @@ import (
 )
 
 type Record struct {
-	EmployeeID     string    `json:"employeeId"`
-	Name           string    `json:"name"`
-	Department     string    `json:"department"`
-	Level          string    `json:"level"`
-	DOJ            string    `json:"doj"`
-	YearsSinceDOJ  float64   `json:"yearsSinceDoj"`
-	DOA            string    `json:"doa"`
-	YearsSinceDOA  float64   `json:"yearsSinceDoa"`
-	EPFNumber      string    `json:"epfNumber"`
-	UAN            string    `json:"uan"`
-	ESINumber      string    `json:"esiNumber"`
-	CreatedAt      time.Time `json:"createdAt"`
-	UpdatedAt      time.Time `json:"updatedAt"`
+	EmployeeID    string    `json:"employeeId"`
+	Name          string    `json:"name"`
+	Department    string    `json:"department"`
+	Level         string    `json:"level"`
+	DOJ           string    `json:"doj"`
+	YearsSinceDOJ float64   `json:"yearsSinceDoj"`
+	DOA           string    `json:"doa"`
+	YearsSinceDOA float64   `json:"yearsSinceDoa"`
+	EPFNumber     string    `json:"epfNumber"`
+	UAN           string    `json:"uan"`
+	ESINumber     string    `json:"esiNumber"`
+	CreatedAt     time.Time `json:"createdAt"`
+	UpdatedAt     time.Time `json:"updatedAt"`
 }
 
 type UploadResponse struct {

@@ -14,14 +14,14 @@ import (
 )
 
 type Service struct {
-	repo          Repository
-	payrollRepo   payroll.Repository
-	empRepo       employee.Repository
-	epfRepo       epf.Repository
-	dispatcher    *payroll.Dispatcher
-	windowStore   whatsapp.SessionWindowStore
-	cfg           RunnerConfig
-	registry      *RunnerRegistry
+	repo        Repository
+	payrollRepo payroll.Repository
+	empRepo     employee.Repository
+	epfRepo     epf.Repository
+	dispatcher  *payroll.Dispatcher
+	windowStore whatsapp.SessionWindowStore
+	cfg         RunnerConfig
+	registry    *RunnerRegistry
 }
 
 func NewService(

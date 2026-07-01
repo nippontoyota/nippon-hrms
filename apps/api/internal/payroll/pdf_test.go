@@ -19,12 +19,12 @@ func TestGeneratePayslipPDF_longVariableFields(t *testing.T) {
 	}
 
 	rec := &Record{
-		EmployeeID:      "9005",
-		Month:           6,
-		Year:            2026,
-		EmpNameSnapshot: "Bharath Chandra",
-		Days:            30,
-		BasicDA:         50000,
+		EmployeeID:        "9005",
+		Month:             6,
+		Year:              2026,
+		EmpNameSnapshot:   "Bharath Chandra",
+		Days:              30,
+		BasicDA:           50000,
 		TotalEarWithIncen: 75000,
 		TotalDeductions:   5000,
 		ActualFinalAmount: 70000,

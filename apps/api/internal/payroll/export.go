@@ -5,6 +5,7 @@ import (
 
 	"github.com/nippon-toyota/hrms/pkg/employeeid"
 )
+
 // ExportHeaders lists the only columns included in salary directory Excel/CSV exports.
 // UI-only table columns (Preview, Sl. No., checkboxes, computed totals) must never be added here.
 var ExportHeaders = []string{

@@ -6,8 +6,8 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/nippon-toyota/hrms/internal/vault"
-	"golang.org/x/crypto/bcrypt"
 	"github.com/nippon-toyota/hrms/pkg/respond"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type VaultHandler struct {

@@ -8,18 +8,18 @@ import (
 )
 
 type dedupStore struct {
-	mu                 sync.Mutex
-	ttl                time.Duration
-	echoWindow         time.Duration
-	actionWindow       time.Duration
-	greetingWindow     time.Duration
-	periodWindow       time.Duration
-	payslipWindow      time.Duration
-	byMessageID        map[string]time.Time
-	byAction           map[string]time.Time
-	lastStructuredAt   map[string]time.Time
-	byPayslipDelivery  map[string]time.Time
-	inFlightPayslip    map[string]bool
+	mu                sync.Mutex
+	ttl               time.Duration
+	echoWindow        time.Duration
+	actionWindow      time.Duration
+	greetingWindow    time.Duration
+	periodWindow      time.Duration
+	payslipWindow     time.Duration
+	byMessageID       map[string]time.Time
+	byAction          map[string]time.Time
+	lastStructuredAt  map[string]time.Time
+	byPayslipDelivery map[string]time.Time
+	inFlightPayslip   map[string]bool
 }
 
 func newDedupStore(ttl time.Duration) *dedupStore {

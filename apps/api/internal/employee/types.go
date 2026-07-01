@@ -38,6 +38,8 @@ type Employee struct {
 	BankBranch                string    `json:"bankBranch"`
 	IFSCCode                  string    `json:"ifscCode"`
 	Status                    string    `json:"status"`
+	ManagerID                 *string   `json:"managerId,omitempty"`
+	ManagerName               *string   `json:"managerName,omitempty"`
 	CreatedAt                 time.Time `json:"createdAt"`
 	UpdatedAt                 time.Time `json:"updatedAt"`
 }

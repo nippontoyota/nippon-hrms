@@ -32,9 +32,10 @@ func (r *PostgresRepository) FindByPhone(ctx context.Context, rawPhone string) (
 			hostel, children, total_salary, mobile, conveyance, wash_allowance, 
 			branch_allowance, special_allowance, training, total_allowances, 
 			total_salary_with_allowances, COALESCE(bank_name, ''), COALESCE(account_number, ''),
-			COALESCE(bank_branch, ''), COALESCE(ifsc_code, ''), created_at, updated_at
-		FROM employees
-		WHERE RIGHT(REGEXP_REPLACE(mobile_number, '[^0-9]', '', 'g'), 10) = $1
+			COALESCE(e.bank_branch, ''), COALESCE(e.ifsc_code, ''), e.manager_id, COALESCE(m.name, ''), e.created_at, e.updated_at
+		FROM employees e
+		LEFT JOIN employees m ON e.manager_id = m.id
+		WHERE RIGHT(REGEXP_REPLACE(e.mobile_number, '[^0-9]', '', 'g'), 10) = $1
 		LIMIT 1
 	`
 	var e Employee
@@ -44,7 +45,7 @@ func (r *PostgresRepository) FindByPhone(ctx context.Context, rawPhone string) (
 		&e.Hostel, &e.Children, &e.TotalSalary, &e.Mobile, &e.Conveyance, &e.WashAllowance,
 		&e.BranchAllowance, &e.SpecialAllowance, &e.Training, &e.TotalAllowances,
 		&e.TotalSalaryWithAllowances, &e.BankName, &e.AccountNumber, &e.BankBranch,
-		&e.IFSCCode, &e.CreatedAt, &e.UpdatedAt,
+		&e.IFSCCode, &e.ManagerID, &e.ManagerName, &e.CreatedAt, &e.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -58,17 +59,18 @@ func (r *PostgresRepository) FindByPhone(ctx context.Context, rawPhone string) (
 func (r *PostgresRepository) GetByID(ctx context.Context, id string) (*Employee, error) {
 	query := `
 		SELECT 
-			id, name, COALESCE(department, ''), mobile_number, COALESCE(emp_level, ''),
-			COALESCE(doj::text, ''), COALESCE(years_experience, 0),
-			COALESCE(branch, ''), COALESCE(designation, ''), COALESCE(zone, ''),
-			basic, da, revised_basic_da, hra, travel, 
-			hostel, children, total_salary, mobile, conveyance, wash_allowance, 
-			branch_allowance, special_allowance, training, total_allowances, 
-			total_salary_with_allowances, COALESCE(bank_name, ''), COALESCE(account_number, ''),
-			COALESCE(bank_branch, ''), COALESCE(ifsc_code, ''), 
-			created_at, updated_at
-		FROM employees
-		WHERE id = $1 LIMIT 1
+			e.id, e.name, COALESCE(e.department, ''), e.mobile_number, COALESCE(e.emp_level, ''),
+			COALESCE(e.doj::text, ''), COALESCE(e.years_experience, 0),
+			COALESCE(e.branch, ''), COALESCE(e.designation, ''), COALESCE(e.zone, ''),
+			e.basic, e.da, e.revised_basic_da, e.hra, e.travel, 
+			e.hostel, e.children, e.total_salary, e.mobile, e.conveyance, e.wash_allowance, 
+			e.branch_allowance, e.special_allowance, e.training, e.total_allowances, 
+			e.total_salary_with_allowances, COALESCE(e.bank_name, ''), COALESCE(e.account_number, ''),
+			COALESCE(e.bank_branch, ''), COALESCE(e.ifsc_code, ''), 
+			e.manager_id, COALESCE(m.name, ''), e.created_at, e.updated_at
+		FROM employees e
+		LEFT JOIN employees m ON e.manager_id = m.id
+		WHERE e.id = $1 LIMIT 1
 	`
 	var e Employee
 	err := r.db.QueryRow(ctx, query, id).Scan(
@@ -77,7 +79,7 @@ func (r *PostgresRepository) GetByID(ctx context.Context, id string) (*Employee,
 		&e.Hostel, &e.Children, &e.TotalSalary, &e.Mobile, &e.Conveyance, &e.WashAllowance,
 		&e.BranchAllowance, &e.SpecialAllowance, &e.Training, &e.TotalAllowances,
 		&e.TotalSalaryWithAllowances, &e.BankName, &e.AccountNumber, &e.BankBranch,
-		&e.IFSCCode, &e.CreatedAt, &e.UpdatedAt,
+		&e.IFSCCode, &e.ManagerID, &e.ManagerName, &e.CreatedAt, &e.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -106,7 +108,7 @@ func (r *PostgresRepository) BulkInsert(ctx context.Context, employees []Employe
 			"branch", "designation", "zone", "basic", "da", "revised_basic_da", "hra", "travel",
 			"hostel", "children", "total_salary", "mobile", "conveyance", "wash_allowance",
 			"branch_allowance", "special_allowance", "training", "total_allowances",
-			"total_salary_with_allowances", "bank_name", "account_number", "bank_branch", "ifsc_code",
+			"total_salary_with_allowances", "bank_name", "account_number", "bank_branch", "ifsc_code", "manager_id",
 		},
 		pgx.CopyFromSlice(len(employees), func(i int) ([]interface{}, error) {
 			e := employees[i]
@@ -115,7 +117,7 @@ func (r *PostgresRepository) BulkInsert(ctx context.Context, employees []Employe
 				e.Branch, e.Designation, e.Zone, e.Basic, e.DA, e.RevisedBasicDA, e.HRA, e.Travel,
 				e.Hostel, e.Children, e.TotalSalary, e.Mobile, e.Conveyance, e.WashAllowance,
 				e.BranchAllowance, e.SpecialAllowance, e.Training, e.TotalAllowances,
-				e.TotalSalaryWithAllowances, e.BankName, e.AccountNumber, e.BankBranch, e.IFSCCode,
+				e.TotalSalaryWithAllowances, e.BankName, e.AccountNumber, e.BankBranch, e.IFSCCode, e.ManagerID,
 			}, nil
 		}),
 	)
@@ -125,17 +127,18 @@ func (r *PostgresRepository) BulkInsert(ctx context.Context, employees []Employe
 func (r *PostgresRepository) List(ctx context.Context) ([]Employee, error) {
 	query := `
 		SELECT 
-			id, name, COALESCE(department, ''), mobile_number, COALESCE(emp_level, ''),
-			COALESCE(doj::text, ''), COALESCE(years_experience, 0),
-			COALESCE(branch, ''), COALESCE(designation, ''), COALESCE(zone, ''),
-			basic, da, revised_basic_da, hra, travel, 
-			hostel, children, total_salary, mobile, conveyance, wash_allowance, 
-			branch_allowance, special_allowance, training, total_allowances, 
-			total_salary_with_allowances, COALESCE(bank_name, ''), COALESCE(account_number, ''),
-			COALESCE(bank_branch, ''), COALESCE(ifsc_code, ''),
-			created_at, updated_at
-		FROM employees
-		ORDER BY created_at DESC
+			e.id, e.name, COALESCE(e.department, ''), e.mobile_number, COALESCE(e.emp_level, ''),
+			COALESCE(e.doj::text, ''), COALESCE(e.years_experience, 0),
+			COALESCE(e.branch, ''), COALESCE(e.designation, ''), COALESCE(e.zone, ''),
+			e.basic, e.da, e.revised_basic_da, e.hra, e.travel, 
+			e.hostel, e.children, e.total_salary, e.mobile, e.conveyance, e.wash_allowance, 
+			e.branch_allowance, e.special_allowance, e.training, e.total_allowances, 
+			e.total_salary_with_allowances, COALESCE(e.bank_name, ''), COALESCE(e.account_number, ''),
+			COALESCE(e.bank_branch, ''), COALESCE(e.ifsc_code, ''),
+			e.manager_id, COALESCE(m.name, ''), e.created_at, e.updated_at
+		FROM employees e
+		LEFT JOIN employees m ON e.manager_id = m.id
+		ORDER BY e.created_at DESC
 	`
 	rows, err := r.db.Query(ctx, query)
 	if err != nil {
@@ -152,7 +155,7 @@ func (r *PostgresRepository) List(ctx context.Context) ([]Employee, error) {
 			&e.Hostel, &e.Children, &e.TotalSalary, &e.Mobile, &e.Conveyance, &e.WashAllowance,
 			&e.BranchAllowance, &e.SpecialAllowance, &e.Training, &e.TotalAllowances,
 			&e.TotalSalaryWithAllowances, &e.BankName, &e.AccountNumber, &e.BankBranch,
-			&e.IFSCCode, &e.CreatedAt, &e.UpdatedAt,
+			&e.IFSCCode, &e.ManagerID, &e.ManagerName, &e.CreatedAt, &e.UpdatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan error: %w", err)
 		}
@@ -170,16 +173,16 @@ func (r *PostgresRepository) Create(ctx context.Context, e *Employee) error {
 			branch, designation, zone, basic, da, revised_basic_da, hra, travel,
 			hostel, children, total_salary, mobile, conveyance, wash_allowance,
 			branch_allowance, special_allowance, training, total_allowances,
-			total_salary_with_allowances, bank_name, account_number, bank_branch, ifsc_code
+			total_salary_with_allowances, bank_name, account_number, bank_branch, ifsc_code, manager_id
 		) VALUES (
 			$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,
-			$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30
+			$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31
 		)`,
 		e.ID, e.Name, e.Department, e.MobileNumber, e.Level, ParseDOJ(e.DOJ), e.YearsExperience,
 		e.Branch, e.Designation, e.Zone, e.Basic, e.DA, e.RevisedBasicDA, e.HRA, e.Travel,
 		e.Hostel, e.Children, e.TotalSalary, e.Mobile, e.Conveyance, e.WashAllowance,
 		e.BranchAllowance, e.SpecialAllowance, e.Training, e.TotalAllowances,
-		e.TotalSalaryWithAllowances, e.BankName, e.AccountNumber, e.BankBranch, e.IFSCCode,
+		e.TotalSalaryWithAllowances, e.BankName, e.AccountNumber, e.BankBranch, e.IFSCCode, e.ManagerID,
 	)
 	return err
 }
@@ -192,13 +195,13 @@ func (r *PostgresRepository) Update(ctx context.Context, id string, e *Employee)
 			hostel=$16, children=$17, total_salary=$18, mobile=$19, conveyance=$20, wash_allowance=$21,
 			branch_allowance=$22, special_allowance=$23, training=$24, total_allowances=$25,
 			total_salary_with_allowances=$26, bank_name=$27, account_number=$28, bank_branch=$29, ifsc_code=$30,
-			updated_at=NOW()
+			manager_id=$31, updated_at=NOW()
 		WHERE id=$1`,
 		id, e.Name, e.Department, e.MobileNumber, e.Level, ParseDOJ(e.DOJ), e.YearsExperience,
 		e.Branch, e.Designation, e.Zone, e.Basic, e.DA, e.RevisedBasicDA, e.HRA, e.Travel,
 		e.Hostel, e.Children, e.TotalSalary, e.Mobile, e.Conveyance, e.WashAllowance,
 		e.BranchAllowance, e.SpecialAllowance, e.Training, e.TotalAllowances,
-		e.TotalSalaryWithAllowances, e.BankName, e.AccountNumber, e.BankBranch, e.IFSCCode,
+		e.TotalSalaryWithAllowances, e.BankName, e.AccountNumber, e.BankBranch, e.IFSCCode, e.ManagerID,
 	)
 	return err
 }

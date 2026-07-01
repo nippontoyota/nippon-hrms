@@ -26,19 +26,19 @@ const (
 )
 
 type LeaveRequest struct {
-	ID          string            `json:"id"`
-	EmployeeID  string            `json:"employeeId"`
-	Type        LeaveType         `json:"type"`
-	FromDate    string            `json:"fromDate"` // YYYY-MM-DD
-	ToDate      string            `json:"toDate"`   // YYYY-MM-DD
-	Days        int               `json:"days"`
-	Reason      string            `json:"reason"`
-	Status          LeaveStatus       `json:"status"`
-	RejectionReason *string           `json:"rejectionReason,omitempty"`
-	ReviewedBy      *string           `json:"reviewedBy,omitempty"`
-	ReviewedAt  *time.Time        `json:"reviewedAt,omitempty"`
-	CreatedAt   time.Time         `json:"createdAt"`
-	Employee    *employee.Employee `json:"employee,omitempty"` // For joining
+	ID              string             `json:"id"`
+	EmployeeID      string             `json:"employeeId"`
+	Type            LeaveType          `json:"type"`
+	FromDate        string             `json:"fromDate"` // YYYY-MM-DD
+	ToDate          string             `json:"toDate"`   // YYYY-MM-DD
+	Days            int                `json:"days"`
+	Reason          string             `json:"reason"`
+	Status          LeaveStatus        `json:"status"`
+	RejectionReason *string            `json:"rejectionReason,omitempty"`
+	ReviewedBy      *string            `json:"reviewedBy,omitempty"`
+	ReviewedAt      *time.Time         `json:"reviewedAt,omitempty"`
+	CreatedAt       time.Time          `json:"createdAt"`
+	Employee        *employee.Employee `json:"employee,omitempty"` // For joining
 }
 
 type LeaveBalance struct {

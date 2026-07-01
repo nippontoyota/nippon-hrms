@@ -25,7 +25,7 @@ api.interceptors.request.use((config) => {
           config.headers['X-Vault-Token'] = state.vaultToken;
         }
       }
-    } catch(e) {}
+    } catch {}
   }
 
   if (config.data instanceof FormData) {

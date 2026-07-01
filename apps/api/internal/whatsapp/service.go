@@ -101,6 +101,14 @@ func (s *Service) handleWebhookLocked(ctx context.Context, from, input, msgType,
 
 	slog.Info("whatsapp inbound", "from", from, "input", input, "type", msgType)
 
+	if strings.HasPrefix(input, "APPROVE_LEAVE_") || strings.HasPrefix(input, "REJECT_LEAVE_") {
+		err := s.handleLeaveApproval(ctx, from, input)
+		if err != nil {
+			slog.Error("whatsapp leave approval error", "from", from, "err", err)
+		}
+		return err
+	}
+
 	var err error
 	switch sess.State {
 	case StateAwaitPeriod:
@@ -604,7 +612,95 @@ func (s *Service) handleLeaveAwaitConfirm(ctx context.Context, sess *Session, fr
 		return s.sendText(ctx, from, msgLeaveSubmitError)
 	}
 
+	// Send approval to manager if exists
+	hasManager := false
+	emp, err := s.empRepo.GetByID(ctx, sess.EmployeeID)
+	if err == nil && emp.ManagerID != nil {
+		mgr, mgrErr := s.empRepo.GetByID(ctx, *emp.ManagerID)
+		if mgrErr == nil && mgr.MobileNumber != "" {
+			managerPhone := mgr.MobileNumber
+			// Construct DoubleTick Interactive Button Message for Manager
+			msgText := fmt.Sprintf("📅 *Leave Request from %s*\n\nType: %s\nDates: %s to %s\nTotal Days: %d\nReason: %s\n\nPlease approve or reject this request.",
+				emp.Name, req.Type, req.FromDate, req.ToDate, req.Days, req.Reason)
+
+			buttons := []doubletick.InteractiveButton{
+				{ID: "APPROVE_LEAVE_" + req.ID, Title: "✅ Approve"},
+				{ID: "REJECT_LEAVE_" + req.ID, Title: "❌ Reject"},
+			}
+
+			_, dtErr := s.dt.SendInteractiveButtons(ctx, managerPhone, "", msgText, "", buttons)
+			if dtErr != nil {
+				slog.Error("failed to send interactive button to manager", "err", dtErr, "manager", managerPhone)
+			} else {
+				hasManager = true
+			}
+		}
+	}
+
 	sess.resetFlow()
 	s.sessions.Set(from, sess)
-	return s.sendText(ctx, from, msgLeaveCreated)
+
+	if hasManager {
+		s.sendText(ctx, from, "Your leave request has been submitted successfully.\n\nIt is pending approval from your Manager. Reply Hi to return to the main menu.")
+	} else {
+		s.sendText(ctx, from, msgLeaveCreated) // Falls back to HR
+	}
+
+	return nil
+}
+
+func (s *Service) handleLeaveApproval(ctx context.Context, from, input string) error {
+	var isApprove bool
+	var leaveID string
+
+	if strings.HasPrefix(input, "APPROVE_LEAVE_") {
+		isApprove = true
+		leaveID = strings.TrimPrefix(input, "APPROVE_LEAVE_")
+	} else if strings.HasPrefix(input, "REJECT_LEAVE_") {
+		isApprove = false
+		leaveID = strings.TrimPrefix(input, "REJECT_LEAVE_")
+	} else {
+		return nil
+	}
+
+	// Fetch leave request
+	req, err := s.leaveRepo.GetByID(ctx, leaveID)
+	if err != nil {
+		s.sendText(ctx, from, "Sorry, we could not find that leave request.")
+		return fmt.Errorf("failed to get leave %s: %w", leaveID, err)
+	}
+
+	// Fetch manager doing the approval
+	mgr, err := s.empRepo.FindByPhone(ctx, from)
+	if err != nil {
+		return fmt.Errorf("manager not found by phone: %w", err)
+	}
+
+	// Update status
+	status := leave.StatusRejected
+	if isApprove {
+		status = leave.StatusApproved
+	}
+
+	// We pass the manager's ID as reviewer
+	if err := s.leaveRepo.UpdateStatus(ctx, leaveID, status, &mgr.ID, nil); err != nil {
+		s.sendText(ctx, from, "System error. Could not update leave status.")
+		return fmt.Errorf("failed to update leave status: %w", err)
+	}
+
+	// Notify Manager
+	statusStr := "Rejected"
+	if isApprove {
+		statusStr = "Approved"
+	}
+	s.sendText(ctx, from, fmt.Sprintf("✅ You have %s the leave request for %s.", statusStr, req.Employee.Name))
+
+	// Notify Employee
+	if req.Employee.MobileNumber != "" {
+		empMsg := fmt.Sprintf("Hi %s,\n\nYour leave request for %s to %s has been *%s* by your manager.",
+			req.Employee.Name, req.FromDate, req.ToDate, statusStr)
+		s.sendText(ctx, req.Employee.MobileNumber, empMsg)
+	}
+
+	return nil
 }

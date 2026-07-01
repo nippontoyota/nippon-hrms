@@ -1,0 +1,2 @@
+ALTER TABLE employees
+ADD COLUMN manager_id VARCHAR(50) REFERENCES employees(id) ON DELETE SET NULL;

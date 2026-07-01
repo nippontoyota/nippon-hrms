@@ -148,10 +148,10 @@ func tryParseMetaCloud(raw []byte) (*Webhook, bool) {
 						PhoneNumberID      string `json:"phone_number_id"`
 					} `json:"metadata"`
 					Messages []struct {
-						From      string `json:"from"`
-						ID        string `json:"id"`
-						Type      string `json:"type"`
-						Text      *struct {
+						From string `json:"from"`
+						ID   string `json:"id"`
+						Type string `json:"type"`
+						Text *struct {
 							Body string `json:"body"`
 						} `json:"text,omitempty"`
 						Button *struct {

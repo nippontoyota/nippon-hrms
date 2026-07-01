@@ -49,7 +49,6 @@ func msgPayslipAlreadySent(month, year int) string {
 	)
 }
 
-
 func mainMenuButtons() []doubletick.InteractiveButton {
 	return []doubletick.InteractiveButton{
 		{ID: payloadRequestSalary, Title: "Salary Slip"},

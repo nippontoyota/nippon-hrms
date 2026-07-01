@@ -20,13 +20,13 @@ type SessionWindowChecker interface {
 }
 
 type Dispatcher struct {
-	repo          Repository
-	empRepo       employee.Repository
-	epfRepo       epf.Repository
-	dtClient      *doubletick.Client
-	windowStore   SessionWindowChecker
-	sessionCache  map[string]bool
-	sessionMu     sync.RWMutex
+	repo         Repository
+	empRepo      employee.Repository
+	epfRepo      epf.Repository
+	dtClient     *doubletick.Client
+	windowStore  SessionWindowChecker
+	sessionCache map[string]bool
+	sessionMu    sync.RWMutex
 }
 
 func NewDispatcher(

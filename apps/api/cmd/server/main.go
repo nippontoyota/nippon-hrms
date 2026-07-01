@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/joho/godotenv"
 	"github.com/nippon-toyota/hrms/internal/config"
 	"github.com/nippon-toyota/hrms/internal/db"
 	"github.com/nippon-toyota/hrms/internal/doubletick"
@@ -18,6 +19,8 @@ import (
 )
 
 func main() {
+	_ = godotenv.Load(".env")
+	_ = godotenv.Load("../../.env") // In case it's run from apps/api
 
 	cfg, err := config.Load()
 	if err != nil {

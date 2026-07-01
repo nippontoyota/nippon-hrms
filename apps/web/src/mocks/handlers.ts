@@ -86,7 +86,7 @@ function mockEmployeePreview(): ImportPreviewResult {
       row: i + 2,
       data: { 'EMP ID': e.employeeId, Name: e.name, Department: e.department, Status: e.status },
       errors: i === 1 ? ['Duplicate EMP ID'] : [],
-      warnings: e.status === 'Active' && !e.reportingManagerName ? ['Missing reporting manager'] : [],
+      warnings: e.status === 'Active' && !e.managerId ? ['Missing manager'] : [],
     })),
     successCount: 2,
     errorCount: 1,

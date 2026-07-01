@@ -54,7 +54,7 @@ export default function VaultLock({ isCollapsed }: { isCollapsed: boolean }) {
       setTimeout(() => {
           window.location.reload();
       }, 500);
-    } catch (error) {
+    } catch {
       setPassword('');
       toast.error('Invalid Administrator Password');
     } finally {
