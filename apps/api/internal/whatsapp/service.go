@@ -124,6 +124,11 @@ func (s *Service) handleWebhookLocked(ctx context.Context, from, input, msgType,
 		return false, nil
 	}
 
+	if shouldSuppressLeaveTurnNoise(sess, input, messageID) {
+		slog.Info("whatsapp inbound suppressed leave turn noise", "from", from, "input", input, "state", sess.State)
+		return false, nil
+	}
+
 	if s.sessionWindow != nil {
 		if err := s.sessionWindow.RecordInbound(ctx, from); err != nil {
 			slog.Error("failed to record inbound session window", "from", from, "err", err)
@@ -625,6 +630,7 @@ func (s *Service) sendUserText(ctx context.Context, sess *Session, from, text st
 	}
 	if sess != nil {
 		sess.LastOutboundText = text
+		sess.LastOutboundAt = time.Now()
 		s.sessions.Set(from, sess)
 	}
 	return nil
