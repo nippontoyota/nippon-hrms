@@ -26,6 +26,7 @@ type sessionSnapshot struct {
 	LastEndPromptAt          time.Time `json:"lastEndPromptAt,omitempty"`
 	HasEndDateAttempt        bool      `json:"hasEndDateAttempt,omitempty"`
 	LastStartMessageID       string    `json:"lastStartMessageId,omitempty"`
+	LastReasonPromptAt       time.Time `json:"lastReasonPromptAt,omitempty"`
 	LastLeaveReminderAt      time.Time `json:"lastLeaveReminderAt,omitempty"`
 	LastOutboundAt           time.Time `json:"lastOutboundAt,omitempty"`
 	LastOutboundText         string    `json:"lastOutboundText,omitempty"`
@@ -51,6 +52,7 @@ func snapshotFromSession(sess *Session) sessionSnapshot {
 		LastEndPromptAt:         sess.LastEndPromptAt,
 		HasEndDateAttempt:       sess.HasEndDateAttempt,
 		LastStartMessageID:      sess.LastStartMessageID,
+		LastReasonPromptAt:      sess.LastReasonPromptAt,
 		LastLeaveReminderAt:     sess.LastLeaveReminderAt,
 		LastOutboundAt:          sess.LastOutboundAt,
 		LastOutboundText:        sess.LastOutboundText,
@@ -78,6 +80,7 @@ func sessionFromSnapshot(phone string, snap sessionSnapshot) *Session {
 		LastEndPromptAt:         snap.LastEndPromptAt,
 		HasEndDateAttempt:       snap.HasEndDateAttempt,
 		LastStartMessageID:      snap.LastStartMessageID,
+		LastReasonPromptAt:      snap.LastReasonPromptAt,
 		LastLeaveReminderAt:     snap.LastLeaveReminderAt,
 		LastOutboundAt:          snap.LastOutboundAt,
 		LastOutboundText:        snap.LastOutboundText,

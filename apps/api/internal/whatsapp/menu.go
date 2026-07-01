@@ -87,6 +87,8 @@ Example: 05/07/2026
 
 For a one-day leave, enter the same date as your start date.`
 
+const msgLeaveAwaitReason = `Please enter the reason for your leave.`
+
 const msgLeaveInvalidReason = `Please enter a short reason in words (not a date).
 
 Example: Family function`
@@ -117,10 +119,10 @@ Please enter the correct end date.`
 
 const msgLeaveConfirmHelp = `Please reply *Yes* to submit or *No* to cancel.`
 
-func msgLeaveConfirmPrompt(leaveType, start, end string, days int) string {
+func msgLeaveConfirmPrompt(leaveType, start, end, reason string, days int) string {
 	return fmt.Sprintf(
-		"Please confirm your leave details:\n\nLeave type: %s\nStart date: %s\nEnd date: %s\nTotal days: %d\n\nReply *Yes* to submit or *No* to cancel.",
-		leaveType, start, end, days,
+		"Please confirm your leave details:\n\nLeave type: %s\nStart date: %s\nEnd date: %s\nTotal days: %d\nReason: %s\n\nReply *Yes* to submit or *No* to cancel.",
+		leaveType, start, end, days, reason,
 	)
 }
 

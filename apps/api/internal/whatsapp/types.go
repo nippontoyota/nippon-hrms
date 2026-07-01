@@ -25,7 +25,7 @@ const (
 	StateLeaveAwaitType
 	StateLeaveAwaitStart
 	StateLeaveAwaitEnd
-	StateLeaveAwaitReason // legacy persisted sessions; routed to confirm
+	StateLeaveAwaitReason
 	StateLeaveAwaitConfirm
 )
 
@@ -44,6 +44,7 @@ type Session struct {
 	LastEndPromptAt         time.Time
 	HasEndDateAttempt       bool
 	LastStartMessageID      string
+	LastReasonPromptAt      time.Time
 	LastLeaveReminderAt     time.Time
 	LastOutboundAt          time.Time
 	LastOutboundText        string

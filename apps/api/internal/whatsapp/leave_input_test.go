@@ -34,8 +34,11 @@ func TestIsLeaveConfirmAffirmative(t *testing.T) {
 	}
 }
 
-func TestIsValidInputForState_legacyReasonState(t *testing.T) {
-	if !isValidInputForState(StateLeaveAwaitReason, "yes") {
-		t.Fatal("legacy reason state should accept confirm keywords")
+func TestIsValidInputForState_reason(t *testing.T) {
+	if isValidInputForState(StateLeaveAwaitReason, "01/07/2026") {
+		t.Fatal("date should be invalid at reason step")
+	}
+	if !isValidInputForState(StateLeaveAwaitReason, "Doctor appointment") {
+		t.Fatal("text reason should be valid")
 	}
 }
