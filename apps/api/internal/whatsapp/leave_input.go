@@ -60,6 +60,43 @@ func isValidInputForState(state State, input string) bool {
 	}
 }
 
+func isLeaveCancelIntent(input string) bool {
+	switch normalizeGreetingInput(input) {
+	case "hi", "0", "cancel", "menu", "reset", "start":
+		return true
+	default:
+		return false
+	}
+}
+
+func isCasualGreeting(input string) bool {
+	switch normalizeGreetingInput(input) {
+	case "hello", "hey":
+		return true
+	default:
+		return false
+	}
+}
+
+func isStoredLeaveDateEcho(sess *Session, input string) bool {
+	if sess == nil {
+		return false
+	}
+	trimmed := strings.TrimSpace(input)
+	if trimmed == "" {
+		return false
+	}
+	if trimmed == sess.LastAcceptedLeaveInput {
+		return true
+	}
+	parsed, ok := parseLeaveDate(trimmed)
+	if !ok {
+		return false
+	}
+	iso := parsed.Format("2006-01-02")
+	return iso == sess.TempLeaveStart || iso == sess.TempLeaveEnd
+}
+
 func isInLeaveFlow(state State) bool {
 	return state >= StateLeaveAwaitType && state <= StateLeaveAwaitConfirm
 }

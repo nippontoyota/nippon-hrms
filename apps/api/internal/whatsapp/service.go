@@ -95,8 +95,12 @@ func (s *Service) HandleWebhook(ctx context.Context, wh *doubletick.Webhook) err
 				break
 			}
 			for _, msg := range msgs {
-				if err := s.handleWebhookLocked(ctx, from, msg.input, msg.msgType, msg.messageID); err != nil {
+				processed, err := s.handleWebhookLocked(ctx, from, msg.input, msg.msgType, msg.messageID)
+				if err != nil {
 					handleErr = err
+				}
+				if processed {
+					break
 				}
 			}
 		}
@@ -104,7 +108,7 @@ func (s *Service) HandleWebhook(ctx context.Context, wh *doubletick.Webhook) err
 	return handleErr
 }
 
-func (s *Service) handleWebhookLocked(ctx context.Context, from, input, msgType, messageID string) error {
+func (s *Service) handleWebhookLocked(ctx context.Context, from, input, msgType, messageID string) (bool, error) {
 	sess, ok := s.sessions.Get(from)
 	if !ok {
 		sess = &Session{Phone: from, State: StateIdle}
@@ -112,12 +116,12 @@ func (s *Service) handleWebhookLocked(ctx context.Context, from, input, msgType,
 
 	if shouldSkipInboundEcho(input, msgType, sess.State) {
 		slog.Info("whatsapp inbound skipped echo", "from", from, "input", input, "type", msgType, "state", sess.State)
-		return nil
+		return false, nil
 	}
 
 	if s.dedup.isDuplicate(messageID, from, input, msgType, sess.State) {
 		slog.Info("whatsapp inbound skipped duplicate", "from", from, "input", input, "type", msgType, "messageId", messageID)
-		return nil
+		return false, nil
 	}
 
 	if s.sessionWindow != nil {
@@ -149,7 +153,31 @@ func (s *Service) handleWebhookLocked(ctx context.Context, from, input, msgType,
 	if err != nil {
 		slog.Error("whatsapp state handler error", "from", from, "state", sess.State, "err", err)
 	}
-	return err
+	return true, err
+}
+
+func (s *Service) handleLeaveFlowInterrupt(ctx context.Context, sess *Session, from, input string) (bool, error) {
+	if isLeaveCancelIntent(input) {
+		sess.resetFlow()
+		s.sessions.Set(from, sess)
+		return true, s.sendText(ctx, from, msgLeaveCancelled)
+	}
+	if isCasualGreeting(input) || isAcknowledgment(input) {
+		return true, s.sendLeaveFlowReminder(ctx, sess, from)
+	}
+	return false, nil
+}
+
+func (s *Service) sendLeaveFlowReminder(ctx context.Context, sess *Session, from string) error {
+	if !sess.LastLeaveReminderAt.IsZero() && time.Since(sess.LastLeaveReminderAt) < leaveReminderCooldown {
+		return nil
+	}
+	if err := s.sendUserText(ctx, sess, from, msgLeaveFlowReminder); err != nil {
+		return err
+	}
+	sess.LastLeaveReminderAt = time.Now()
+	s.sessions.Set(from, sess)
+	return nil
 }
 
 func (s *Service) ensureEmployee(ctx context.Context, sess *Session, from string) {
@@ -172,6 +200,7 @@ const (
 	leaveDateBurstWindow    = 750 * time.Millisecond
 	leaveStepBurstWindow    = 2 * time.Second
 	reasonPromptCooldown    = 5 * time.Second
+	leaveReminderCooldown   = 30 * time.Second
 )
 
 var greetingWords = []string{"hi", "hello", "hey", "start", "menu", "reset"}
@@ -324,14 +353,14 @@ func (s *Service) handleIdle(ctx context.Context, sess *Session, from, input str
 
 	if isAcknowledgment(input) {
 		if !sess.LastPayslipSentAt.IsZero() && time.Since(sess.LastPayslipSentAt) < postPayslipMenuSuppress {
-			return s.sendText(ctx, from, msgIdleNudgePayslip)
+			return s.sendUserText(ctx, sess, from, msgIdleNudgePayslip)
 		}
-		return s.sendText(ctx, from, msgIdleNudge)
+		return s.sendUserText(ctx, sess, from, msgIdleNudge)
 	}
 
 	if !sess.LastMenuSentAt.IsZero() && time.Since(sess.LastMenuSentAt) < menuCooldown {
 		slog.Info("whatsapp menu cooldown", "from", from)
-		return s.sendText(ctx, from, msgIdleNudge)
+		return s.sendUserText(ctx, sess, from, msgIdleNudge)
 	}
 
 	if !isGreeting(input) && !sess.LastPayslipSentAt.IsZero() && time.Since(sess.LastPayslipSentAt) < postPayslipMenuSuppress {
@@ -390,6 +419,7 @@ func (s *Service) beginLeaveFlow(ctx context.Context, sess *Session, from string
 	sess.LastAcceptedLeaveInput = ""
 	sess.LastLeaveStepAt = time.Time{}
 	sess.LastReasonPromptAt = time.Time{}
+	sess.LastLeaveReminderAt = time.Time{}
 	sess.LastMenuSentAt = time.Now()
 	sess.State = StateLeaveAwaitType
 	s.sessions.Set(from, sess)
@@ -601,10 +631,8 @@ func (s *Service) sendLeaveTypePrompt(ctx context.Context, sess *Session, to str
 }
 
 func (s *Service) handleLeaveAwaitType(ctx context.Context, sess *Session, from, input string) error {
-	if isGreeting(input) || input == "0" {
-		sess.resetFlow()
-		s.sessions.Set(from, sess)
-		return s.handleIdle(ctx, sess, from, input)
+	if handled, err := s.handleLeaveFlowInterrupt(ctx, sess, from, input); handled {
+		return err
 	}
 	if isStalePromptEcho(sess.State, input) {
 		return nil
@@ -658,10 +686,8 @@ func remainingForLeaveType(bal *leave.LeaveBalance, t leave.LeaveType) (remainin
 }
 
 func (s *Service) handleLeaveAwaitStart(ctx context.Context, sess *Session, from, input string) error {
-	if isGreeting(input) || input == "0" {
-		sess.resetFlow()
-		s.sessions.Set(from, sess)
-		return s.handleIdle(ctx, sess, from, input)
+	if handled, err := s.handleLeaveFlowInterrupt(ctx, sess, from, input); handled {
+		return err
 	}
 	if isStalePromptEcho(sess.State, input) {
 		return nil
@@ -677,6 +703,8 @@ func (s *Service) handleLeaveAwaitStart(ctx context.Context, sess *Session, from
 	}
 
 	sess.TempLeaveStart = parsed.Format("2006-01-02")
+	sess.LastAcceptedLeaveInput = strings.TrimSpace(input)
+	sess.LastLeaveStepAt = time.Now()
 	sess.LastLeaveDateAt = time.Now()
 	sess.State = StateLeaveAwaitEnd
 	s.sessions.Set(from, sess)
@@ -684,10 +712,8 @@ func (s *Service) handleLeaveAwaitStart(ctx context.Context, sess *Session, from
 }
 
 func (s *Service) handleLeaveAwaitEnd(ctx context.Context, sess *Session, from, input string) error {
-	if isGreeting(input) || input == "0" {
-		sess.resetFlow()
-		s.sessions.Set(from, sess)
-		return s.handleIdle(ctx, sess, from, input)
+	if handled, err := s.handleLeaveFlowInterrupt(ctx, sess, from, input); handled {
+		return err
 	}
 	if isStalePromptEcho(sess.State, input) {
 		return nil
@@ -752,15 +778,13 @@ func (s *Service) sendLeaveReasonPrompt(ctx context.Context, sess *Session, to s
 }
 
 func (s *Service) handleLeaveAwaitReason(ctx context.Context, sess *Session, from, input string) error {
-	if isGreeting(input) || input == "0" {
-		sess.resetFlow()
-		s.sessions.Set(from, sess)
-		return s.handleIdle(ctx, sess, from, input)
+	if handled, err := s.handleLeaveFlowInterrupt(ctx, sess, from, input); handled {
+		return err
 	}
 	if isStalePromptEcho(sess.State, input) {
 		return nil
 	}
-	if shouldIgnoreLateLeaveDateEcho(sess, input) {
+	if shouldIgnoreLateLeaveDateEcho(sess, input) || isStoredLeaveDateEcho(sess, input) {
 		return nil
 	}
 
@@ -801,6 +825,9 @@ func (s *Service) sendLeaveConfirmSummary(ctx context.Context, sess *Session, fr
 }
 
 func (s *Service) handleLeaveAwaitConfirm(ctx context.Context, sess *Session, from, input string) error {
+	if handled, err := s.handleLeaveFlowInterrupt(ctx, sess, from, input); handled {
+		return err
+	}
 	if isStalePromptEcho(sess.State, input) {
 		return nil
 	}

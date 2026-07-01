@@ -158,6 +158,8 @@ const msgSessionExpired = `Your previous session expired.
 
 Reply *Hi* and start your request again.`
 
+const msgLeaveFlowReminder = `You have a leave request in progress. Please answer the current question, or reply *Hi* to cancel.`
+
 const msgLeaveDateWithoutSession = `There is no active leave request to continue.
 
 Reply *Hi* to start a new leave application.`
