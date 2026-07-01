@@ -1,5 +1,4 @@
 {
-  "ignoreCommand": "bash -c '[[ \"$(git log -1 --format=%ae)\" == \"dev@nippontoyota.com\" ]] || exit 1'",
   "rewrites": [
     {
       "source": "/api/:path*",
