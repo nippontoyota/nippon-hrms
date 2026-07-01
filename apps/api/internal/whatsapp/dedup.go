@@ -74,7 +74,11 @@ func (d *dedupStore) isDuplicate(messageID, phone, input, msgType string, state 
 	}
 
 	if looksLikeLeaveDateAttempt(input) {
-		return false
+		if isInLeaveFlow(state) {
+			// Fall through to action-key dedup for leave date steps.
+		} else {
+			return false
+		}
 	}
 
 	actionKey := fmt.Sprintf("%s|%d|%s", phone, state, canonicalInput(input))

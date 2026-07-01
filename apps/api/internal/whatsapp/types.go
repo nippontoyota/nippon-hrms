@@ -39,6 +39,7 @@ type Session struct {
 	LastAcceptedLeaveInput  string
 	LastLeaveStepAt         time.Time
 	LastReasonPromptAt      time.Time
+	LastLeaveReminderAt     time.Time
 	LastOutboundAt          time.Time
 	LastOutboundText        string
 	UpdatedAt               time.Time

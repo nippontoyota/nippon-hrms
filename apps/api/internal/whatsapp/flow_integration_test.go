@@ -364,6 +364,66 @@ func TestFlow_leaveTypePromptEcho_leaveAwaitTypeDoesNotResend(t *testing.T) {
 	}
 }
 
+func TestFlow_batchProcessesOnlyFirstInbound(t *testing.T) {
+	svc, rec, store, phone := newFlowTestService(t)
+	ctx := context.Background()
+
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m1", "interactive", payloadRequestLeave))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m2", "text", "Casual Leave"))
+
+	svc.inbound.enqueue(phone, inboundMessage{messageID: "d1", input: "01/07/2026", msgType: "text"})
+	svc.inbound.enqueue(phone, inboundMessage{messageID: "d2", input: "01/07/2026", msgType: "text"})
+	svc.phoneLock.run(phone, func() {
+		msgs := svc.inbound.drain(phone)
+		for _, msg := range msgs {
+			processed, _ := svc.handleWebhookLocked(ctx, phone, msg.input, msg.msgType, msg.messageID)
+			if processed {
+				break
+			}
+		}
+	})
+
+	sess, ok := store.Get(phone)
+	if !ok || sess.State != StateLeaveAwaitEnd {
+		t.Fatalf("expected leave-await-end after first start date only, got state %v", sess.State)
+	}
+	if rec.containsText("Please enter the reason") {
+		t.Fatalf("batch must not advance to reason on duplicate start date: %v", rec.allTexts())
+	}
+}
+
+func TestFlow_helloDuringLeave_sendsReminderNotMenu(t *testing.T) {
+	svc, rec, store, phone := newFlowTestService(t)
+	ctx := context.Background()
+
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m1", "interactive", payloadRequestLeave))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m2", "text", "Casual Leave"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m3", "text", "10/07/2026"))
+	time.Sleep(leaveDateBurstWindow + 50*time.Millisecond)
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m4", "text", "10/07/2026"))
+
+	sess, ok := store.Get(phone)
+	if !ok || sess.State != StateLeaveAwaitReason {
+		t.Fatalf("expected reason state, got %v", sess.State)
+	}
+
+	before := rec.count()
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m5", "text", "Hello"))
+
+	if rec.containsText("How may we help you today?") {
+		t.Fatalf("hello during leave must not send main menu, got %v", rec.allTexts())
+	}
+	if sess, ok := store.Get(phone); !ok || sess.State != StateLeaveAwaitReason {
+		t.Fatalf("hello must not cancel leave flow, got state %v", sess.State)
+	}
+	if rec.count() <= before {
+		t.Fatal("expected leave reminder after hello")
+	}
+	if !rec.containsText("leave request in progress") {
+		t.Fatalf("expected leave reminder, got %q", rec.lastText())
+	}
+}
+
 func TestFlow_fullLeaveSubmit(t *testing.T) {
 	svc, rec, store, phone := newFlowTestService(t)
 	ctx := context.Background()
