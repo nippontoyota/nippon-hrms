@@ -13,6 +13,8 @@ const (
 	payloadLeaveCasual   = "leave_casual"
 	payloadLeaveSick     = "leave_sick"
 	payloadLeaveUnpaid   = "leave_unpaid"
+
+	leaveReasonWhatsApp = "Requested via WhatsApp"
 )
 
 type State int
@@ -23,7 +25,7 @@ const (
 	StateLeaveAwaitType
 	StateLeaveAwaitStart
 	StateLeaveAwaitEnd
-	StateLeaveAwaitReason
+	StateLeaveAwaitReason // legacy persisted sessions; routed to confirm
 	StateLeaveAwaitConfirm
 )
 
@@ -41,7 +43,7 @@ type Session struct {
 	LastLeaveStepAt         time.Time
 	LastEndPromptAt         time.Time
 	HasEndDateAttempt       bool
-	LastReasonPromptAt      time.Time
+	LastStartMessageID      string
 	LastLeaveReminderAt     time.Time
 	LastOutboundAt          time.Time
 	LastOutboundText        string
@@ -61,6 +63,7 @@ func (s *Session) resetFlow() {
 	s.TempLeaveStart = ""
 	s.TempLeaveEnd = ""
 	s.TempLeaveReason = ""
+	s.LastStartMessageID = ""
 }
 
 func (s *Session) reset() {

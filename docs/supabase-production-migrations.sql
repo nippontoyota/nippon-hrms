@@ -281,6 +281,9 @@ CREATE TABLE IF NOT EXISTS whatsapp_messages (
 
 CREATE INDEX IF NOT EXISTS idx_wa_messages_conversation_id ON whatsapp_messages(conversation_id);
 
-ALTER TABLE whatsapp_conversations ADD COLUMN IF NOT EXISTS last_inbound_at TIMESTAMPTZ;
+-- ========== 000019_add_unpaid_leave_type.sql ==========
+ALTER TABLE leaves DROP CONSTRAINT IF EXISTS leaves_type_check;
+ALTER TABLE leaves ADD CONSTRAINT leaves_type_check
+  CHECK (type IN ('casual','sick','annual','maternity','paternity','unpaid'));
 
 

@@ -132,8 +132,8 @@ func TestDedupStore_leaveFlowSkipsEchoWindow(t *testing.T) {
 	if d.isDuplicate("btn-1", "+911", payloadLeaveCasual, "button", StateLeaveAwaitType) {
 		t.Fatal("first leave type button should not be duplicate")
 	}
-	if d.isDuplicate("txt-1", "+911", "family function", "text", StateLeaveAwaitReason) {
-		t.Fatal("reason text during leave flow should not be dropped by echo window")
+	if d.isDuplicate("txt-1", "+911", "yes", "text", StateLeaveAwaitConfirm) {
+		t.Fatal("confirm text during leave flow should not be dropped by echo window")
 	}
 }
 
