@@ -852,10 +852,18 @@ func (s *Service) handleLeaveAwaitDateConfirm(ctx context.Context, sess *Session
 		s.sessions.Set(from, sess)
 		return nil
 	}
-	if !isLeaveConfirmAffirmative(normalized) {
-		return s.sendUserText(ctx, sess, from, msgLeaveDateConfirmHelp)
+	if isLeaveConfirmAffirmative(normalized) {
+		sess.State = StateLeaveAwaitReason
+		s.sessions.Set(from, sess)
+		return s.sendLeaveReasonPrompt(ctx, sess, from)
 	}
-
+	if isValidLeaveReason(input) {
+		sess.TempLeaveReason = strings.TrimSpace(input)
+		sess.State = StateLeaveAwaitConfirm
+		s.sessions.Set(from, sess)
+		return s.sendLeaveConfirmSummary(ctx, sess, from)
+	}
+	// Dates are accepted — always continue to the reason step.
 	sess.State = StateLeaveAwaitReason
 	s.sessions.Set(from, sess)
 	return s.sendLeaveReasonPrompt(ctx, sess, from)

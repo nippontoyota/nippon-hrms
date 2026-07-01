@@ -44,7 +44,7 @@ func acceptsInboundAtState(state State, input string) bool {
 		return ok
 
 	case StateLeaveAwaitDateConfirm:
-		return isLeaveConfirmKeyword(input)
+		return isLeaveConfirmKeyword(input) || isValidLeaveReason(input)
 
 	case StateLeaveAwaitReason:
 		return isValidLeaveReason(input)
