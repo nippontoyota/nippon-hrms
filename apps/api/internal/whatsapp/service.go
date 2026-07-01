@@ -133,7 +133,7 @@ func (s *Service) handleWebhookLocked(ctx context.Context, from, input, msgType,
 	slog.Info("whatsapp inbound", "from", from, "input", input, "type", msgType)
 
 	if strings.HasPrefix(input, "APPROVE_LEAVE_") || strings.HasPrefix(input, "REJECT_LEAVE_") {
-		err := s.handleLeaveApproval(ctx, from, input)
+		err := s.handleLeaveApproval(ctx, sess, from, input)
 		if err != nil {
 			slog.Error("whatsapp leave approval error", "from", from, "err", err)
 		}
@@ -154,6 +154,8 @@ func (s *Service) handleWebhookLocked(ctx context.Context, from, input, msgType,
 		err = s.handleLeaveAwaitReason(ctx, sess, from, input)
 	case StateLeaveAwaitConfirm:
 		err = s.handleLeaveAwaitConfirm(ctx, sess, from, input)
+	case StateLeaveAwaitRejectionReason:
+		err = s.handleLeaveAwaitRejectionReason(ctx, sess, from, input)
 	default:
 		err = s.handleIdle(ctx, sess, from, input)
 	}
@@ -959,7 +961,7 @@ func (s *Service) handleLeaveAwaitConfirm(ctx context.Context, sess *Session, fr
 	return s.sendUserText(ctx, sess, from, msgLeaveCreated)
 }
 
-func (s *Service) handleLeaveApproval(ctx context.Context, from, input string) error {
+func (s *Service) handleLeaveApproval(ctx context.Context, sess *Session, from, input string) error {
 	var isApprove bool
 	var leaveID string
 
@@ -983,26 +985,64 @@ func (s *Service) handleLeaveApproval(ctx context.Context, from, input string) e
 		return fmt.Errorf("manager not found by phone: %w", err)
 	}
 
-	status := leave.StatusRejected
-	if isApprove {
-		status = leave.StatusApproved
+	if !isApprove {
+		sess.State = StateLeaveAwaitRejectionReason
+		sess.PendingRejectionLeaveID = leaveID
+		s.sessions.Set(from, sess)
+		return s.sendText(ctx, from, fmt.Sprintf("Please type the reason for rejecting the leave request for %s. (Type 'cancel' to abort)", req.Employee.Name))
 	}
 
-	if err := s.leaveRepo.UpdateStatus(ctx, leaveID, status, &mgr.ID, nil); err != nil {
+	if err := s.leaveRepo.UpdateStatus(ctx, leaveID, leave.StatusApproved, &mgr.ID, nil); err != nil {
 		return s.sendText(ctx, from, "System error. Could not update leave status.")
 	}
 
-	statusStr := "Rejected"
-	if isApprove {
-		statusStr = "Approved"
-	}
-	s.sendText(ctx, from, fmt.Sprintf("✅ You have %s the leave request for %s.", statusStr, req.Employee.Name))
+	s.sendText(ctx, from, fmt.Sprintf("✅ You have Approved the leave request for %s.", req.Employee.Name))
 
 	if req.Employee.MobileNumber != "" {
-		empMsg := fmt.Sprintf("Hi %s,\n\nYour leave request for %s to %s has been *%s* by %s.",
-			req.Employee.Name, req.FromDate, req.ToDate, statusStr, formatManagerRef(mgr.Name))
+		empMsg := fmt.Sprintf("Hi %s,\n\nYour leave request for %s to %s has been *Approved* by %s.",
+			req.Employee.Name, req.FromDate, req.ToDate, formatManagerRef(mgr.Name))
 		s.sendText(ctx, req.Employee.MobileNumber, empMsg)
 	}
 
+	return nil
+}
+
+func (s *Service) handleLeaveAwaitRejectionReason(ctx context.Context, sess *Session, from, input string) error {
+	input = strings.TrimSpace(input)
+	if strings.ToLower(input) == "cancel" || input == "0" {
+		sess.resetFlow()
+		s.sessions.Set(from, sess)
+		return s.sendText(ctx, from, "Rejection cancelled.")
+	}
+
+	leaveID := sess.PendingRejectionLeaveID
+	req, err := s.leaveRepo.GetByID(ctx, leaveID)
+	if err != nil {
+		sess.resetFlow()
+		s.sessions.Set(from, sess)
+		return s.sendText(ctx, from, "Sorry, we could not find that leave request.")
+	}
+
+	mgr, err := s.empRepo.FindByPhone(ctx, from)
+	if err != nil {
+		sess.resetFlow()
+		s.sessions.Set(from, sess)
+		return fmt.Errorf("manager not found by phone: %w", err)
+	}
+
+	if err := s.leaveRepo.UpdateStatus(ctx, leaveID, leave.StatusRejected, &mgr.ID, &input); err != nil {
+		return s.sendText(ctx, from, "System error. Could not update leave status.")
+	}
+
+	s.sendText(ctx, from, fmt.Sprintf("✅ You have Rejected the leave request for %s.", req.Employee.Name))
+
+	if req.Employee.MobileNumber != "" {
+		empMsg := fmt.Sprintf("Hi %s,\n\nYour leave request for %s to %s has been *Rejected* by %s.\n\nReason: %s",
+			req.Employee.Name, req.FromDate, req.ToDate, formatManagerRef(mgr.Name), input)
+		s.sendText(ctx, req.Employee.MobileNumber, empMsg)
+	}
+
+	sess.resetFlow()
+	s.sessions.Set(from, sess)
 	return nil
 }

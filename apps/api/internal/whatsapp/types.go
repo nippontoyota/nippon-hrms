@@ -27,6 +27,7 @@ const (
 	StateLeaveAwaitEnd
 	StateLeaveAwaitReason
 	StateLeaveAwaitConfirm
+	StateLeaveAwaitRejectionReason
 )
 
 type Session struct {
@@ -54,6 +55,7 @@ type Session struct {
 	TempLeaveStart  string
 	TempLeaveEnd    string
 	TempLeaveReason string
+	PendingRejectionLeaveID string
 }
 
 func (s *Session) resetFlow() {
@@ -64,6 +66,7 @@ func (s *Session) resetFlow() {
 	s.TempLeaveStart = ""
 	s.TempLeaveEnd = ""
 	s.TempLeaveReason = ""
+	s.PendingRejectionLeaveID = ""
 	s.LastStartMessageID = ""
 }
 

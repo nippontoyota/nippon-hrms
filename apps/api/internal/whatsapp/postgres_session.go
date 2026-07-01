@@ -35,6 +35,7 @@ type sessionSnapshot struct {
 	TempLeaveStart     string          `json:"tempLeaveStart,omitempty"`
 	TempLeaveEnd       string          `json:"tempLeaveEnd,omitempty"`
 	TempLeaveReason    string          `json:"tempLeaveReason,omitempty"`
+	PendingRejectionLeaveID string   `json:"pendingRejectionLeaveId,omitempty"`
 }
 
 func snapshotFromSession(sess *Session) sessionSnapshot {
@@ -61,6 +62,7 @@ func snapshotFromSession(sess *Session) sessionSnapshot {
 		TempLeaveStart:     sess.TempLeaveStart,
 		TempLeaveEnd:       sess.TempLeaveEnd,
 		TempLeaveReason:    sess.TempLeaveReason,
+		PendingRejectionLeaveID: sess.PendingRejectionLeaveID,
 	}
 }
 
@@ -89,6 +91,7 @@ func sessionFromSnapshot(phone string, snap sessionSnapshot) *Session {
 		TempLeaveStart:     snap.TempLeaveStart,
 		TempLeaveEnd:       snap.TempLeaveEnd,
 		TempLeaveReason:    snap.TempLeaveReason,
+		PendingRejectionLeaveID: snap.PendingRejectionLeaveID,
 	}
 }
 
