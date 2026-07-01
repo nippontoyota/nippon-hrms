@@ -12,6 +12,19 @@ import RejectLeaveModal from '@/components/RejectLeaveModal';
 import LeaveRequestDetailModal from '@/components/LeaveRequestDetailModal';
 import type { LeaveRequest } from '@/api/types';
 
+function leaveTypeBadgeClass(type: string) {
+  switch (type.toLowerCase()) {
+    case 'casual':
+      return 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-300';
+    case 'sick':
+      return 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:border-rose-800 dark:text-rose-300';
+    case 'unpaid':
+      return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:border-amber-800 dark:text-amber-300';
+    default:
+      return 'bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-900/30 dark:border-slate-800 dark:text-slate-300';
+  }
+}
+
 function BalanceBadge({ employeeId }: { employeeId: string }) {
   const { data: balance, isLoading } = useLeaveBalance(employeeId);
 
@@ -200,15 +213,11 @@ export default function LeaveDirectoryPage() {
                     </td>
                     <td className="py-3 px-4">
                       <div className="mb-1">
-                        <span className={`px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider rounded border ${
-                          l.type.toLowerCase() === 'casual'
-                            ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-300'
-                            : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:border-rose-800 dark:text-rose-300'
-                        }`}>
+                        <span className={`px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider rounded border ${leaveTypeBadgeClass(l.type)}`}>
                           {l.type}
                         </span>
                       </div>
-                      <BalanceBadge employeeId={l.employeeId} />
+                      {l.type.toLowerCase() !== 'unpaid' && <BalanceBadge employeeId={l.employeeId} />}
                     </td>
                     <td className="py-3 px-4">
                       <div className="text-[13px] text-slate-800 dark:text-slate-200 font-medium whitespace-nowrap">

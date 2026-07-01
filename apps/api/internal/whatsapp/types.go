@@ -12,6 +12,7 @@ const (
 	payloadRequestLeave  = "request_leave"
 	payloadLeaveCasual   = "leave_casual"
 	payloadLeaveSick     = "leave_sick"
+	payloadLeaveUnpaid   = "leave_unpaid"
 )
 
 type State int

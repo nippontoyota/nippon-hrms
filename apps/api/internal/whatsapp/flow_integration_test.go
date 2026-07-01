@@ -506,6 +506,38 @@ func TestFlow_insufficientBalance_keepsSession(t *testing.T) {
 	}
 }
 
+func TestFlow_unpaidLeave_noBalanceLimit(t *testing.T) {
+	svc, rec, store, phone := newFlowTestService(t)
+	ctx := context.Background()
+	leaveRepo := svc.leaveRepo.(*flowLeaveRepo)
+	leaveRepo.balance = &leave.LeaveBalance{TotalCasual: 0, UsedCasual: 1, TotalSick: 0, UsedSick: 1}
+
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m1", "interactive", payloadRequestLeave))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m2", "text", "Unpaid Leave"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m3", "text", "01/07/2026"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m4", "text", "05/07/2026"))
+
+	if strings.Contains(rec.lastText(), "only") && strings.Contains(rec.lastText(), "leave days are available") {
+		t.Fatalf("unpaid leave should not trigger balance error, got %q", rec.lastText())
+	}
+	if !strings.Contains(rec.lastText(), "Please enter the reason") {
+		t.Fatalf("expected reason prompt after multi-day unpaid leave, got %q", rec.lastText())
+	}
+
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m5", "text", "Personal emergency"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m6", "text", "yes"))
+
+	if sess, ok := store.Get(phone); !ok || sess.State != StateIdle {
+		t.Fatalf("expected idle after unpaid submit, got %v", sess.State)
+	}
+	if len(leaveRepo.created) != 1 || leaveRepo.created[0].Type != leave.TypeUnpaid {
+		t.Fatalf("expected unpaid leave request, got %+v", leaveRepo.created)
+	}
+	if leaveRepo.created[0].Days != 5 {
+		t.Fatalf("expected 5 days unpaid leave, got %d", leaveRepo.created[0].Days)
+	}
+}
+
 func TestFlow_awaitPeriod_salarySlipTextDedupedAfterInteractive(t *testing.T) {
 	svc, rec, store, phone := newFlowTestService(t)
 	ctx := context.Background()

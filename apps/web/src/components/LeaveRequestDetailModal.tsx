@@ -18,6 +18,19 @@ const shortDate = (dStr?: string) => {
   return `${parts[2]} ${m} ${parts[0]}`;
 };
 
+function leaveTypeBadgeClass(type: string) {
+  switch (type.toLowerCase()) {
+    case 'casual':
+      return 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-300';
+    case 'sick':
+      return 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:border-rose-800 dark:text-rose-300';
+    case 'unpaid':
+      return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:border-amber-800 dark:text-amber-300';
+    default:
+      return 'bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-900/30 dark:border-slate-800 dark:text-slate-300';
+  }
+}
+
 const formatDateTime = (dStr?: string) => {
   if (!dStr) return '—';
   const d = new Date(dStr);
@@ -107,11 +120,7 @@ export default function LeaveRequestDetailModal({
             </DetailRow>
             <DetailRow label="Leave Type">
               <span
-                className={`inline-block px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider rounded border ${
-                  leave.type.toLowerCase() === 'casual'
-                    ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-300'
-                    : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:border-rose-800 dark:text-rose-300'
-                }`}
+                className={`inline-block px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider rounded border ${leaveTypeBadgeClass(leave.type)}`}
               >
                 {leave.type}
               </span>

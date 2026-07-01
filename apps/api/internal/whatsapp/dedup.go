@@ -269,6 +269,8 @@ func normalizeLeaveTypeSelection(input string) string {
 		return payloadLeaveCasual
 	case trimmed == payloadLeaveSick, lower == "sick leave", lower == "sick":
 		return payloadLeaveSick
+	case trimmed == payloadLeaveUnpaid, lower == "unpaid leave", lower == "unpaid":
+		return payloadLeaveUnpaid
 	}
 	// WhatsApp often echoes the full interactive body plus the chosen button label.
 	if strings.Contains(lower, "casual leave") {
@@ -276,6 +278,9 @@ func normalizeLeaveTypeSelection(input string) string {
 	}
 	if strings.Contains(lower, "sick leave") {
 		return payloadLeaveSick
+	}
+	if strings.Contains(lower, "unpaid leave") {
+		return payloadLeaveUnpaid
 	}
 	return ""
 }
