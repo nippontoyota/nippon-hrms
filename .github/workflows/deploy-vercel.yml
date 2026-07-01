@@ -30,14 +30,10 @@ jobs:
   deploy:
     if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/web
     steps:
       - uses: actions/checkout@v4
 
       - name: Rewrite checkout author for Vercel Hobby owner check
-        working-directory: .
         run: |
           git config user.email "dev@nippontoyota.com"
           git config user.name "Nippon Toyota Dev"
@@ -66,6 +62,7 @@ jobs:
 
       - name: Install dependencies
         if: steps.check.outputs.configured == 'true'
+        working-directory: apps/web
         run: npm ci
 
       - name: Pull Vercel environment
@@ -73,11 +70,11 @@ jobs:
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+        run: vercel pull --yes --environment=production --cwd apps/web --token="$VERCEL_TOKEN"
 
       - name: Deploy to production
         if: steps.check.outputs.configured == 'true'
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-        run: vercel deploy --prod --token="$VERCEL_TOKEN"
+        run: vercel deploy --prod --cwd apps/web --token="$VERCEL_TOKEN"
