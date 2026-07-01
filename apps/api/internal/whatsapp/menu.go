@@ -137,9 +137,19 @@ const msgLeaveCreated = `Your leave request has been submitted successfully.
 
 It is pending approval from the HR department. Reply Hi to return to the main menu.`
 
-const msgLeavePendingManager = `Your leave request has been submitted successfully.
+func formatManagerRef(name string) string {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return "your manager"
+	}
+	return fmt.Sprintf("*Mr. %s*", name)
+}
 
-It is pending approval from your Manager. Reply Hi to return to the main menu.`
+func msgLeavePendingManager(managerName string) string {
+	return fmt.Sprintf(`Your leave request has been submitted successfully.
+
+It is pending approval from %s. Reply Hi to return to the main menu.`, formatManagerRef(managerName))
+}
 
 const msgLeaveCancelled = `Your leave request has been cancelled.
 

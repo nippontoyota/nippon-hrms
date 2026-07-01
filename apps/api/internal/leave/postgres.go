@@ -42,9 +42,10 @@ func (r *PostgresRepository) ListAll(ctx context.Context) ([]LeaveRequest, error
 	query := `
 		SELECT 
 			l.id, l.employee_id, l.type, l.from_date, l.to_date, l.days, l.reason, l.status, l.rejection_reason, l.reviewed_by, l.reviewed_at, l.created_at,
-			e.name, e.department, e.mobile_number
+			e.name, e.department, e.mobile_number, e.manager_id, COALESCE(m.name, '')
 		FROM leaves l
 		JOIN employees e ON l.employee_id = e.id
+		LEFT JOIN employees m ON e.manager_id = m.id
 		ORDER BY l.created_at DESC
 	`
 	rows, err := r.db.Query(ctx, query)
@@ -61,11 +62,12 @@ func (r *PostgresRepository) ListAll(ctx context.Context) ([]LeaveRequest, error
 		var reviewedAt *time.Time
 		var rejectionReason *string
 		var fromDate, toDate time.Time
+		var managerName string
 
 		err := rows.Scan(
 			&l.ID, &l.EmployeeID, &l.Type, &fromDate, &toDate, &l.Days, &l.Reason, &l.Status,
 			&rejectionReason, &reviewedBy, &reviewedAt, &l.CreatedAt,
-			&emp.Name, &emp.Department, &emp.MobileNumber,
+			&emp.Name, &emp.Department, &emp.MobileNumber, &emp.ManagerID, &managerName,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan leave row: %w", err)
@@ -76,6 +78,9 @@ func (r *PostgresRepository) ListAll(ctx context.Context) ([]LeaveRequest, error
 		l.RejectionReason = rejectionReason
 		l.ReviewedBy = reviewedBy
 		l.ReviewedAt = reviewedAt
+		if managerName != "" {
+			emp.ManagerName = &managerName
+		}
 		
 		emp.ID = l.EmployeeID
 		l.Employee = &emp
@@ -106,9 +111,10 @@ func (r *PostgresRepository) GetByID(ctx context.Context, id string) (*LeaveRequ
 	query := `
 		SELECT 
 			l.id, l.employee_id, l.type, l.from_date, l.to_date, l.days, l.reason, l.status, l.rejection_reason, l.reviewed_by, l.reviewed_at, l.created_at,
-			e.name, e.department, e.mobile_number
+			e.name, e.department, e.mobile_number, e.manager_id, COALESCE(m.name, '')
 		FROM leaves l
 		JOIN employees e ON l.employee_id = e.id
+		LEFT JOIN employees m ON e.manager_id = m.id
 		WHERE l.id = $1
 	`
 	var l LeaveRequest
@@ -117,11 +123,12 @@ func (r *PostgresRepository) GetByID(ctx context.Context, id string) (*LeaveRequ
 	var reviewedAt *time.Time
 	var rejectionReason *string
 	var fromDate, toDate time.Time
+	var managerName string
 
 	err := r.db.QueryRow(ctx, query, id).Scan(
 		&l.ID, &l.EmployeeID, &l.Type, &fromDate, &toDate, &l.Days, &l.Reason, &l.Status,
 		&rejectionReason, &reviewedBy, &reviewedAt, &l.CreatedAt,
-		&emp.Name, &emp.Department, &emp.MobileNumber,
+		&emp.Name, &emp.Department, &emp.MobileNumber, &emp.ManagerID, &managerName,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get leave by id: %w", err)
@@ -132,6 +139,9 @@ func (r *PostgresRepository) GetByID(ctx context.Context, id string) (*LeaveRequ
 	l.RejectionReason = rejectionReason
 	l.ReviewedBy = reviewedBy
 	l.ReviewedAt = reviewedAt
+	if managerName != "" {
+		emp.ManagerName = &managerName
+	}
 	
 	emp.ID = l.EmployeeID
 	l.Employee = &emp

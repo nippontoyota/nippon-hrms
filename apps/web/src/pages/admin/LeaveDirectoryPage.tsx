@@ -179,14 +179,15 @@ export default function LeaveDirectoryPage() {
 
       <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-sm min-w-[800px]">
+          <table className="w-full text-left border-collapse text-sm min-w-[960px]">
             <thead>
               <tr className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400">
                 <th className="py-3 px-4 font-semibold uppercase tracking-wider text-[10px]">Employee</th>
                 <th className="py-3 px-4 font-semibold uppercase tracking-wider text-[10px]">Leave Type & Balance</th>
                 <th className="py-3 px-4 font-semibold uppercase tracking-wider text-[10px]">Duration</th>
                 <th className="py-3 px-4 font-semibold uppercase tracking-wider text-[10px]">Reason</th>
-                <th className="py-3 px-4 font-semibold uppercase tracking-wider text-[10px]">Status</th>
+                <th className="py-3 px-4 font-semibold uppercase tracking-wider text-[10px]">Reporting Manager</th>
+                <th className="py-3 px-4 font-semibold uppercase tracking-wider text-[10px]">Manager Approval</th>
                 <th className="py-3 px-4 font-semibold uppercase tracking-wider text-[10px] text-right">Actions</th>
               </tr>
             </thead>
@@ -194,11 +195,11 @@ export default function LeaveDirectoryPage() {
               <AnimatePresence mode="popLayout">
                 {isLoading ? (
                   <tr key="loading">
-                    <td colSpan={6} className="py-8 text-center text-slate-500">Loading leave requests...</td>
+                    <td colSpan={7} className="py-8 text-center text-slate-500">Loading leave requests...</td>
                   </tr>
                 ) : filteredLeaves.length === 0 ? (
                   <tr key="empty">
-                    <td colSpan={6} className="py-8 text-center text-slate-500">No leave requests found.</td>
+                    <td colSpan={7} className="py-8 text-center text-slate-500">No leave requests found.</td>
                   </tr>
                 ) : (
                   filteredLeaves.map((l) => (
@@ -229,6 +230,11 @@ export default function LeaveDirectoryPage() {
                       <p className="text-[13px] text-slate-800 dark:text-slate-200 font-medium max-w-[220px] line-clamp-2 leading-relaxed">
                         {l.reason}
                       </p>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="text-[13px] text-slate-800 dark:text-slate-200 font-medium whitespace-nowrap">
+                        {l.employee?.managerName ?? '—'}
+                      </div>
                     </td>
                     <td className="py-3 px-4">
                       {l.status === 'pending' && (
