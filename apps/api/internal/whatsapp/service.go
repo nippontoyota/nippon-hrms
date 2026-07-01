@@ -190,7 +190,12 @@ func (s *Service) sendLeaveFlowReminder(ctx context.Context, sess *Session, from
 
 func (s *Service) ensureEmployee(ctx context.Context, sess *Session, from string) {
 	emp, err := s.empRepo.FindByPhone(ctx, from)
-	if err != nil || emp == nil {
+	if err != nil {
+		slog.Warn("whatsapp employee lookup failed", "from", from, "err", err)
+		sess.EmployeeID = ""
+		return
+	}
+	if emp == nil {
 		sess.EmployeeID = ""
 		return
 	}

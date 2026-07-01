@@ -25,13 +25,13 @@ func (r *PostgresRepository) FindByPhone(ctx context.Context, rawPhone string) (
 	}
 	query := `
 		SELECT 
-			id, name, COALESCE(department, ''), mobile_number, COALESCE(emp_level, ''),
-			COALESCE(doj::text, ''), COALESCE(years_experience, 0),
-			COALESCE(branch, ''), COALESCE(designation, ''), COALESCE(zone, ''),
-			basic, da, revised_basic_da, hra, travel, 
-			hostel, children, total_salary, mobile, conveyance, wash_allowance, 
-			branch_allowance, special_allowance, training, total_allowances, 
-			total_salary_with_allowances, COALESCE(bank_name, ''), COALESCE(account_number, ''),
+			e.id, e.name, COALESCE(e.department, ''), e.mobile_number, COALESCE(e.emp_level, ''),
+			COALESCE(e.doj::text, ''), COALESCE(e.years_experience, 0),
+			COALESCE(e.branch, ''), COALESCE(e.designation, ''), COALESCE(e.zone, ''),
+			e.basic, e.da, e.revised_basic_da, e.hra, e.travel, 
+			e.hostel, e.children, e.total_salary, e.mobile, e.conveyance, e.wash_allowance, 
+			e.branch_allowance, e.special_allowance, e.training, e.total_allowances, 
+			e.total_salary_with_allowances, COALESCE(e.bank_name, ''), COALESCE(e.account_number, ''),
 			COALESCE(e.bank_branch, ''), COALESCE(e.ifsc_code, ''), e.manager_id, COALESCE(m.name, ''), e.created_at, e.updated_at
 		FROM employees e
 		LEFT JOIN employees m ON e.manager_id = m.id
