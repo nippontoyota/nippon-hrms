@@ -38,6 +38,8 @@ type Session struct {
 	LastLeaveDateAt         time.Time
 	LastAcceptedLeaveInput  string
 	LastLeaveStepAt         time.Time
+	LastEndPromptAt         time.Time
+	HasEndDateAttempt       bool
 	LastReasonPromptAt      time.Time
 	LastLeaveReminderAt     time.Time
 	LastOutboundAt          time.Time
