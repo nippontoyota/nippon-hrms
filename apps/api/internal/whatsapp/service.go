@@ -736,11 +736,15 @@ func (s *Service) handleLeaveAwaitStart(ctx context.Context, sess *Session, from
 	sess.LastStartMessageID = messageID
 	sess.LastLeaveStepAt = time.Now()
 	sess.LastLeaveDateAt = time.Now()
-	sess.LastEndPromptAt = time.Now()
 	sess.HasEndDateAttempt = false
 	sess.State = StateLeaveAwaitEnd
 	s.sessions.Set(from, sess)
-	return s.sendUserText(ctx, sess, from, msgLeaveAwaitEnd)
+	if err := s.sendUserText(ctx, sess, from, msgLeaveAwaitEnd); err != nil {
+		return err
+	}
+	sess.LastEndPromptAt = time.Now()
+	s.sessions.Set(from, sess)
+	return nil
 }
 
 func (s *Service) handleLeaveAwaitEnd(ctx context.Context, sess *Session, from, input, messageID string) error {
@@ -756,11 +760,10 @@ func (s *Service) handleLeaveAwaitEnd(ctx context.Context, sess *Session, from, 
 	}
 
 	trimmedInput := strings.TrimSpace(input)
-	// Guard against the start-date message being redelivered/echoed right after the
-	// end-date prompt. If it is the same text as the accepted start input and arrives
-	// within a short window of the prompt, ignore it so the flow does not auto-advance.
+	// Guard against the start-date message being redelivered/echoed after the end-date
+	// prompt. Same text as the accepted start input within minEndReplyWindow is ignored.
 	if trimmedInput != "" && trimmedInput == sess.LastAcceptedLeaveInput &&
-		!sess.LastEndPromptAt.IsZero() && time.Since(sess.LastEndPromptAt) < leaveDateBurstWindow {
+		!sess.LastEndPromptAt.IsZero() && time.Since(sess.LastEndPromptAt) < minEndReplyWindow {
 		return nil
 	}
 
@@ -771,7 +774,10 @@ func (s *Service) handleLeaveAwaitEnd(ctx context.Context, sess *Session, from, 
 		}
 		return s.sendUserText(ctx, sess, from, msgLeaveInvalidDate)
 	}
+	return s.applyLeaveEndDate(ctx, sess, from, endDate, trimmedInput)
+}
 
+func (s *Service) applyLeaveEndDate(ctx context.Context, sess *Session, from string, endDate time.Time, rawInput string) error {
 	startDate, ok := parseStoredLeaveDate(sess.TempLeaveStart)
 	if !ok {
 		return s.sendUserText(ctx, sess, from, msgLeaveInvalidDate)
@@ -792,7 +798,6 @@ func (s *Service) handleLeaveAwaitEnd(ctx context.Context, sess *Session, from, 
 			remaining, label := remainingForLeaveType(bal, leaveType)
 			if days > remaining {
 				sess.LastLeaveDateAt = time.Time{}
-				sess.State = StateLeaveAwaitEnd
 				s.sessions.Set(from, sess)
 				return s.sendUserText(ctx, sess, from, msgLeaveInsufficientBalance(days, remaining, label, startDate.Month().String(), startDate.Year()))
 			}
@@ -800,7 +805,7 @@ func (s *Service) handleLeaveAwaitEnd(ctx context.Context, sess *Session, from, 
 	}
 
 	sess.TempLeaveEnd = endDate.Format("2006-01-02")
-	sess.LastAcceptedLeaveInput = strings.TrimSpace(input)
+	sess.LastAcceptedLeaveInput = rawInput
 	sess.LastLeaveStepAt = time.Now()
 	sess.TempLeaveReason = ""
 	sess.State = StateLeaveAwaitDateConfirm
@@ -823,14 +828,23 @@ func (s *Service) handleLeaveAwaitDateConfirm(ctx context.Context, sess *Session
 		return nil
 	}
 
+	if endDate, ok := parseLeaveDate(input); ok {
+		return s.applyLeaveEndDate(ctx, sess, from, endDate, strings.TrimSpace(input))
+	}
+
 	normalized := strings.ToLower(strings.TrimSpace(input))
 	if isLeaveConfirmNegative(normalized) {
 		sess.TempLeaveEnd = ""
 		sess.LastAcceptedLeaveInput = ""
-		sess.LastEndPromptAt = time.Now()
+		sess.HasEndDateAttempt = false
 		sess.State = StateLeaveAwaitEnd
 		s.sessions.Set(from, sess)
-		return s.sendUserText(ctx, sess, from, msgLeaveAwaitEnd)
+		if err := s.sendUserText(ctx, sess, from, msgLeaveAwaitEnd); err != nil {
+			return err
+		}
+		sess.LastEndPromptAt = time.Now()
+		s.sessions.Set(from, sess)
+		return nil
 	}
 	if !isLeaveConfirmAffirmative(normalized) {
 		return s.sendUserText(ctx, sess, from, msgLeaveDateConfirmHelp)
