@@ -74,9 +74,13 @@ func TestNormalizeLeaveTypeSelection(t *testing.T) {
 		{payloadLeaveSick, payloadLeaveSick},
 		{"Sick Leave", payloadLeaveSick},
 		{"sick", payloadLeaveSick},
+		{payloadLeaveUnpaid, payloadLeaveUnpaid},
+		{"Unpaid Leave", payloadLeaveUnpaid},
+		{"unpaid", payloadLeaveUnpaid},
 		{"annual leave", ""},
 		{"Leave Application\n\nWhat type of leave do you need?\nCasual Leave", payloadLeaveCasual},
 		{"Leave Application\n\nWhat type of leave do you need?\nSick Leave", payloadLeaveSick},
+		{"Leave Application\n\nWhat type of leave do you need?\nUnpaid Leave", payloadLeaveUnpaid},
 	}
 
 	for _, tc := range tests {

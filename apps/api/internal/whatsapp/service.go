@@ -668,17 +668,25 @@ func (s *Service) sendText(ctx context.Context, to, text string) error {
 }
 
 func leaveTypeFromSelection(sel string) leave.LeaveType {
-	if sel == payloadLeaveSick {
+	switch sel {
+	case payloadLeaveSick:
 		return leave.TypeSick
+	case payloadLeaveUnpaid:
+		return leave.TypeUnpaid
+	default:
+		return leave.TypeCasual
 	}
-	return leave.TypeCasual
 }
 
 func leaveTypeDisplayName(t leave.LeaveType) string {
-	if t == leave.TypeSick {
+	switch t {
+	case leave.TypeSick:
 		return "Sick Leave"
+	case leave.TypeUnpaid:
+		return "Unpaid Leave"
+	default:
+		return "Casual Leave"
 	}
-	return "Casual Leave"
 }
 
 func remainingForLeaveType(bal *leave.LeaveBalance, t leave.LeaveType) (remaining int, label string) {
@@ -752,18 +760,20 @@ func (s *Service) handleLeaveAwaitEnd(ctx context.Context, sess *Session, from, 
 	}
 
 	days := int(endDate.Sub(startDate).Hours()/24) + 1
-	bal, err := s.leaveRepo.GetMonthlyBalance(ctx, sess.EmployeeID, int(startDate.Month()), startDate.Year())
-	if err == nil && bal != nil {
-		leaveType := sess.TempLeaveType
-		if leaveType == "" {
-			leaveType = leave.TypeCasual
-		}
-		remaining, label := remainingForLeaveType(bal, leaveType)
-		if days > remaining {
-			sess.LastLeaveDateAt = time.Time{}
-			sess.State = StateLeaveAwaitEnd
-			s.sessions.Set(from, sess)
-			return s.sendUserText(ctx, sess, from, msgLeaveInsufficientBalance(days, remaining, label, startDate.Month().String(), startDate.Year()))
+	if sess.TempLeaveType != leave.TypeUnpaid {
+		bal, err := s.leaveRepo.GetMonthlyBalance(ctx, sess.EmployeeID, int(startDate.Month()), startDate.Year())
+		if err == nil && bal != nil {
+			leaveType := sess.TempLeaveType
+			if leaveType == "" {
+				leaveType = leave.TypeCasual
+			}
+			remaining, label := remainingForLeaveType(bal, leaveType)
+			if days > remaining {
+				sess.LastLeaveDateAt = time.Time{}
+				sess.State = StateLeaveAwaitEnd
+				s.sessions.Set(from, sess)
+				return s.sendUserText(ctx, sess, from, msgLeaveInsufficientBalance(days, remaining, label, startDate.Month().String(), startDate.Year()))
+			}
 		}
 	}
 

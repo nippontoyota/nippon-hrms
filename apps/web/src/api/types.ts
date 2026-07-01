@@ -331,7 +331,7 @@ export interface DispatchJobSummary {
 }
 
 export type LeaveStatus = 'pending' | 'approved' | 'rejected';
-export type LeaveType = 'casual' | 'sick' | 'annual' | 'maternity' | 'paternity';
+export type LeaveType = 'casual' | 'sick' | 'annual' | 'maternity' | 'paternity' | 'unpaid';
 
 export interface LeaveRequest {
   id: string;

@@ -8,6 +8,18 @@ import (
 	"github.com/nippon-toyota/hrms/internal/leave"
 )
 
+func TestLeaveTypeDisplayName(t *testing.T) {
+	if got := leaveTypeDisplayName(leave.TypeCasual); got != "Casual Leave" {
+		t.Fatalf("casual = %q", got)
+	}
+	if got := leaveTypeDisplayName(leave.TypeSick); got != "Sick Leave" {
+		t.Fatalf("sick = %q", got)
+	}
+	if got := leaveTypeDisplayName(leave.TypeUnpaid); got != "Unpaid Leave" {
+		t.Fatalf("unpaid = %q", got)
+	}
+}
+
 func TestMsgLeaveConfirmPromptIncludesReason(t *testing.T) {
 	msg := msgLeaveConfirmPrompt("Casual Leave", "01/07/2026", "01/07/2026", "Just cuz", 1)
 	if !strings.Contains(msg, "Reason: Just cuz") {

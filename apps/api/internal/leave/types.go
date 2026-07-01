@@ -23,6 +23,7 @@ const (
 	TypeAnnual    LeaveType = "annual"
 	TypeMaternity LeaveType = "maternity"
 	TypePaternity LeaveType = "paternity"
+	TypeUnpaid    LeaveType = "unpaid"
 )
 
 type LeaveRequest struct {
