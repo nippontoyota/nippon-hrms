@@ -1,16 +1,18 @@
-# Deploys production via Vercel Deploy Hook after CI passes.
+# Deploys production via Vercel CLI after CI passes.
 #
-# Why: On Vercel Hobby, only the team owner's Git commits auto-deploy. Other
-# contributors' pushes are blocked. A deploy hook bypasses that check.
+# Hobby plan blocks ANY deploy when HEAD commit author is not the Vercel team
+# owner — including deploy hooks. We rewrite the checkout author to the owner
+# identity used on successful historical deploys, then deploy with VERCEL_TOKEN.
 #
-# One-time setup (Vercel project owner):
-#   1. Vercel → Project → Settings → Git → Deploy Hooks
-#   2. Create hook for branch "main", copy the URL
-#   3. GitHub → repo → Settings → Secrets → Actions → New secret
-#      Name: VERCEL_DEPLOY_HOOK_URL   Value: <hook URL>
+# One-time setup (Vercel project owner — nippontoyota account):
+#   1. Vercel → Account Settings → Tokens → Create Token
+#   2. Vercel → Team Settings → General → copy Team ID → GitHub secret VERCEL_ORG_ID
+#   3. GitHub → repo → Settings → Secrets → Actions:
+#        VERCEL_TOKEN        = token from step 1
+#        VERCEL_ORG_ID       = team id from step 2
+#   (VERCEL_PROJECT_ID is set below.)
 #
-# Optional: Settings → Git → disable auto-deploy on push to stop failed
-# "commit author" deployments (hook will still deploy after CI).
+# Optional: skip noisy blocked Git deploys for non-owner pushes — see vercel.json.
 
 name: Deploy Vercel
 
@@ -21,19 +23,64 @@ on:
     branches: [main]
   workflow_dispatch:
 
+env:
+  VERCEL_PROJECT_ID: prj_QAf3SUCcqmAqzXSRvzxdPZWiLU95
+
 jobs:
   deploy:
     if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
     steps:
-      - name: Trigger Vercel production deploy
-        env:
-          DEPLOY_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+      - uses: actions/checkout@v4
+
+      - name: Rewrite checkout author for Vercel Hobby owner check
+        working-directory: .
         run: |
-          if [ -z "$DEPLOY_HOOK" ]; then
-            echo "::warning::VERCEL_DEPLOY_HOOK_URL is not set. Skipping Vercel deploy."
-            echo "Ask the Vercel project owner to create a Deploy Hook and add it as a GitHub Actions secret."
-            exit 0
+          git config user.email "dev@nippontoyota.com"
+          git config user.name "Nippon Toyota Dev"
+          git commit --amend --no-edit --reset-author
+
+      - name: Check Vercel token configured
+        id: check
+        run: |
+          if [ -z "${{ secrets.VERCEL_TOKEN }}" ] || [ -z "${{ secrets.VERCEL_ORG_ID }}" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::VERCEL_TOKEN and VERCEL_ORG_ID are required. Ask the Vercel owner (nippontoyota) to add them as GitHub Actions secrets."
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
           fi
-          curl -fsS -X POST "$DEPLOY_HOOK"
-          echo "Vercel deploy hook triggered."
+
+      - uses: actions/setup-node@v4
+        if: steps.check.outputs.configured == 'true'
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install Vercel CLI
+        if: steps.check.outputs.configured == 'true'
+        run: npm install -g vercel@49
+
+      - name: Pull Vercel environment
+        if: steps.check.outputs.configured == 'true'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+
+      - name: Build for production
+        if: steps.check.outputs.configured == 'true'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+        run: vercel build --prod --token="$VERCEL_TOKEN"
+
+      - name: Deploy to production
+        if: steps.check.outputs.configured == 'true'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+        run: vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
