@@ -407,6 +407,47 @@ func TestFlow_dateConfirmEndDateRedelivery_doesNotSendHelp(t *testing.T) {
 	}
 }
 
+func TestFlow_startDateEchoAfterEndPrompt_doesNotAutoConfirm(t *testing.T) {
+	svc, rec, store, phone := newFlowTestService(t)
+	ctx := context.Background()
+
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m1", "interactive", payloadRequestLeave))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m2", "text", "Unpaid Leave"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m3", "text", "09/10/2026"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m4", "text", "09/10/2026"))
+
+	sess, ok := store.Get(phone)
+	if !ok || sess.State != StateLeaveAwaitEnd {
+		t.Fatalf("expected await-end after start-date echo, got %v", sess.State)
+	}
+	if rec.containsText("confirm your leave dates") {
+		t.Fatalf("start-date echo must not auto-advance to date confirm: %v", rec.allTexts())
+	}
+}
+
+func TestFlow_dateConfirmNewEndDate_updatesConfirm(t *testing.T) {
+	svc, rec, store, phone := newFlowTestService(t)
+	ctx := context.Background()
+
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m1", "interactive", payloadRequestLeave))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m2", "text", "Unpaid Leave"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m3", "text", "09/10/2026"))
+	time.Sleep(minEndReplyWindow + 50*time.Millisecond)
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m4", "text", "09/10/2026"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m5", "text", "15/10/2026"))
+
+	sess, ok := store.Get(phone)
+	if !ok || sess.State != StateLeaveAwaitDateConfirm {
+		t.Fatalf("expected date-confirm after corrected end date, got %v", sess.State)
+	}
+	if sess.TempLeaveEnd != "2026-10-15" {
+		t.Fatalf("expected end date 2026-10-15, got %q", sess.TempLeaveEnd)
+	}
+	if !rec.containsText("End date: 15/10/2026") {
+		t.Fatalf("expected updated confirm prompt, got %v", rec.allTexts())
+	}
+}
+
 func TestFlow_leaveTypePromptEcho_atIdleDoesNotResendMenu(t *testing.T) {
 	svc, rec, _, phone := newFlowTestService(t)
 	ctx := context.Background()
@@ -462,7 +503,7 @@ func TestFlow_oneDayLeaveSameDate_advancesToDateConfirmThenReason(t *testing.T) 
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m2", "text", "Unpaid Leave"))
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m3", "text", "09/09/2026"))
 	// A same-as-start date sent as a deliberate reply (after the echo window) is a valid one-day leave.
-	time.Sleep(leaveDateBurstWindow + 50*time.Millisecond)
+	time.Sleep(minEndReplyWindow + 50*time.Millisecond)
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m4", "text", "09/09/2026"))
 
 	sess, ok := store.Get(phone)
@@ -614,7 +655,7 @@ func TestFlow_insufficientBalance_keepsSession(t *testing.T) {
 		t.Fatalf("expected balance message, got %q", rec.lastText())
 	}
 
-	time.Sleep(leaveDateBurstWindow + 50*time.Millisecond)
+	time.Sleep(minEndReplyWindow + 50*time.Millisecond)
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m5", "text", "01/07/2026"))
 	if !strings.Contains(rec.lastText(), "confirm your leave dates") {
 		t.Fatalf("expected date-confirm prompt after corrected end date, got %q", rec.lastText())
