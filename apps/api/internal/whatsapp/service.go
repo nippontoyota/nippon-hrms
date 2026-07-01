@@ -929,6 +929,7 @@ func (s *Service) handleLeaveAwaitConfirm(ctx context.Context, sess *Session, fr
 	}
 
 	hasManager := false
+	managerName := ""
 	emp, empErr := s.empRepo.GetByID(ctx, sess.EmployeeID)
 	if empErr == nil && emp.ManagerID != nil {
 		mgr, mgrErr := s.empRepo.GetByID(ctx, *emp.ManagerID)
@@ -943,6 +944,7 @@ func (s *Service) handleLeaveAwaitConfirm(ctx context.Context, sess *Session, fr
 				slog.Error("failed to send interactive button to manager", "err", dtErr, "manager", mgr.MobileNumber)
 			} else {
 				hasManager = true
+				managerName = mgr.Name
 			}
 		}
 	}
@@ -952,7 +954,7 @@ func (s *Service) handleLeaveAwaitConfirm(ctx context.Context, sess *Session, fr
 	sess.resetFlow()
 	s.sessions.Set(from, sess)
 	if hasManager {
-		return s.sendUserText(ctx, sess, from, msgLeavePendingManager)
+		return s.sendUserText(ctx, sess, from, msgLeavePendingManager(managerName))
 	}
 	return s.sendUserText(ctx, sess, from, msgLeaveCreated)
 }
@@ -997,8 +999,8 @@ func (s *Service) handleLeaveApproval(ctx context.Context, from, input string) e
 	s.sendText(ctx, from, fmt.Sprintf("✅ You have %s the leave request for %s.", statusStr, req.Employee.Name))
 
 	if req.Employee.MobileNumber != "" {
-		empMsg := fmt.Sprintf("Hi %s,\n\nYour leave request for %s to %s has been *%s* by your manager.",
-			req.Employee.Name, req.FromDate, req.ToDate, statusStr)
+		empMsg := fmt.Sprintf("Hi %s,\n\nYour leave request for %s to %s has been *%s* by %s.",
+			req.Employee.Name, req.FromDate, req.ToDate, statusStr, formatManagerRef(mgr.Name))
 		s.sendText(ctx, req.Employee.MobileNumber, empMsg)
 	}
 
