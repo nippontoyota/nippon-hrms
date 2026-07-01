@@ -761,16 +761,6 @@ func (s *Service) handleLeaveAwaitEnd(ctx context.Context, sess *Session, from, 
 		return s.sendUserText(ctx, sess, from, msgLeaveInvalidDate)
 	}
 
-	endISO := endDate.Format("2006-01-02")
-	if endISO == sess.TempLeaveStart && !sess.HasEndDateAttempt && !sess.LastEndPromptAt.IsZero() && time.Since(sess.LastEndPromptAt) < minEndReplyWindow {
-		return nil
-	}
-	if endISO == sess.TempLeaveStart && !sess.LastLeaveDateAt.IsZero() && time.Since(sess.LastLeaveDateAt) < leaveDateBurstWindow {
-		return nil
-	}
-	sess.HasEndDateAttempt = true
-	s.sessions.Set(from, sess)
-
 	startDate, ok := parseStoredLeaveDate(sess.TempLeaveStart)
 	if !ok {
 		return s.sendUserText(ctx, sess, from, msgLeaveInvalidDate)
