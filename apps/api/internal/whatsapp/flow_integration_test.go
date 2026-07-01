@@ -292,14 +292,12 @@ func TestFlow_fullLeaveSubmit_stepByStep(t *testing.T) {
 		{"m1", "interactive", payloadRequestLeave, StateLeaveAwaitType},
 		{"m2", "text", "Casual Leave", StateLeaveAwaitStart},
 		{"m3", "text", "10/07/2026", StateLeaveAwaitEnd},
-		{"m4", "text", "10/07/2026", StateLeaveAwaitReason},
-		{"m5", "text", "Family function", StateLeaveAwaitConfirm},
-		{"m6", "text", "yes", StateIdle},
+		{"m4", "text", "12/07/2026", StateLeaveAwaitDateConfirm},
+		{"m5", "text", "yes", StateLeaveAwaitReason},
+		{"m6", "text", "Family function", StateLeaveAwaitConfirm},
+		{"m7", "text", "yes", StateIdle},
 	}
 	for _, step := range steps {
-		if step.id == "m4" {
-			time.Sleep(minEndReplyWindow + 50*time.Millisecond)
-		}
 		_ = svc.HandleWebhook(ctx, inbound(phone, step.id, step.typ, step.body))
 		sess, ok := store.Get(phone)
 		if !ok {
@@ -311,31 +309,55 @@ func TestFlow_fullLeaveSubmit_stepByStep(t *testing.T) {
 	}
 }
 
-func TestFlow_endDateDuplicate_noInvalidReason(t *testing.T) {
+func TestFlow_endDateThenConfirm_advancesToReason(t *testing.T) {
 	svc, rec, store, phone := newFlowTestService(t)
 	ctx := context.Background()
 
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m1", "interactive", payloadRequestLeave))
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m2", "text", "Casual Leave"))
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m3", "text", "01/07/2026"))
-	time.Sleep(minEndReplyWindow + 50*time.Millisecond)
-	_ = svc.HandleWebhook(ctx, inbound(phone, "m4", "text", "01/07/2026"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m4", "text", "05/07/2026"))
 
 	sess, ok := store.Get(phone)
-	if !ok || sess.State != StateLeaveAwaitReason {
-		t.Fatalf("expected reason state after end date, got %v ok=%v", sess.State, ok)
-	}
-	if rec.containsText("not a date") {
-		t.Fatalf("duplicate end date must not trigger invalid reason message: %v", rec.allTexts())
+	if !ok || sess.State != StateLeaveAwaitDateConfirm {
+		t.Fatalf("expected date-confirm state after end date, got %v ok=%v", sess.State, ok)
 	}
 
-	_ = svc.HandleWebhook(ctx, inbound(phone, "m5", "text", "Family movie"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m5", "text", "yes"))
+	sess, ok = store.Get(phone)
+	if !ok || sess.State != StateLeaveAwaitReason {
+		t.Fatalf("expected reason state after date confirm, got %v", sess.State)
+	}
+
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m6", "text", "Family movie"))
 	sess, ok = store.Get(phone)
 	if !ok || sess.State != StateLeaveAwaitConfirm {
 		t.Fatalf("expected confirm state, got %v", sess.State)
 	}
 	if sess.TempLeaveReason != "Family movie" {
 		t.Fatalf("expected stored reason Family movie, got %q", sess.TempLeaveReason)
+	}
+	if rec.containsText("not a date") {
+		t.Fatalf("end date must not trigger invalid reason message: %v", rec.allTexts())
+	}
+}
+
+func TestFlow_dateConfirmNo_returnsToEnd(t *testing.T) {
+	svc, _, store, phone := newFlowTestService(t)
+	ctx := context.Background()
+
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m1", "interactive", payloadRequestLeave))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m2", "text", "Casual Leave"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m3", "text", "01/07/2026"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m4", "text", "05/07/2026"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m5", "text", "no"))
+
+	sess, ok := store.Get(phone)
+	if !ok || sess.State != StateLeaveAwaitEnd {
+		t.Fatalf("expected await-end state after date confirm No, got %v", sess.State)
+	}
+	if sess.TempLeaveEnd != "" {
+		t.Fatalf("expected end date cleared after No, got %q", sess.TempLeaveEnd)
 	}
 }
 
@@ -386,21 +408,45 @@ func TestFlow_startDateDuplicate_doesNotSkipToReason(t *testing.T) {
 	}
 }
 
-func TestFlow_oneDayLeaveImmediate_advancesToReason(t *testing.T) {
+func TestFlow_oneDayLeaveSameDate_advancesToDateConfirmThenReason(t *testing.T) {
 	svc, rec, store, phone := newFlowTestService(t)
 	ctx := context.Background()
 
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m1", "interactive", payloadRequestLeave))
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m2", "text", "Unpaid Leave"))
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m3", "text", "09/09/2026"))
+	// A same-as-start date sent as a deliberate reply (after the echo window) is a valid one-day leave.
+	time.Sleep(leaveDateBurstWindow + 50*time.Millisecond)
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m4", "text", "09/09/2026"))
 
 	sess, ok := store.Get(phone)
+	if !ok || sess.State != StateLeaveAwaitDateConfirm {
+		t.Fatalf("expected date-confirm state after one-day leave end date, got %v", sess.State)
+	}
+
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m5", "text", "yes"))
+	sess, ok = store.Get(phone)
 	if !ok || sess.State != StateLeaveAwaitReason {
-		t.Fatalf("expected reason state after one-day leave end date, got %v", sess.State)
+		t.Fatalf("expected reason state after confirming one-day leave, got %v", sess.State)
 	}
 	if !rec.containsText("Please enter the reason") {
 		t.Fatalf("expected reason prompt after one-day leave, got %v", rec.allTexts())
+	}
+}
+
+func TestFlow_endDateEchoWithinWindow_ignored(t *testing.T) {
+	svc, _, store, phone := newFlowTestService(t)
+	ctx := context.Background()
+
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m1", "interactive", payloadRequestLeave))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m2", "text", "Unpaid Leave"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m3", "text", "09/09/2026"))
+	// Immediate redelivery/echo of the start date must not auto-advance the flow.
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m4", "text", "09/09/2026"))
+
+	sess, ok := store.Get(phone)
+	if !ok || sess.State != StateLeaveAwaitEnd {
+		t.Fatalf("expected to remain at await-end after immediate echo, got %v", sess.State)
 	}
 }
 
@@ -439,7 +485,8 @@ func TestFlow_helloDuringLeave_sendsReminderNotMenu(t *testing.T) {
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m1", "interactive", payloadRequestLeave))
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m2", "text", "Casual Leave"))
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m3", "text", "10/07/2026"))
-	_ = svc.HandleWebhook(ctx, inbound(phone, "m4", "text", "10/07/2026"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m4", "text", "12/07/2026"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m5", "text", "yes"))
 
 	sess, ok := store.Get(phone)
 	if !ok || sess.State != StateLeaveAwaitReason {
@@ -447,7 +494,7 @@ func TestFlow_helloDuringLeave_sendsReminderNotMenu(t *testing.T) {
 	}
 
 	before := rec.count()
-	_ = svc.HandleWebhook(ctx, inbound(phone, "m5", "text", "Hello"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m6", "text", "Hello"))
 
 	if rec.containsText("How may we help you today?") {
 		t.Fatalf("hello during leave must not send main menu, got %v", rec.allTexts())
@@ -471,9 +518,10 @@ func TestFlow_fullLeaveSubmit(t *testing.T) {
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m1", "interactive", payloadRequestLeave))
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m2", "text", "Casual Leave"))
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m3", "text", "10/07/2026"))
-	_ = svc.HandleWebhook(ctx, inbound(phone, "m4", "text", "10/07/2026"))
-	_ = svc.HandleWebhook(ctx, inbound(phone, "m5", "text", "Family function"))
-	_ = svc.HandleWebhook(ctx, inbound(phone, "m6", "text", "yes"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m4", "text", "12/07/2026"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m5", "text", "yes"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m6", "text", "Family function"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m7", "text", "yes"))
 
 	if sess, ok := store.Get(phone); !ok || sess.State != StateIdle {
 		t.Fatalf("expected idle after submit, got %v", sess.State)
@@ -520,9 +568,14 @@ func TestFlow_insufficientBalance_keepsSession(t *testing.T) {
 		t.Fatalf("expected balance message, got %q", rec.lastText())
 	}
 
+	time.Sleep(leaveDateBurstWindow + 50*time.Millisecond)
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m5", "text", "01/07/2026"))
+	if !strings.Contains(rec.lastText(), "confirm your leave dates") {
+		t.Fatalf("expected date-confirm prompt after corrected end date, got %q", rec.lastText())
+	}
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m6", "text", "yes"))
 	if !strings.Contains(rec.lastText(), "Please enter the reason") {
-		t.Fatalf("expected reason prompt after corrected end date, got %q", rec.lastText())
+		t.Fatalf("expected reason prompt after confirming corrected date, got %q", rec.lastText())
 	}
 }
 
@@ -540,12 +593,13 @@ func TestFlow_unpaidLeave_noBalanceLimit(t *testing.T) {
 	if strings.Contains(rec.lastText(), "only") && strings.Contains(rec.lastText(), "leave days are available") {
 		t.Fatalf("unpaid leave should not trigger balance error, got %q", rec.lastText())
 	}
-	if !strings.Contains(rec.lastText(), "Please enter the reason") {
-		t.Fatalf("expected reason prompt after multi-day unpaid leave, got %q", rec.lastText())
+	if !strings.Contains(rec.lastText(), "confirm your leave dates") {
+		t.Fatalf("expected date-confirm prompt after multi-day unpaid leave, got %q", rec.lastText())
 	}
 
-	_ = svc.HandleWebhook(ctx, inbound(phone, "m5", "text", "Personal emergency"))
-	_ = svc.HandleWebhook(ctx, inbound(phone, "m6", "text", "yes"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m5", "text", "yes"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m6", "text", "Personal emergency"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m7", "text", "yes"))
 
 	if sess, ok := store.Get(phone); !ok || sess.State != StateIdle {
 		t.Fatalf("expected idle after unpaid submit, got %v", sess.State)

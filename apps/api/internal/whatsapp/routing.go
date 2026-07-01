@@ -43,11 +43,17 @@ func acceptsInboundAtState(state State, input string) bool {
 		_, ok := parseLeaveDate(input)
 		return ok
 
+	case StateLeaveAwaitDateConfirm:
+		return isLeaveConfirmKeyword(input)
+
 	case StateLeaveAwaitReason:
 		return isValidLeaveReason(input)
 
 	case StateLeaveAwaitConfirm:
 		return isLeaveConfirmKeyword(input)
+
+	case StateLeaveAwaitRejectionReason:
+		return isValidRejectionReason(input)
 
 	default:
 		return false

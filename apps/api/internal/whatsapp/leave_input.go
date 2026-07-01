@@ -1,8 +1,39 @@
 package whatsapp
 
-import "strings"
+import (
+	"regexp"
+	"strings"
+)
 
 const minLeaveReasonLen = 3
+
+const minRejectionReasonLen = 10
+
+var rejectionDatePattern = regexp.MustCompile(`(?i)\b\d{1,2}/\d{1,2}/\d{4}\b`)
+
+// isValidRejectionReason mirrors the HR portal rejection reason rules: at least
+// 10 characters, two distinct words, not a date, and not an approve/reject button echo.
+func isValidRejectionReason(input string) bool {
+	trimmed := strings.TrimSpace(input)
+	if isLeaveApprovalButtonEcho(trimmed) {
+		return false
+	}
+	if len(trimmed) < minRejectionReasonLen {
+		return false
+	}
+	if rejectionDatePattern.MatchString(trimmed) {
+		return false
+	}
+	words := strings.Fields(strings.ToLower(trimmed))
+	if len(words) < 2 {
+		return false
+	}
+	seen := make(map[string]struct{}, len(words))
+	for _, w := range words {
+		seen[w] = struct{}{}
+	}
+	return len(seen) >= 2
+}
 
 func isLeaveConfirmAffirmative(input string) bool {
 	switch strings.ToLower(strings.TrimSpace(input)) {

@@ -119,6 +119,19 @@ Please enter the correct end date.`
 
 const msgLeaveConfirmHelp = `Please reply *Yes* to submit or *No* to cancel.`
 
+func msgLeaveDateConfirmPrompt(start, end string, days int) string {
+	return fmt.Sprintf(
+		"Please confirm your leave dates:\n\nStart date: %s\nEnd date: %s\nTotal days: %d\n\nReply *Yes* to continue or *No* to re-enter the end date.",
+		start, end, days,
+	)
+}
+
+const msgLeaveDateConfirmHelp = `Please reply *Yes* to continue or *No* to re-enter the end date.`
+
+const msgLeaveRejectionReasonPrompt = `Please type the reason for rejecting this leave request. (Type 'cancel' to abort)`
+
+const msgLeaveRejectionReasonInvalid = `Please type a valid reason (at least 10 characters, in words). Type 'cancel' to abort.`
+
 func msgLeaveConfirmPrompt(leaveType, start, end, reason string, days int) string {
 	return fmt.Sprintf(
 		"Please confirm your leave details:\n\nLeave type: %s\nStart date: %s\nEnd date: %s\nTotal days: %d\nReason: %s\n\nReply *Yes* to submit or *No* to cancel.",
