@@ -129,5 +129,5 @@ func isStoredLeaveDateEcho(sess *Session, input string) bool {
 }
 
 func isInLeaveFlow(state State) bool {
-	return state >= StateLeaveAwaitType && state <= StateLeaveAwaitConfirm
+	return state >= StateLeaveAwaitType && state <= StateLeaveAwaitRejectionReason
 }
