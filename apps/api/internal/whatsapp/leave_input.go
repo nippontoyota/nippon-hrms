@@ -59,6 +59,9 @@ func isLeaveConfirmKeyword(input string) bool {
 
 func isValidLeaveReason(input string) bool {
 	trimmed := strings.TrimSpace(input)
+	if isBotPromptEcho(trimmed) {
+		return false
+	}
 	if len(trimmed) < minLeaveReasonLen {
 		return false
 	}

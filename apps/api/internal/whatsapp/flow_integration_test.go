@@ -407,6 +407,44 @@ func TestFlow_dateConfirmEndDateRedelivery_doesNotSendHelp(t *testing.T) {
 	}
 }
 
+func TestFlow_dateConfirmReasonText_advancesToReason(t *testing.T) {
+	svc, rec, store, phone := newFlowTestService(t)
+	ctx := context.Background()
+
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m1", "interactive", payloadRequestLeave))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m2", "text", "Unpaid Leave"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m3", "text", "09/10/2026"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m4", "text", "15/10/2026"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m5", "text", "hm"))
+
+	sess, ok := store.Get(phone)
+	if !ok || sess.State != StateLeaveAwaitReason {
+		t.Fatalf("expected reason state after reason-like text at date confirm, got %v", sess.State)
+	}
+	if !rec.containsText("Please enter the reason") {
+		t.Fatalf("expected reason prompt, got %v", rec.allTexts())
+	}
+}
+
+func TestFlow_dateConfirmValidReason_skipsToFinalConfirm(t *testing.T) {
+	svc, rec, store, phone := newFlowTestService(t)
+	ctx := context.Background()
+
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m1", "interactive", payloadRequestLeave))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m2", "text", "Unpaid Leave"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m3", "text", "09/10/2026"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m4", "text", "15/10/2026"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m5", "text", "I'm away for a family emergency"))
+
+	sess, ok := store.Get(phone)
+	if !ok || sess.State != StateLeaveAwaitConfirm {
+		t.Fatalf("expected final confirm after valid reason at date confirm, got %v", sess.State)
+	}
+	if !rec.containsText("Please confirm your leave details") {
+		t.Fatalf("expected final confirm prompt, got %v", rec.allTexts())
+	}
+}
+
 func TestFlow_startDateEchoAfterEndPrompt_doesNotAutoConfirm(t *testing.T) {
 	svc, rec, store, phone := newFlowTestService(t)
 	ctx := context.Background()
