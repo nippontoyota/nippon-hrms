@@ -361,6 +361,52 @@ func TestFlow_dateConfirmNo_returnsToEnd(t *testing.T) {
 	}
 }
 
+func TestFlow_dateConfirmPromptEcho_doesNotSendHelp(t *testing.T) {
+	svc, rec, store, phone := newFlowTestService(t)
+	ctx := context.Background()
+
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m1", "interactive", payloadRequestLeave))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m2", "text", "Unpaid Leave"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m3", "text", "09/09/2026"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m4", "text", "10/09/2026"))
+
+	sess, ok := store.Get(phone)
+	if !ok || sess.State != StateLeaveAwaitDateConfirm {
+		t.Fatalf("expected date-confirm state, got %v", sess.State)
+	}
+
+	before := rec.count()
+	echo := msgLeaveDateConfirmPrompt("09/09/2026", "10/09/2026", 2)
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m5", "text", echo))
+
+	if rec.count() != before {
+		t.Fatalf("date-confirm prompt echo must not send help, got %v", rec.allTexts())
+	}
+	if sess, ok := store.Get(phone); !ok || sess.State != StateLeaveAwaitDateConfirm {
+		t.Fatalf("expected to remain at date-confirm after prompt echo, got %v", sess.State)
+	}
+}
+
+func TestFlow_dateConfirmEndDateRedelivery_doesNotSendHelp(t *testing.T) {
+	svc, rec, store, phone := newFlowTestService(t)
+	ctx := context.Background()
+
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m1", "interactive", payloadRequestLeave))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m2", "text", "Unpaid Leave"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m3", "text", "09/09/2026"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m4", "text", "10/09/2026"))
+
+	before := rec.count()
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m5", "text", "10/09/2026"))
+
+	if rec.count() != before {
+		t.Fatalf("end-date redelivery at date-confirm must not send help, got %v", rec.allTexts())
+	}
+	if sess, ok := store.Get(phone); !ok || sess.State != StateLeaveAwaitDateConfirm {
+		t.Fatalf("expected to remain at date-confirm after end-date redelivery, got %v", sess.State)
+	}
+}
+
 func TestFlow_leaveTypePromptEcho_atIdleDoesNotResendMenu(t *testing.T) {
 	svc, rec, _, phone := newFlowTestService(t)
 	ctx := context.Background()

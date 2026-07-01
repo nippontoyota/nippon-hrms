@@ -819,6 +819,9 @@ func (s *Service) handleLeaveAwaitDateConfirm(ctx context.Context, sess *Session
 	if isStalePromptEcho(sess.State, input) {
 		return nil
 	}
+	if isStoredLeaveDateEcho(sess, input) {
+		return nil
+	}
 
 	normalized := strings.ToLower(strings.TrimSpace(input))
 	if isLeaveConfirmNegative(normalized) {
