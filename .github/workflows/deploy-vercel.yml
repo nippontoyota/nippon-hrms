@@ -1,0 +1,38 @@
+# Deploys production via Vercel Deploy Hook after CI passes.
+#
+# Why: On Vercel Hobby, only the team owner's Git commits auto-deploy. Other
+# contributors' pushes are blocked. A deploy hook bypasses that check.
+#
+# One-time setup (Vercel project owner):
+#   1. Vercel → Project → Settings → Git → Deploy Hooks
+#   2. Create hook for branch "main", copy the URL
+#   3. GitHub → repo → Settings → Secrets → Actions → New secret
+#      Name: VERCEL_DEPLOY_HOOK_URL   Value: <hook URL>
+#
+# Optional: Settings → Git → disable auto-deploy on push to stop failed
+# "commit author" deployments (hook will still deploy after CI).
+
+name: Deploy Vercel
+
+on:
+  workflow_run:
+    workflows: [Enterprise CI]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  deploy:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Vercel production deploy
+        env:
+          DEPLOY_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$DEPLOY_HOOK" ]; then
+            echo "::warning::VERCEL_DEPLOY_HOOK_URL is not set. Skipping Vercel deploy."
+            echo "Ask the Vercel project owner to create a Deploy Hook and add it as a GitHub Actions secret."
+            exit 0
+          fi
+          curl -fsS -X POST "$DEPLOY_HOOK"
+          echo "Vercel deploy hook triggered."
