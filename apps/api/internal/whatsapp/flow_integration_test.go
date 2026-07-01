@@ -115,6 +115,25 @@ func (r *recordedOutbound) count() int {
 	return len(r.texts)
 }
 
+func (r *recordedOutbound) allTexts() []string {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	out := make([]string, len(r.texts))
+	copy(out, r.texts)
+	return out
+}
+
+func (r *recordedOutbound) containsText(substr string) bool {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for _, text := range r.texts {
+		if strings.Contains(text, substr) {
+			return true
+		}
+	}
+	return false
+}
+
 func newFlowTestService(t *testing.T) (*Service, *recordedOutbound, *InMemoryStore, string) {
 	t.Helper()
 	const phone = "+918590215315"
@@ -172,6 +191,19 @@ func TestFlow_leaveRequest_textOnlyEchoes(t *testing.T) {
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m2", "text", menuEcho))
 	if sess, ok := store.Get(phone); !ok || sess.State != StateLeaveAwaitType {
 		t.Fatalf("step 2: expected leave-await-type, got state %v ok=%v", sess.State, ok)
+	}
+	if rec.containsText("How may we help you today?") && rec.count() > 1 {
+		// After request leave, only the leave-type prompt should follow the initial menu — not a second welcome.
+		texts := rec.allTexts()
+		menuCount := 0
+		for _, text := range texts {
+			if strings.Contains(text, "How may we help you today?") {
+				menuCount++
+			}
+		}
+		if menuCount > 1 {
+			t.Fatalf("step 2: duplicate welcome menu after request leave: %v", texts)
+		}
 	}
 	if !strings.Contains(rec.lastText(), "What type of leave do you need?") {
 		t.Fatalf("step 2: expected leave type prompt, got %q", rec.lastText())
@@ -276,6 +308,59 @@ func TestFlow_fullLeaveSubmit_stepByStep(t *testing.T) {
 		if sess.State != step.state {
 			t.Fatalf("after %s input %q: state = %v, want %v", step.id, step.body, sess.State, step.state)
 		}
+	}
+}
+
+func TestFlow_endDateDuplicate_noInvalidReason(t *testing.T) {
+	svc, rec, store, phone := newFlowTestService(t)
+	ctx := context.Background()
+
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m1", "interactive", payloadRequestLeave))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m2", "text", "Casual Leave"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m3", "text", "01/07/2026"))
+	time.Sleep(leaveDateBurstWindow + 50*time.Millisecond)
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m4", "text", "01/07/2026"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m4b", "text", "01/07/2026"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m5", "text", "Family movie"))
+
+	sess, ok := store.Get(phone)
+	if !ok || sess.State != StateLeaveAwaitConfirm {
+		t.Fatalf("expected confirm state, got %v ok=%v", sess.State, ok)
+	}
+	if rec.containsText("not a date") {
+		t.Fatalf("duplicate end date must not trigger invalid reason message: %v", rec.allTexts())
+	}
+	if sess.TempLeaveReason != "Family movie" {
+		t.Fatalf("expected stored reason Family movie, got %q", sess.TempLeaveReason)
+	}
+}
+
+func TestFlow_leaveTypePromptEcho_atIdleDoesNotResendMenu(t *testing.T) {
+	svc, rec, _, phone := newFlowTestService(t)
+	ctx := context.Background()
+	promptEcho := "Leave Application\n\nWhat type of leave do you need?"
+
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m1", "text", promptEcho))
+
+	if rec.count() != 0 {
+		t.Fatalf("leave-type prompt echo at idle must not send menu, got %v", rec.allTexts())
+	}
+}
+
+func TestFlow_leaveTypePromptEcho_leaveAwaitTypeDoesNotResend(t *testing.T) {
+	svc, rec, store, phone := newFlowTestService(t)
+	ctx := context.Background()
+	promptEcho := "Leave Application\n\nWhat type of leave do you need?"
+
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m1", "interactive", payloadRequestLeave))
+	before := rec.count()
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m2", "text", promptEcho))
+
+	if rec.count() != before {
+		t.Fatalf("leave-type prompt echo at idle must not send another menu, got %v", rec.allTexts())
+	}
+	if sess, ok := store.Get(phone); !ok || sess.State != StateLeaveAwaitType {
+		t.Fatalf("expected leave-await-type, got %v", sess.State)
 	}
 }
 

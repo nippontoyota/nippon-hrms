@@ -57,6 +57,12 @@ func isBotPromptEcho(input string) bool {
 	if strings.Contains(lower, "please enter your leave end date") {
 		return true
 	}
+	if strings.Contains(lower, "please enter your leave start date") {
+		return true
+	}
+	if strings.Contains(lower, "please enter a short reason in words") {
+		return true
+	}
 	if strings.Contains(lower, "please enter the reason for your leave") {
 		return true
 	}
@@ -118,4 +124,12 @@ func isInteractiveMenuEcho(input string) bool {
 		return true
 	}
 	return false
+}
+
+// isLeaveTypePromptOnlyEcho detects WhatsApp text echoes of the leave-type question without a selection.
+func isLeaveTypePromptOnlyEcho(input string) bool {
+	lower := strings.ToLower(strings.TrimSpace(input))
+	return strings.Contains(lower, "leave application") &&
+		strings.Contains(lower, "what type of leave do you need") &&
+		normalizeLeaveTypeSelection(input) == ""
 }

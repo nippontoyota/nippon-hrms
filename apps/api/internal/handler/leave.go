@@ -90,6 +90,10 @@ func (h *LeaveHandler) UpdateStatus(w http.ResponseWriter, r *http.Request) {
 			respond.BadRequest(w, "rejection reason too long")
 			return
 		}
+		if msg := validateRejectionReason(trimmed); msg != "" {
+			respond.BadRequest(w, msg)
+			return
+		}
 		rejectionReason = &trimmed
 	}
 
@@ -104,6 +108,9 @@ func (h *LeaveHandler) UpdateStatus(w http.ResponseWriter, r *http.Request) {
 		reason := ""
 		if rejectionReason != nil {
 			reason = *rejectionReason
+		}
+		if req.Status == leave.StatusRejected {
+			slog.Info("leave rejected", "leaveId", id, "reasonLen", len(reason))
 		}
 		h.scheduleLeaveNotification(lReq, req.Status, reason)
 	}

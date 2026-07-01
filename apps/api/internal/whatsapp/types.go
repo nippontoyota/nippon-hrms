@@ -35,10 +35,13 @@ type Session struct {
 	LastPayslipSentAt     time.Time
 	LastLeaveTypePromptAt time.Time
 	LastLeaveSubmittedAt  time.Time
-	LastLeaveDateAt     time.Time
-	LastOutboundAt        time.Time
-	LastOutboundText      string
-	UpdatedAt          time.Time
+	LastLeaveDateAt         time.Time
+	LastAcceptedLeaveInput  string
+	LastLeaveStepAt         time.Time
+	LastReasonPromptAt      time.Time
+	LastOutboundAt          time.Time
+	LastOutboundText        string
+	UpdatedAt               time.Time
 
 	TempLeaveType   leave.LeaveType
 	TempLeaveStart  string

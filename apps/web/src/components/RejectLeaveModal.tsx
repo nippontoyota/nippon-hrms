@@ -1,9 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { WarningDiamond, X } from '@phosphor-icons/react';
+import {
+  buildLeaveRejectedPreview,
+  validateRejectionReason,
+} from '@/lib/rejectionReason';
 
 interface RejectLeaveModalProps {
   open: boolean;
   employeeName?: string;
+  leaveDays?: number;
+  leaveFromDate?: string;
+  leaveToDate?: string;
   onCancel: () => void;
   onConfirm: (reason: string) => void;
   isSubmitting?: boolean;
@@ -11,9 +18,20 @@ interface RejectLeaveModalProps {
 
 const MAX_REASON_LENGTH = 500;
 
+function formatLeaveShortDate(iso: string): string {
+  const datePart = iso.split('T')[0];
+  const [year, month, day] = datePart.split('-').map(Number);
+  if (!year || !month || !day) return iso;
+  const label = new Date(year, month - 1, day).toLocaleString('en-IN', { day: '2-digit', month: 'short' });
+  return label.replace(/^0/, '');
+}
+
 export default function RejectLeaveModal({
   open,
   employeeName,
+  leaveDays = 1,
+  leaveFromDate = '',
+  leaveToDate = '',
   onCancel,
   onConfirm,
   isSubmitting = false,
@@ -40,7 +58,18 @@ export default function RejectLeaveModal({
   if (!open) return null;
 
   const trimmed = reason.trim();
-  const canSubmit = trimmed.length > 0 && !isSubmitting;
+  const validationError = trimmed ? validateRejectionReason(trimmed) : null;
+  const canSubmit = trimmed.length > 0 && !validationError && !isSubmitting;
+  const preview =
+    trimmed && !validationError
+      ? buildLeaveRejectedPreview(
+          employeeName ?? 'Employee',
+          leaveDays,
+          formatLeaveShortDate(leaveFromDate),
+          formatLeaveShortDate(leaveToDate),
+          trimmed,
+        )
+      : null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -90,7 +119,20 @@ export default function RejectLeaveModal({
             <p className="text-[10px] text-slate-400 mt-1 text-right">
               {reason.length}/{MAX_REASON_LENGTH}
             </p>
+            {validationError && (
+              <p className="text-xs text-red-600 dark:text-red-400 mt-1">{validationError}</p>
+            )}
           </div>
+          {preview && (
+            <div className="rounded-md border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/60 px-3 py-2.5">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
+                WhatsApp preview
+              </p>
+              <p className="text-xs text-slate-700 dark:text-slate-200 whitespace-pre-line leading-relaxed">
+                {preview}
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">

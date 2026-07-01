@@ -170,6 +170,8 @@ const (
 	postLeaveMenuSuppress   = 5 * time.Minute
 	outboundReplyDedup      = 15 * time.Second
 	leaveDateBurstWindow    = 750 * time.Millisecond
+	leaveStepBurstWindow    = 2 * time.Second
+	reasonPromptCooldown    = 5 * time.Second
 )
 
 var greetingWords = []string{"hi", "hello", "hey", "start", "menu", "reset"}
@@ -244,6 +246,27 @@ func startOfDayLocal(t time.Time) time.Time {
 	return time.Date(y, m, d, 0, 0, 0, 0, time.Local)
 }
 
+func shouldIgnoreLateLeaveDateEcho(sess *Session, input string) bool {
+	if sess == nil || sess.LastLeaveStepAt.IsZero() {
+		return false
+	}
+	if time.Since(sess.LastLeaveStepAt) > leaveStepBurstWindow {
+		return false
+	}
+	trimmed := strings.TrimSpace(input)
+	if trimmed == "" {
+		return false
+	}
+	if trimmed == sess.LastAcceptedLeaveInput {
+		return true
+	}
+	parsed, ok := parseLeaveDate(trimmed)
+	if !ok || sess.TempLeaveEnd == "" {
+		return false
+	}
+	return parsed.Format("2006-01-02") == sess.TempLeaveEnd
+}
+
 func (s *Service) handleIdle(ctx context.Context, sess *Session, from, input string) error {
 	switch normalizeMenuSelection(input) {
 	case payloadGeneratePay, payloadRequestSalary:
@@ -287,6 +310,10 @@ func (s *Service) handleIdle(ctx context.Context, sess *Session, from, input str
 
 	if looksLikeLeaveDateAttempt(input) {
 		return s.sendText(ctx, from, msgLeaveDateWithoutSession)
+	}
+
+	if isLeaveTypePromptOnlyEcho(input) {
+		return nil
 	}
 
 	if isLeaveConfirmKeyword(strings.ToLower(strings.TrimSpace(input))) {
@@ -360,6 +387,10 @@ func (s *Service) beginLeaveFlow(ctx context.Context, sess *Session, from string
 	sess.TempLeaveStart = ""
 	sess.TempLeaveEnd = ""
 	sess.TempLeaveReason = ""
+	sess.LastAcceptedLeaveInput = ""
+	sess.LastLeaveStepAt = time.Time{}
+	sess.LastReasonPromptAt = time.Time{}
+	sess.LastMenuSentAt = time.Now()
 	sess.State = StateLeaveAwaitType
 	s.sessions.Set(from, sess)
 	return s.sendLeaveTypePrompt(ctx, sess, from)
@@ -701,9 +732,23 @@ func (s *Service) handleLeaveAwaitEnd(ctx context.Context, sess *Session, from, 
 	}
 
 	sess.TempLeaveEnd = endDate.Format("2006-01-02")
+	sess.LastAcceptedLeaveInput = strings.TrimSpace(input)
+	sess.LastLeaveStepAt = time.Now()
 	sess.State = StateLeaveAwaitReason
 	s.sessions.Set(from, sess)
-	return s.sendUserText(ctx, sess, from, msgLeaveAwaitReason)
+	return s.sendLeaveReasonPrompt(ctx, sess, from)
+}
+
+func (s *Service) sendLeaveReasonPrompt(ctx context.Context, sess *Session, to string) error {
+	if !sess.LastReasonPromptAt.IsZero() && time.Since(sess.LastReasonPromptAt) < reasonPromptCooldown {
+		return nil
+	}
+	if err := s.sendUserText(ctx, sess, to, msgLeaveAwaitReason); err != nil {
+		return err
+	}
+	sess.LastReasonPromptAt = time.Now()
+	s.sessions.Set(to, sess)
+	return nil
 }
 
 func (s *Service) handleLeaveAwaitReason(ctx context.Context, sess *Session, from, input string) error {
@@ -713,6 +758,9 @@ func (s *Service) handleLeaveAwaitReason(ctx context.Context, sess *Session, fro
 		return s.handleIdle(ctx, sess, from, input)
 	}
 	if isStalePromptEcho(sess.State, input) {
+		return nil
+	}
+	if shouldIgnoreLateLeaveDateEcho(sess, input) {
 		return nil
 	}
 
