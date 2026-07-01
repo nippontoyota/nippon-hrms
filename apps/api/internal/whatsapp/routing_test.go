@@ -183,6 +183,8 @@ func TestIsBotPromptEcho_leavePromptBodies(t *testing.T) {
 		{msgLeaveAwaitEnd, true},
 		{msgLeaveAwaitReason, true},
 		{"Please confirm your leave details:\n\nLeave type: Casual Leave", true},
+		{msgLeaveDateConfirmPrompt("09/09/2026", "10/09/2026", 2), true},
+		{msgLeaveDateConfirmHelp, true},
 		{"Leave Application\n\nWhat type of leave do you need?\nCasual Leave", true},
 	}
 	for _, tc := range cases {
