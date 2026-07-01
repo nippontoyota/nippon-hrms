@@ -15,7 +15,7 @@ import BulkUploadWizard from '@/components/BulkUploadWizard';
 import ImportConflictPanel from '@/components/ImportConflictPanel';
 import TablePagination from '@/components/TablePagination';
 
-type SortKey = 'employeeId' | 'name' | 'department' | 'doj' | 'branch' | 'designation';
+type SortKey = 'employeeId' | 'name' | 'department' | 'managerName' | 'doj' | 'branch' | 'designation';
 type SortDir = 'asc' | 'desc';
 
 function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey; sortDir: SortDir }) {
@@ -32,12 +32,13 @@ function formatMobile(mobile: string): string {
 }
 
 const Cell = ({ 
-  emp, field, type = 'text', className = '', formatFn,
-  editingId, editForm, setEditForm, onSave
+  emp, field, displayField, type = 'text', className = '', formatFn,
+  editingId, editForm, setEditForm, onSave, options
 }: { 
-  emp: Employee, field: keyof Employee, type?: string, className?: string, formatFn?: (v: any) => React.ReactNode,
+  emp: Employee, field: keyof Employee, displayField?: keyof Employee, type?: string, className?: string, formatFn?: (v: any) => React.ReactNode,
   editingId: string | null, editForm: Partial<Employee>, setEditForm: React.Dispatch<React.SetStateAction<Partial<Employee>>>,
-  onSave?: () => void
+  onSave?: () => void,
+  options?: {label: string, value: string}[]
 }) => {
   const vaultToken = useVaultStore(s => s.vaultToken);
   const isUnlocked = !!vaultToken;
@@ -49,6 +50,22 @@ const Cell = ({
 
   
   if (isEditing) {
+    if (options) {
+      return (
+        <td className={`${className} p-1`}>
+          <select
+            className="w-full bg-yellow-50 border border-dashed border-slate-400 px-2 py-1 text-xs text-black focus:outline-none focus:border-[#eb0a1e] focus:bg-white dark:bg-slate-800 transition-colors"
+            value={(editForm[field] as string) || ''}
+            onChange={(e) => setEditForm(prev => ({ ...prev, [field]: e.target.value }))}
+          >
+            <option value="">-- None --</option>
+            {options.map(o => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+        </td>
+      );
+    }
     return (
       <td className={`${className} p-1`}>
         <input
@@ -69,7 +86,7 @@ const Cell = ({
     );
   }
 
-  const val = emp[field];
+  const val = emp[displayField || field];
   if (formatFn) return <td className={className}>{formatFn(val)}</td>;
   if (type === 'number') return <td className={className}>{(val as number)?.toFixed(2) || '0.00'}</td>;
   return <td className={className}>{val as React.ReactNode}</td>;
@@ -370,6 +387,7 @@ export default function EmployeesPage() {
                   <Th col="employeeId">EMP ID</Th>
                   <Th col="name">Name</Th>
                   <Th col="department">Department</Th>
+                  <Th col="managerName">Reporting Manager</Th>
                   <th>Mobile Number</th>
                   <th>Level</th>
                   <Th col="doj">DOJ</Th>
@@ -428,6 +446,7 @@ export default function EmployeesPage() {
                       <Cell {...cellProps} field="employeeId" className="font-mono font-bold text-slate-900 dark:text-white" />
                       <Cell {...cellProps} field="name" className="font-semibold text-slate-900 dark:text-white" />
                       <Cell {...cellProps} field="department" />
+                      <Cell {...cellProps} field="managerId" displayField="managerName" options={employees.map(emp => ({ label: `${emp.name} (${emp.employeeId})`, value: emp.id }))} />
                       <Cell {...cellProps} field="mobileNo" className="font-mono text-slate-700 dark:text-slate-200" formatFn={v => formatMobile(v as string)} />
                       <Cell {...cellProps} field="level" className="text-center" />
                       <Cell {...cellProps} field="doj" />

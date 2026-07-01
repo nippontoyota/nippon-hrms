@@ -137,6 +137,10 @@ const msgLeaveCreated = `Your leave request has been submitted successfully.
 
 It is pending approval from the HR department. Reply Hi to return to the main menu.`
 
+const msgLeavePendingManager = `Your leave request has been submitted successfully.
+
+It is pending approval from your Manager. Reply Hi to return to the main menu.`
+
 const msgLeaveCancelled = `Your leave request has been cancelled.
 
 Reply Hi to return to the main menu.`

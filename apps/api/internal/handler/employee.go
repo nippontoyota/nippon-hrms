@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/nippon-toyota/hrms/internal/employee"
@@ -25,6 +26,12 @@ type EmployeeHandler struct {
 // NewEmployeeHandler constructs an EmployeeHandler.
 func NewEmployeeHandler(repo employee.Repository, pool *pgxpool.Pool) *EmployeeHandler {
 	return &EmployeeHandler{repo: repo, pool: pool}
+}
+
+func normalizeManagerID(emp *employee.Employee) {
+	if emp.ManagerID != nil && strings.TrimSpace(*emp.ManagerID) == "" {
+		emp.ManagerID = nil
+	}
 }
 
 func (h *EmployeeHandler) BulkUpload(w http.ResponseWriter, r *http.Request) {
@@ -152,6 +159,7 @@ func (h *EmployeeHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	emp.ID = emp.EmployeeID // Frontend sends employeeId
+	normalizeManagerID(&emp)
 	if err := h.repo.Create(r.Context(), &emp); err != nil {
 		logger.Error("failed to create employee", "err", err)
 		respond.InternalError(w)
@@ -178,6 +186,7 @@ func (h *EmployeeHandler) Update(w http.ResponseWriter, r *http.Request) {
 		respond.BadRequest(w, "invalid request payload")
 		return
 	}
+	normalizeManagerID(&emp)
 	if err := h.repo.Update(r.Context(), id, &emp); err != nil {
 		logger.Error("failed to update employee", "err", err)
 		respond.InternalError(w)
