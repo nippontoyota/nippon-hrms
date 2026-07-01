@@ -35,8 +35,8 @@ jobs:
 
       - name: Rewrite checkout author for Vercel Hobby owner check
         run: |
-          git config user.email "dev@nippontoyota.com"
-          git config user.name "Nippon Toyota Dev"
+          git config user.email "118352827+Krishnanand-G@users.noreply.github.com"
+          git config user.name "Krishnanand G"
           git commit --amend --no-edit --reset-author
 
       - name: Check Vercel token configured
