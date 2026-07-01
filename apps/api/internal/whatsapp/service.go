@@ -139,11 +139,11 @@ func (s *Service) handleWebhookLocked(ctx context.Context, from, input, msgType,
 	case StateLeaveAwaitType:
 		err = s.handleLeaveAwaitType(ctx, sess, from, input)
 	case StateLeaveAwaitStart:
-		err = s.handleLeaveAwaitStart(ctx, sess, from, input)
+		err = s.handleLeaveAwaitStart(ctx, sess, from, input, messageID)
 	case StateLeaveAwaitEnd:
-		err = s.handleLeaveAwaitEnd(ctx, sess, from, input)
+		err = s.handleLeaveAwaitEnd(ctx, sess, from, input, messageID)
 	case StateLeaveAwaitReason:
-		err = s.handleLeaveAwaitReason(ctx, sess, from, input)
+		err = s.handleLeaveAwaitConfirm(ctx, sess, from, input)
 	case StateLeaveAwaitConfirm:
 		err = s.handleLeaveAwaitConfirm(ctx, sess, from, input)
 	default:
@@ -200,7 +200,6 @@ const (
 	leaveDateBurstWindow    = 750 * time.Millisecond
 	leaveStepBurstWindow    = 2 * time.Second
 	minEndReplyWindow       = 2 * time.Second
-	reasonPromptCooldown    = 5 * time.Second
 	leaveReminderCooldown   = 30 * time.Second
 )
 
@@ -421,7 +420,7 @@ func (s *Service) beginLeaveFlow(ctx context.Context, sess *Session, from string
 	sess.LastLeaveStepAt = time.Time{}
 	sess.LastEndPromptAt = time.Time{}
 	sess.HasEndDateAttempt = false
-	sess.LastReasonPromptAt = time.Time{}
+	sess.LastStartMessageID = ""
 	sess.LastLeaveReminderAt = time.Time{}
 	sess.LastMenuSentAt = time.Now()
 	sess.State = StateLeaveAwaitType
@@ -696,7 +695,7 @@ func remainingForLeaveType(bal *leave.LeaveBalance, t leave.LeaveType) (remainin
 	return bal.RemainingCasual(), "casual"
 }
 
-func (s *Service) handleLeaveAwaitStart(ctx context.Context, sess *Session, from, input string) error {
+func (s *Service) handleLeaveAwaitStart(ctx context.Context, sess *Session, from, input, messageID string) error {
 	if handled, err := s.handleLeaveFlowInterrupt(ctx, sess, from, input); handled {
 		return err
 	}
@@ -715,6 +714,7 @@ func (s *Service) handleLeaveAwaitStart(ctx context.Context, sess *Session, from
 
 	sess.TempLeaveStart = parsed.Format("2006-01-02")
 	sess.LastAcceptedLeaveInput = strings.TrimSpace(input)
+	sess.LastStartMessageID = messageID
 	sess.LastLeaveStepAt = time.Now()
 	sess.LastLeaveDateAt = time.Now()
 	sess.LastEndPromptAt = time.Now()
@@ -724,11 +724,15 @@ func (s *Service) handleLeaveAwaitStart(ctx context.Context, sess *Session, from
 	return s.sendUserText(ctx, sess, from, msgLeaveAwaitEnd)
 }
 
-func (s *Service) handleLeaveAwaitEnd(ctx context.Context, sess *Session, from, input string) error {
+func (s *Service) handleLeaveAwaitEnd(ctx context.Context, sess *Session, from, input, messageID string) error {
 	if handled, err := s.handleLeaveFlowInterrupt(ctx, sess, from, input); handled {
 		return err
 	}
 	if isStalePromptEcho(sess.State, input) {
+		return nil
+	}
+
+	if messageID != "" && messageID == sess.LastStartMessageID {
 		return nil
 	}
 
@@ -780,46 +784,7 @@ func (s *Service) handleLeaveAwaitEnd(ctx context.Context, sess *Session, from, 
 	sess.TempLeaveEnd = endDate.Format("2006-01-02")
 	sess.LastAcceptedLeaveInput = strings.TrimSpace(input)
 	sess.LastLeaveStepAt = time.Now()
-	sess.State = StateLeaveAwaitReason
-	s.sessions.Set(from, sess)
-	return s.sendLeaveReasonPrompt(ctx, sess, from)
-}
-
-func (s *Service) sendLeaveReasonPrompt(ctx context.Context, sess *Session, to string) error {
-	if !sess.LastReasonPromptAt.IsZero() && time.Since(sess.LastReasonPromptAt) < reasonPromptCooldown {
-		return nil
-	}
-	if err := s.sendUserText(ctx, sess, to, msgLeaveAwaitReason); err != nil {
-		return err
-	}
-	sess.LastReasonPromptAt = time.Now()
-	s.sessions.Set(to, sess)
-	return nil
-}
-
-func (s *Service) handleLeaveAwaitReason(ctx context.Context, sess *Session, from, input string) error {
-	if handled, err := s.handleLeaveFlowInterrupt(ctx, sess, from, input); handled {
-		return err
-	}
-	if isStalePromptEcho(sess.State, input) {
-		return nil
-	}
-	if shouldIgnoreLateLeaveDateEcho(sess, input) || isStoredLeaveDateEcho(sess, input) {
-		return nil
-	}
-
-	trimmed := strings.TrimSpace(input)
-	if len(trimmed) < minLeaveReasonLen {
-		return s.sendUserText(ctx, sess, from, msgLeaveReasonTooShort)
-	}
-	if looksLikeLeaveDateAttempt(trimmed) || looksLikePeriodAttempt(trimmed) {
-		return s.sendUserText(ctx, sess, from, msgLeaveInvalidReason)
-	}
-	if isLeaveConfirmKeyword(trimmed) {
-		return s.sendUserText(ctx, sess, from, msgLeaveInvalidReason)
-	}
-
-	sess.TempLeaveReason = trimmed
+	sess.TempLeaveReason = leaveReasonWhatsApp
 	sess.State = StateLeaveAwaitConfirm
 	s.sessions.Set(from, sess)
 	return s.sendLeaveConfirmSummary(ctx, sess, from)
@@ -839,7 +804,6 @@ func (s *Service) sendLeaveConfirmSummary(ctx context.Context, sess *Session, fr
 		leaveTypeDisplayName(sess.TempLeaveType),
 		sDate.Format("02/01/2006"),
 		eDate.Format("02/01/2006"),
-		sess.TempLeaveReason,
 		days,
 	))
 }
@@ -873,14 +837,10 @@ func (s *Service) handleLeaveAwaitConfirm(ctx context.Context, sess *Session, fr
 
 	startDate, ok := parseStoredLeaveDate(sess.TempLeaveStart)
 	if !ok {
-		sess.resetFlow()
-		s.sessions.Set(from, sess)
 		return s.sendText(ctx, from, msgLeaveSubmitError)
 	}
 	endDate, ok := parseStoredLeaveDate(sess.TempLeaveEnd)
 	if !ok {
-		sess.resetFlow()
-		s.sessions.Set(from, sess)
 		return s.sendText(ctx, from, msgLeaveSubmitError)
 	}
 	days := int(endDate.Sub(startDate).Hours()/24) + 1
@@ -890,19 +850,24 @@ func (s *Service) handleLeaveAwaitConfirm(ctx context.Context, sess *Session, fr
 		leaveType = leave.TypeCasual
 	}
 
+	reason := sess.TempLeaveReason
+	if reason == "" {
+		reason = leaveReasonWhatsApp
+	}
+
 	req := &leave.LeaveRequest{
 		EmployeeID: sess.EmployeeID,
 		Type:       leaveType,
 		FromDate:   sess.TempLeaveStart,
 		ToDate:     sess.TempLeaveEnd,
 		Days:       days,
-		Reason:     sess.TempLeaveReason,
+		Reason:     reason,
 		Status:     leave.StatusPending,
 	}
 
 	if err := s.leaveRepo.Create(ctx, req); err != nil {
 		slog.Error("failed to create leave request", "err", err, "emp", sess.EmployeeID)
-		sess.resetFlow()
+		sess.State = StateLeaveAwaitConfirm
 		s.sessions.Set(from, sess)
 		return s.sendText(ctx, from, msgLeaveSubmitError)
 	}
