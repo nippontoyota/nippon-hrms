@@ -150,6 +150,8 @@ func (s *Service) handleWebhookLocked(ctx context.Context, from, input, msgType,
 		err = s.handleLeaveAwaitStart(ctx, sess, from, input, messageID)
 	case StateLeaveAwaitEnd:
 		err = s.handleLeaveAwaitEnd(ctx, sess, from, input, messageID)
+	case StateLeaveAwaitDateConfirm:
+		err = s.handleLeaveAwaitDateConfirm(ctx, sess, from, input)
 	case StateLeaveAwaitReason:
 		err = s.handleLeaveAwaitReason(ctx, sess, from, input)
 	case StateLeaveAwaitConfirm:
@@ -753,9 +755,18 @@ func (s *Service) handleLeaveAwaitEnd(ctx context.Context, sess *Session, from, 
 		return nil
 	}
 
+	trimmedInput := strings.TrimSpace(input)
+	// Guard against the start-date message being redelivered/echoed right after the
+	// end-date prompt. If it is the same text as the accepted start input and arrives
+	// within a short window of the prompt, ignore it so the flow does not auto-advance.
+	if trimmedInput != "" && trimmedInput == sess.LastAcceptedLeaveInput &&
+		!sess.LastEndPromptAt.IsZero() && time.Since(sess.LastEndPromptAt) < leaveDateBurstWindow {
+		return nil
+	}
+
 	endDate, ok := parseLeaveDate(input)
 	if !ok {
-		if strings.TrimSpace(input) != "" && !looksLikeLeaveDateAttempt(input) {
+		if trimmedInput != "" && !looksLikeLeaveDateAttempt(input) {
 			return s.sendUserText(ctx, sess, from, msgLeaveAwaitEndNotDate)
 		}
 		return s.sendUserText(ctx, sess, from, msgLeaveInvalidDate)
@@ -792,6 +803,36 @@ func (s *Service) handleLeaveAwaitEnd(ctx context.Context, sess *Session, from, 
 	sess.LastAcceptedLeaveInput = strings.TrimSpace(input)
 	sess.LastLeaveStepAt = time.Now()
 	sess.TempLeaveReason = ""
+	sess.State = StateLeaveAwaitDateConfirm
+	s.sessions.Set(from, sess)
+	return s.sendUserText(ctx, sess, from, msgLeaveDateConfirmPrompt(
+		startDate.Format("02/01/2006"),
+		endDate.Format("02/01/2006"),
+		days,
+	))
+}
+
+func (s *Service) handleLeaveAwaitDateConfirm(ctx context.Context, sess *Session, from, input string) error {
+	if handled, err := s.handleLeaveFlowInterrupt(ctx, sess, from, input); handled {
+		return err
+	}
+	if isStalePromptEcho(sess.State, input) {
+		return nil
+	}
+
+	normalized := strings.ToLower(strings.TrimSpace(input))
+	if isLeaveConfirmNegative(normalized) {
+		sess.TempLeaveEnd = ""
+		sess.LastAcceptedLeaveInput = ""
+		sess.LastEndPromptAt = time.Now()
+		sess.State = StateLeaveAwaitEnd
+		s.sessions.Set(from, sess)
+		return s.sendUserText(ctx, sess, from, msgLeaveAwaitEnd)
+	}
+	if !isLeaveConfirmAffirmative(normalized) {
+		return s.sendUserText(ctx, sess, from, msgLeaveDateConfirmHelp)
+	}
+
 	sess.State = StateLeaveAwaitReason
 	s.sessions.Set(from, sess)
 	return s.sendLeaveReasonPrompt(ctx, sess, from)
@@ -978,6 +1019,7 @@ func (s *Service) handleLeaveApproval(ctx context.Context, sess *Session, from, 
 	if !isApprove {
 		sess.State = StateLeaveAwaitRejectionReason
 		sess.PendingRejectionLeaveID = leaveID
+		sess.LastRejectionPromptAt = time.Now()
 		s.sessions.Set(from, sess)
 		return s.sendText(ctx, from, fmt.Sprintf("Please type the reason for rejecting the leave request for %s. (Type 'cancel' to abort)", req.Employee.Name))
 	}
@@ -1003,6 +1045,15 @@ func (s *Service) handleLeaveAwaitRejectionReason(ctx context.Context, sess *Ses
 		sess.resetFlow()
 		s.sessions.Set(from, sess)
 		return s.sendText(ctx, from, "Rejection cancelled.")
+	}
+
+	// Ignore the text echo of the Reject button that WhatsApp delivers right after the tap.
+	if isLeaveApprovalButtonEcho(input) {
+		return nil
+	}
+
+	if !isValidRejectionReason(input) {
+		return s.sendText(ctx, from, msgLeaveRejectionReasonInvalid)
 	}
 
 	leaveID := sess.PendingRejectionLeaveID

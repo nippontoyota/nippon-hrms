@@ -40,12 +40,33 @@ func shouldSkipInboundEcho(input, msgType string, state State) bool {
 	return isBotPromptEcho(input)
 }
 
+// isLeaveApprovalButtonEcho detects text echoes of the manager approve/reject buttons.
+func isLeaveApprovalButtonEcho(input string) bool {
+	trimmed := strings.TrimSpace(input)
+	if strings.HasPrefix(trimmed, "APPROVE_LEAVE_") || strings.HasPrefix(trimmed, "REJECT_LEAVE_") {
+		return true
+	}
+	lower := strings.ToLower(trimmed)
+	switch lower {
+	case "approve", "✅ approve", "reject", "❌ reject":
+		return true
+	default:
+		return false
+	}
+}
+
 // isBotPromptEcho detects WhatsApp text echoes of button taps and outbound prompt bodies.
 func isBotPromptEcho(input string) bool {
 	if isInteractiveMenuEcho(input) {
 		return true
 	}
+	if isLeaveApprovalButtonEcho(input) {
+		return true
+	}
 	lower := strings.ToLower(strings.TrimSpace(input))
+	if strings.Contains(lower, "please type the reason for rejecting") {
+		return true
+	}
 	if strings.Contains(lower, "leave application") {
 		if strings.Contains(lower, "what type of leave do you need") {
 			return true

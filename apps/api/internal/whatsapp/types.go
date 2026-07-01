@@ -25,6 +25,7 @@ const (
 	StateLeaveAwaitType
 	StateLeaveAwaitStart
 	StateLeaveAwaitEnd
+	StateLeaveAwaitDateConfirm
 	StateLeaveAwaitReason
 	StateLeaveAwaitConfirm
 	StateLeaveAwaitRejectionReason
@@ -56,6 +57,7 @@ type Session struct {
 	TempLeaveEnd    string
 	TempLeaveReason string
 	PendingRejectionLeaveID string
+	LastRejectionPromptAt   time.Time
 }
 
 func (s *Session) resetFlow() {
@@ -67,6 +69,7 @@ func (s *Session) resetFlow() {
 	s.TempLeaveEnd = ""
 	s.TempLeaveReason = ""
 	s.PendingRejectionLeaveID = ""
+	s.LastRejectionPromptAt = time.Time{}
 	s.LastStartMessageID = ""
 }
 
