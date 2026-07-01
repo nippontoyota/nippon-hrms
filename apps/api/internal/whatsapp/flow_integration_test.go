@@ -298,7 +298,7 @@ func TestFlow_fullLeaveSubmit_stepByStep(t *testing.T) {
 	}
 	for _, step := range steps {
 		if step.id == "m4" {
-			time.Sleep(leaveDateBurstWindow + 50 * time.Millisecond)
+			time.Sleep(minEndReplyWindow + 50*time.Millisecond)
 		}
 		_ = svc.HandleWebhook(ctx, inbound(phone, step.id, step.typ, step.body))
 		sess, ok := store.Get(phone)
@@ -318,7 +318,7 @@ func TestFlow_endDateDuplicate_noInvalidReason(t *testing.T) {
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m1", "interactive", payloadRequestLeave))
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m2", "text", "Casual Leave"))
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m3", "text", "01/07/2026"))
-	time.Sleep(leaveDateBurstWindow + 50*time.Millisecond)
+	time.Sleep(minEndReplyWindow + 50*time.Millisecond)
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m4", "text", "01/07/2026"))
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m4b", "text", "01/07/2026"))
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m5", "text", "Family movie"))
@@ -364,6 +364,24 @@ func TestFlow_leaveTypePromptEcho_leaveAwaitTypeDoesNotResend(t *testing.T) {
 	}
 }
 
+func TestFlow_startDateDuplicate_doesNotSkipToReason(t *testing.T) {
+	svc, rec, store, phone := newFlowTestService(t)
+	ctx := context.Background()
+
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m1", "interactive", payloadRequestLeave))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m2", "text", "Sick Leave"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m3", "text", "01/07/2026"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m4", "text", "01/07/2026"))
+
+	sess, ok := store.Get(phone)
+	if !ok || sess.State != StateLeaveAwaitEnd {
+		t.Fatalf("expected leave-await-end after duplicate start echo, got state %v", sess.State)
+	}
+	if rec.containsText("Please enter the reason") {
+		t.Fatalf("duplicate start date must not skip to reason prompt: %v", rec.allTexts())
+	}
+}
+
 func TestFlow_batchProcessesOnlyFirstInbound(t *testing.T) {
 	svc, rec, store, phone := newFlowTestService(t)
 	ctx := context.Background()
@@ -399,7 +417,7 @@ func TestFlow_helloDuringLeave_sendsReminderNotMenu(t *testing.T) {
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m1", "interactive", payloadRequestLeave))
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m2", "text", "Casual Leave"))
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m3", "text", "10/07/2026"))
-	time.Sleep(leaveDateBurstWindow + 50*time.Millisecond)
+	time.Sleep(minEndReplyWindow + 50*time.Millisecond)
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m4", "text", "10/07/2026"))
 
 	sess, ok := store.Get(phone)
@@ -432,7 +450,7 @@ func TestFlow_fullLeaveSubmit(t *testing.T) {
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m1", "interactive", payloadRequestLeave))
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m2", "text", "Casual Leave"))
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m3", "text", "10/07/2026"))
-	time.Sleep(leaveDateBurstWindow + 50*time.Millisecond)
+	time.Sleep(minEndReplyWindow + 50*time.Millisecond)
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m4", "text", "10/07/2026"))
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m5", "text", "Family function"))
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m6", "text", "yes"))

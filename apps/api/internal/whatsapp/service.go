@@ -199,6 +199,7 @@ const (
 	outboundReplyDedup      = 15 * time.Second
 	leaveDateBurstWindow    = 750 * time.Millisecond
 	leaveStepBurstWindow    = 2 * time.Second
+	minEndReplyWindow       = 2 * time.Second
 	reasonPromptCooldown    = 5 * time.Second
 	leaveReminderCooldown   = 30 * time.Second
 )
@@ -418,6 +419,8 @@ func (s *Service) beginLeaveFlow(ctx context.Context, sess *Session, from string
 	sess.TempLeaveReason = ""
 	sess.LastAcceptedLeaveInput = ""
 	sess.LastLeaveStepAt = time.Time{}
+	sess.LastEndPromptAt = time.Time{}
+	sess.HasEndDateAttempt = false
 	sess.LastReasonPromptAt = time.Time{}
 	sess.LastLeaveReminderAt = time.Time{}
 	sess.LastMenuSentAt = time.Now()
@@ -706,6 +709,8 @@ func (s *Service) handleLeaveAwaitStart(ctx context.Context, sess *Session, from
 	sess.LastAcceptedLeaveInput = strings.TrimSpace(input)
 	sess.LastLeaveStepAt = time.Now()
 	sess.LastLeaveDateAt = time.Now()
+	sess.LastEndPromptAt = time.Now()
+	sess.HasEndDateAttempt = false
 	sess.State = StateLeaveAwaitEnd
 	s.sessions.Set(from, sess)
 	return s.sendUserText(ctx, sess, from, msgLeaveAwaitEnd)
@@ -728,9 +733,14 @@ func (s *Service) handleLeaveAwaitEnd(ctx context.Context, sess *Session, from, 
 	}
 
 	endISO := endDate.Format("2006-01-02")
+	if endISO == sess.TempLeaveStart && !sess.HasEndDateAttempt && !sess.LastEndPromptAt.IsZero() && time.Since(sess.LastEndPromptAt) < minEndReplyWindow {
+		return nil
+	}
 	if endISO == sess.TempLeaveStart && !sess.LastLeaveDateAt.IsZero() && time.Since(sess.LastLeaveDateAt) < leaveDateBurstWindow {
 		return nil
 	}
+	sess.HasEndDateAttempt = true
+	s.sessions.Set(from, sess)
 
 	startDate, ok := parseStoredLeaveDate(sess.TempLeaveStart)
 	if !ok {
