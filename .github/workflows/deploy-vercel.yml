@@ -35,8 +35,8 @@ jobs:
 
       - name: Rewrite checkout author for Vercel Hobby owner check
         run: |
-          git config user.email "118352827+Krishnanand-G@users.noreply.github.com"
-          git config user.name "Krishnanand G"
+          git config user.email "bharath.c@nippontoyota.com"
+          git config user.name "bharathc-3174"
           git commit --amend --no-edit --reset-author
 
       - name: Check Vercel token configured
@@ -58,7 +58,7 @@ jobs:
 
       - name: Install Vercel CLI
         if: steps.check.outputs.configured == 'true'
-        run: npm install -g vercel@49
+        run: npm install -g vercel@43.3.0
 
       - name: Install dependencies
         if: steps.check.outputs.configured == 'true'
