@@ -54,8 +54,8 @@ export interface Employee {
   accountNumber?: string;
   bankBranch?: string;
   ifscCode?: string;
-  reportingManagerName?: string;
-  reportingManagerPhone?: string;
+  managerId?: string;
+  managerName?: string;
   ctcStructure?: Record<string, number | string | null>;
   bankDetails?: BankDetails;
   status: EmployeeStatus;
@@ -88,8 +88,7 @@ export interface EmployeeInput {
   branch: string;
   designation: string;
   status: EmployeeStatus;
-  reportingManagerName?: string;
-  reportingManagerPhone?: string;
+  managerId?: string;
 }
 
 export type PeriodStatus = 'DRAFT' | 'READY' | 'SENT';

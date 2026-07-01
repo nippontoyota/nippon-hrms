@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
-import { useCreateEmployee, useEmployee, useUpdateEmployee } from '@/api/hooks';
+import { useCreateEmployee, useEmployee, useEmployees, useUpdateEmployee } from '@/api/hooks';
 import type { EmployeeInput } from '@/api/types';
 
 const defaultValues: EmployeeInput = {
@@ -15,8 +15,7 @@ const defaultValues: EmployeeInput = {
   branch: '',
   designation: '',
   status: 'Active',
-  reportingManagerName: '',
-  reportingManagerPhone: '',
+  managerId: '',
 };
 
 export default function EmployeeFormPage() {
@@ -24,6 +23,7 @@ export default function EmployeeFormPage() {
   const isEdit = Boolean(id);
   const navigate = useNavigate();
   const { data: employee, isLoading } = useEmployee(id);
+  const { data: managerOptions } = useEmployees({ limit: 200 });
   const createMutation = useCreateEmployee();
   const updateMutation = useUpdateEmployee(id ?? '');
 
@@ -43,8 +43,7 @@ export default function EmployeeFormPage() {
         branch: employee.branch,
         designation: employee.designation,
         status: employee.status,
-        reportingManagerName: employee.reportingManagerName,
-        reportingManagerPhone: employee.reportingManagerPhone,
+        managerId: employee.managerId ?? '',
       });
     }
   }, [employee, reset]);
@@ -65,6 +64,8 @@ export default function EmployeeFormPage() {
   };
 
   if (isEdit && isLoading) return <p className="text-on-surface-variant">Loading…</p>;
+
+  const managers = (managerOptions?.items ?? []).filter(e => e.id !== id);
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -122,14 +123,17 @@ export default function EmployeeFormPage() {
 
         <div>
           <p className="text-[10px] font-label uppercase tracking-widest text-primary mb-3">Reporting Manager</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             <div>
-              <label className="label">Manager name</label>
-              <input className="input" {...register('reportingManagerName')} />
-            </div>
-            <div>
-              <label className="label">Manager mobile</label>
-              <input className="input" {...register('reportingManagerPhone')} />
+              <label className="label">Select Manager</label>
+              <select className="input" {...register('managerId')}>
+                <option value="">-- None --</option>
+                {managers.map(e => (
+                  <option key={e.id} value={e.id}>
+                    {e.name} ({e.employeeId})
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         </div>
