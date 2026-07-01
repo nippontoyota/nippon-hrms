@@ -292,6 +292,9 @@ export default function LeaveDirectoryPage() {
       <RejectLeaveModal
         open={rejectTarget !== null}
         employeeName={rejectTarget?.employee?.name}
+        leaveDays={rejectTarget?.days}
+        leaveFromDate={rejectTarget?.fromDate}
+        leaveToDate={rejectTarget?.toDate}
         onCancel={() => setRejectTarget(null)}
         onConfirm={handleRejectConfirm}
         isSubmitting={updateStatus.isPending}

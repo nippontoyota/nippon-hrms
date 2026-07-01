@@ -20,9 +20,12 @@ type sessionSnapshot struct {
 	LastPayslipSentAt     time.Time       `json:"lastPayslipSentAt,omitempty"`
 	LastLeaveTypePromptAt time.Time       `json:"lastLeaveTypePromptAt,omitempty"`
 	LastLeaveSubmittedAt  time.Time       `json:"lastLeaveSubmittedAt,omitempty"`
-	LastLeaveDateAt       time.Time       `json:"lastLeaveDateAt,omitempty"`
-	LastOutboundAt        time.Time       `json:"lastOutboundAt,omitempty"`
-	LastOutboundText      string          `json:"lastOutboundText,omitempty"`
+	LastLeaveDateAt          time.Time `json:"lastLeaveDateAt,omitempty"`
+	LastAcceptedLeaveInput   string    `json:"lastAcceptedLeaveInput,omitempty"`
+	LastLeaveStepAt          time.Time `json:"lastLeaveStepAt,omitempty"`
+	LastReasonPromptAt       time.Time `json:"lastReasonPromptAt,omitempty"`
+	LastOutboundAt           time.Time `json:"lastOutboundAt,omitempty"`
+	LastOutboundText         string    `json:"lastOutboundText,omitempty"`
 	UpdatedAt          time.Time       `json:"updatedAt,omitempty"`
 	TempLeaveType      leave.LeaveType `json:"tempLeaveType,omitempty"`
 	TempLeaveStart     string          `json:"tempLeaveStart,omitempty"`
@@ -39,9 +42,12 @@ func snapshotFromSession(sess *Session) sessionSnapshot {
 		LastPayslipSentAt:     sess.LastPayslipSentAt,
 		LastLeaveTypePromptAt: sess.LastLeaveTypePromptAt,
 		LastLeaveSubmittedAt:  sess.LastLeaveSubmittedAt,
-		LastLeaveDateAt:       sess.LastLeaveDateAt,
-		LastOutboundAt:        sess.LastOutboundAt,
-		LastOutboundText:      sess.LastOutboundText,
+		LastLeaveDateAt:         sess.LastLeaveDateAt,
+		LastAcceptedLeaveInput:  sess.LastAcceptedLeaveInput,
+		LastLeaveStepAt:         sess.LastLeaveStepAt,
+		LastReasonPromptAt:      sess.LastReasonPromptAt,
+		LastOutboundAt:          sess.LastOutboundAt,
+		LastOutboundText:        sess.LastOutboundText,
 		UpdatedAt:          sess.UpdatedAt,
 		TempLeaveType:      sess.TempLeaveType,
 		TempLeaveStart:     sess.TempLeaveStart,
@@ -60,9 +66,12 @@ func sessionFromSnapshot(phone string, snap sessionSnapshot) *Session {
 		LastPayslipSentAt:     snap.LastPayslipSentAt,
 		LastLeaveTypePromptAt: snap.LastLeaveTypePromptAt,
 		LastLeaveSubmittedAt:  snap.LastLeaveSubmittedAt,
-		LastLeaveDateAt:       snap.LastLeaveDateAt,
-		LastOutboundAt:        snap.LastOutboundAt,
-		LastOutboundText:      snap.LastOutboundText,
+		LastLeaveDateAt:         snap.LastLeaveDateAt,
+		LastAcceptedLeaveInput:  snap.LastAcceptedLeaveInput,
+		LastLeaveStepAt:         snap.LastLeaveStepAt,
+		LastReasonPromptAt:      snap.LastReasonPromptAt,
+		LastOutboundAt:          snap.LastOutboundAt,
+		LastOutboundText:        snap.LastOutboundText,
 		UpdatedAt:          snap.UpdatedAt,
 		TempLeaveType:      snap.TempLeaveType,
 		TempLeaveStart:     snap.TempLeaveStart,
