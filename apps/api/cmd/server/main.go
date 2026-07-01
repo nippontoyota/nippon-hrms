@@ -34,6 +34,11 @@ func main() {
 	}
 	defer pgPool.Close()
 
+	if err := db.EnsureSchema(ctx, pgPool); err != nil {
+		logger.Error("database schema patch failed", "err", err)
+		os.Exit(1)
+	}
+
 	// ── Supabase (Storage API only) ───────────────────────────────
 	var supaClient *db.Client
 	if cfg.SupabaseURL != "" && cfg.SupabaseServiceRoleKey != "" {

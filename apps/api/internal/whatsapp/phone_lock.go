@@ -60,6 +60,12 @@ func isBotPromptEcho(input string) bool {
 	if strings.Contains(lower, "please enter your leave start date") {
 		return true
 	}
+	if strings.Contains(lower, "please enter a short reason in words") {
+		return true
+	}
+	if strings.Contains(lower, "please enter the reason for your leave") {
+		return true
+	}
 	if strings.Contains(lower, "please confirm your leave details") {
 		return true
 	}

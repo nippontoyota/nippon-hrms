@@ -39,6 +39,9 @@ func TestAcceptsInboundAtState(t *testing.T) {
 
 		{"leave end date", StateLeaveAwaitEnd, "05/07/2026", true},
 
+		{"leave reason", StateLeaveAwaitReason, "Family function", true},
+		{"leave reason date", StateLeaveAwaitReason, "01/07/2026", false},
+
 		{"leave confirm yes", StateLeaveAwaitConfirm, "yes", true},
 		{"leave confirm garbage", StateLeaveAwaitConfirm, "maybe", false},
 	}
@@ -135,9 +138,10 @@ func TestNormalizeLeaveTypeSelection_doesNotFalsePositive(t *testing.T) {
 	}
 }
 
-func TestAcceptsInboundAtState_legacyReasonStateAcceptsConfirm(t *testing.T) {
-	if !acceptsInboundAtState(StateLeaveAwaitReason, "yes") {
-		t.Fatal("legacy reason state should accept confirm keywords")
+func TestAcceptsInboundAtState_leaveReasonNotMenu(t *testing.T) {
+	reason := "Need casual leave for travel"
+	if !acceptsInboundAtState(StateLeaveAwaitReason, reason) {
+		t.Fatal("valid reason containing words casual leave should be accepted")
 	}
 }
 
@@ -177,6 +181,7 @@ func TestIsBotPromptEcho_leavePromptBodies(t *testing.T) {
 		{msgLeaveAwaitType, true},
 		{msgLeaveAwaitStart, true},
 		{msgLeaveAwaitEnd, true},
+		{msgLeaveAwaitReason, true},
 		{"Please confirm your leave details:\n\nLeave type: Casual Leave", true},
 		{"Leave Application\n\nWhat type of leave do you need?\nCasual Leave", true},
 	}

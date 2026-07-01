@@ -143,7 +143,7 @@ func (s *Service) handleWebhookLocked(ctx context.Context, from, input, msgType,
 	case StateLeaveAwaitEnd:
 		err = s.handleLeaveAwaitEnd(ctx, sess, from, input, messageID)
 	case StateLeaveAwaitReason:
-		err = s.handleLeaveAwaitConfirm(ctx, sess, from, input)
+		err = s.handleLeaveAwaitReason(ctx, sess, from, input)
 	case StateLeaveAwaitConfirm:
 		err = s.handleLeaveAwaitConfirm(ctx, sess, from, input)
 	default:
@@ -200,6 +200,7 @@ const (
 	leaveDateBurstWindow    = 750 * time.Millisecond
 	leaveStepBurstWindow    = 2 * time.Second
 	minEndReplyWindow       = 2 * time.Second
+	reasonPromptCooldown    = 5 * time.Second
 	leaveReminderCooldown   = 30 * time.Second
 )
 
@@ -421,6 +422,7 @@ func (s *Service) beginLeaveFlow(ctx context.Context, sess *Session, from string
 	sess.LastEndPromptAt = time.Time{}
 	sess.HasEndDateAttempt = false
 	sess.LastStartMessageID = ""
+	sess.LastReasonPromptAt = time.Time{}
 	sess.LastLeaveReminderAt = time.Time{}
 	sess.LastMenuSentAt = time.Now()
 	sess.State = StateLeaveAwaitType
@@ -784,7 +786,47 @@ func (s *Service) handleLeaveAwaitEnd(ctx context.Context, sess *Session, from, 
 	sess.TempLeaveEnd = endDate.Format("2006-01-02")
 	sess.LastAcceptedLeaveInput = strings.TrimSpace(input)
 	sess.LastLeaveStepAt = time.Now()
-	sess.TempLeaveReason = leaveReasonWhatsApp
+	sess.TempLeaveReason = ""
+	sess.State = StateLeaveAwaitReason
+	s.sessions.Set(from, sess)
+	return s.sendLeaveReasonPrompt(ctx, sess, from)
+}
+
+func (s *Service) sendLeaveReasonPrompt(ctx context.Context, sess *Session, to string) error {
+	if !sess.LastReasonPromptAt.IsZero() && time.Since(sess.LastReasonPromptAt) < reasonPromptCooldown {
+		return nil
+	}
+	if err := s.sendUserText(ctx, sess, to, msgLeaveAwaitReason); err != nil {
+		return err
+	}
+	sess.LastReasonPromptAt = time.Now()
+	s.sessions.Set(to, sess)
+	return nil
+}
+
+func (s *Service) handleLeaveAwaitReason(ctx context.Context, sess *Session, from, input string) error {
+	if handled, err := s.handleLeaveFlowInterrupt(ctx, sess, from, input); handled {
+		return err
+	}
+	if isStalePromptEcho(sess.State, input) {
+		return nil
+	}
+	if shouldIgnoreLateLeaveDateEcho(sess, input) || isStoredLeaveDateEcho(sess, input) {
+		return nil
+	}
+
+	trimmed := strings.TrimSpace(input)
+	if len(trimmed) < minLeaveReasonLen {
+		return s.sendUserText(ctx, sess, from, msgLeaveReasonTooShort)
+	}
+	if looksLikeLeaveDateAttempt(trimmed) || looksLikePeriodAttempt(trimmed) {
+		return s.sendUserText(ctx, sess, from, msgLeaveInvalidReason)
+	}
+	if isLeaveConfirmKeyword(trimmed) {
+		return s.sendUserText(ctx, sess, from, msgLeaveInvalidReason)
+	}
+
+	sess.TempLeaveReason = trimmed
 	sess.State = StateLeaveAwaitConfirm
 	s.sessions.Set(from, sess)
 	return s.sendLeaveConfirmSummary(ctx, sess, from)
@@ -804,6 +846,7 @@ func (s *Service) sendLeaveConfirmSummary(ctx context.Context, sess *Session, fr
 		leaveTypeDisplayName(sess.TempLeaveType),
 		sDate.Format("02/01/2006"),
 		eDate.Format("02/01/2006"),
+		sess.TempLeaveReason,
 		days,
 	))
 }

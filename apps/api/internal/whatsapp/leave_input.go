@@ -51,7 +51,9 @@ func isValidInputForState(state State, input string) bool {
 	case StateLeaveAwaitStart, StateLeaveAwaitEnd:
 		_, ok := parseLeaveDate(input)
 		return ok
-	case StateLeaveAwaitReason, StateLeaveAwaitConfirm:
+	case StateLeaveAwaitReason:
+		return isValidLeaveReason(input)
+	case StateLeaveAwaitConfirm:
 		return isLeaveConfirmAffirmative(input) || isLeaveConfirmNegative(input)
 	default:
 		return true
