@@ -30,6 +30,7 @@ func TestAcceptsInboundAtState(t *testing.T) {
 		{"await period garbage", StateAwaitPeriod, "foobar", false},
 
 		{"leave type casual", StateLeaveAwaitType, "Casual Leave", true},
+		{"leave type casual balance button", StateLeaveAwaitType, "Casual Leave (1 left)", true},
 		{"leave type payload", StateLeaveAwaitType, payloadLeaveCasual, true},
 		{"leave type echo", StateLeaveAwaitType, leaveTypeEcho, true},
 		{"leave type garbage", StateLeaveAwaitType, "annual leave", false},
@@ -89,6 +90,7 @@ func TestShouldSkipInboundEcho_matrix(t *testing.T) {
 		{"await period salary retap", StateAwaitPeriod, "Salary Slip", "text", false},
 		{"await period month entry", StateAwaitPeriod, "06/2026", "text", false},
 		{"leave type casual", StateLeaveAwaitType, "Casual Leave", "text", false},
+		{"leave type casual balance button", StateLeaveAwaitType, "Casual Leave (1 left)", "text", false},
 		{"leave type echo", StateLeaveAwaitType, leaveTypeEcho, "text", false},
 		{"leave start date", StateLeaveAwaitStart, "01/07/2026", "text", false},
 

@@ -264,23 +264,51 @@ func normalizeMenuSelection(input string) string {
 func normalizeLeaveTypeSelection(input string) string {
 	trimmed := strings.TrimSpace(input)
 	lower := strings.ToLower(trimmed)
-	switch {
-	case trimmed == payloadLeaveCasual, lower == "casual leave", lower == "casual":
-		return payloadLeaveCasual
-	case trimmed == payloadLeaveSick, lower == "sick leave", lower == "sick":
-		return payloadLeaveSick
-	case trimmed == payloadLeaveUnpaid, lower == "unpaid leave", lower == "unpaid":
-		return payloadLeaveUnpaid
+	if sel := normalizeLeaveTypeButtonLabel(lower); sel != "" {
+		return sel
 	}
 	// WhatsApp often echoes the full interactive body plus the chosen button label.
-	if strings.Contains(lower, "casual leave") {
+	if isLeaveTypePromptBody(lower) {
+		if last := strings.ToLower(strings.TrimSpace(lastNonEmptyLine(trimmed))); last != "" {
+			if sel := normalizeLeaveTypeButtonLabel(last); sel != "" {
+				return sel
+			}
+		}
+		return ""
+	}
+	return ""
+}
+
+func normalizeLeaveTypeButtonLabel(lower string) string {
+	lower = strings.TrimSpace(lower)
+	switch {
+	case lower == payloadLeaveCasual, lower == "casual leave", lower == "casual":
+		return payloadLeaveCasual
+	case lower == payloadLeaveSick, lower == "sick leave", lower == "sick":
+		return payloadLeaveSick
+	case lower == payloadLeaveUnpaid, lower == "unpaid leave", lower == "unpaid":
+		return payloadLeaveUnpaid
+	}
+	if strings.HasPrefix(lower, "casual leave (") && strings.HasSuffix(lower, " left)") {
 		return payloadLeaveCasual
 	}
-	if strings.Contains(lower, "sick leave") {
+	if strings.HasPrefix(lower, "sick leave (") && strings.HasSuffix(lower, " left)") {
 		return payloadLeaveSick
 	}
-	if strings.Contains(lower, "unpaid leave") {
-		return payloadLeaveUnpaid
+	return ""
+}
+
+func isLeaveTypePromptBody(lower string) bool {
+	return strings.Contains(lower, "leave application") &&
+		strings.Contains(lower, "what type of leave do you need")
+}
+
+func lastNonEmptyLine(s string) string {
+	lines := strings.Split(s, "\n")
+	for i := len(lines) - 1; i >= 0; i-- {
+		if line := strings.TrimSpace(lines[i]); line != "" {
+			return line
+		}
 	}
 	return ""
 }

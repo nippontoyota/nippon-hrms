@@ -51,6 +51,9 @@ func TestShouldSkipInboundEcho_leaveTypeButtonsAwaitType(t *testing.T) {
 	if shouldSkipInboundEcho("Casual Leave", "text", StateLeaveAwaitType) {
 		t.Fatal("casual leave text should be processed while awaiting leave type")
 	}
+	if shouldSkipInboundEcho("Casual Leave (1 left)", "text", StateLeaveAwaitType) {
+		t.Fatal("balance-labelled casual leave should be processed while awaiting leave type")
+	}
 	if shouldSkipInboundEcho(payloadLeaveCasual, "text", StateLeaveAwaitType) {
 		t.Fatal("leave_casual payload text should be processed while awaiting leave type")
 	}
@@ -70,9 +73,11 @@ func TestNormalizeLeaveTypeSelection(t *testing.T) {
 	}{
 		{payloadLeaveCasual, payloadLeaveCasual},
 		{"Casual Leave", payloadLeaveCasual},
+		{"Casual Leave (1 left)", payloadLeaveCasual},
 		{"casual", payloadLeaveCasual},
 		{payloadLeaveSick, payloadLeaveSick},
 		{"Sick Leave", payloadLeaveSick},
+		{"Sick Leave (0 left)", payloadLeaveSick},
 		{"sick", payloadLeaveSick},
 		{payloadLeaveUnpaid, payloadLeaveUnpaid},
 		{"Unpaid Leave", payloadLeaveUnpaid},
@@ -81,6 +86,8 @@ func TestNormalizeLeaveTypeSelection(t *testing.T) {
 		{"Leave Application\n\nWhat type of leave do you need?\nCasual Leave", payloadLeaveCasual},
 		{"Leave Application\n\nWhat type of leave do you need?\nSick Leave", payloadLeaveSick},
 		{"Leave Application\n\nWhat type of leave do you need?\nUnpaid Leave", payloadLeaveUnpaid},
+		{"Leave Application\n\nWhat type of leave do you need?\n\nCasual Leave: 1 day left\nSick Leave: 0 days left", ""},
+		{"Leave Application\n\nWhat type of leave do you need?\n\nCasual Leave: 1 day left\nSick Leave: 0 days left\nCasual Leave (1 left)", payloadLeaveCasual},
 	}
 
 	for _, tc := range tests {
