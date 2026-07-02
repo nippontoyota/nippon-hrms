@@ -114,6 +114,18 @@ func (s *Service) handleWebhookLocked(ctx context.Context, from, input, msgType,
 		sess = &Session{Phone: from, State: StateIdle}
 	}
 
+	if sess.State == StateIdle {
+		if approve, isAction := parseManagerLeaveTemplateAction(input); isAction {
+			handled, err := s.tryHandleManagerTemplateLeaveAction(ctx, sess, from, approve)
+			if handled {
+				if err != nil {
+					slog.Error("whatsapp manager template leave action error", "from", from, "err", err)
+				}
+				return true, err
+			}
+		}
+	}
+
 	if shouldSkipInboundEcho(input, msgType, sess.State) {
 		slog.Info("whatsapp inbound skipped echo", "from", from, "input", input, "type", msgType, "state", sess.State)
 		return false, nil
@@ -320,6 +332,10 @@ func shouldIgnoreLateLeaveDateEcho(sess *Session, input string) bool {
 }
 
 func (s *Service) handleIdle(ctx context.Context, sess *Session, from, input string) error {
+	if handled, err := s.trySendManagerPendingLeaveReview(ctx, from, input); handled {
+		return err
+	}
+
 	switch normalizeMenuSelection(input) {
 	case payloadGeneratePay, payloadRequestSalary:
 		return s.beginPayslipFlow(ctx, sess, from)
@@ -998,15 +1014,7 @@ func (s *Service) handleLeaveAwaitConfirm(ctx context.Context, sess *Session, fr
 	if empErr == nil && emp.ManagerID != nil {
 		mgr, mgrErr := s.empRepo.GetByID(ctx, *emp.ManagerID)
 		if mgrErr == nil && mgr.MobileNumber != "" {
-			msgText := fmt.Sprintf("📅 *Leave Request from %s*\n\nType: %s\nDates: %s to %s\nTotal Days: %d\nReason: %s\n\nPlease approve or reject this request.",
-				emp.Name, req.Type, req.FromDate, req.ToDate, req.Days, req.Reason)
-			buttons := []doubletick.InteractiveButton{
-				{ID: "APPROVE_LEAVE_" + req.ID, Title: "✅ Approve"},
-				{ID: "REJECT_LEAVE_" + req.ID, Title: "❌ Reject"},
-			}
-			if _, dtErr := s.dt.SendInteractiveButtons(ctx, mgr.MobileNumber, "", msgText, "", buttons); dtErr != nil {
-				slog.Error("failed to send interactive button to manager", "err", dtErr, "manager", mgr.MobileNumber)
-			} else {
+			if s.notifyManagerLeaveRequest(ctx, mgr.MobileNumber, emp, req) {
 				hasManager = true
 				managerName = mgr.Name
 			}
@@ -1052,18 +1060,17 @@ func (s *Service) handleLeaveApproval(ctx context.Context, sess *Session, from, 
 		sess.PendingRejectionLeaveID = leaveID
 		sess.LastRejectionPromptAt = time.Now()
 		s.sessions.Set(from, sess)
-		return s.sendText(ctx, from, fmt.Sprintf("Please type the reason for rejecting the leave request for %s. (Type 'cancel' to abort)", req.Employee.Name))
+		return s.sendText(ctx, from, fmt.Sprintf("Please type the reason for rejecting the leave request for %s. Reply cancel to abort.", req.Employee.Name))
 	}
 
 	if err := s.leaveRepo.UpdateStatus(ctx, leaveID, leave.StatusApproved, &mgr.ID, nil); err != nil {
 		return s.sendText(ctx, from, "System error. Could not update leave status.")
 	}
 
-	s.sendText(ctx, from, fmt.Sprintf("✅ You have Approved the leave request for %s.", req.Employee.Name))
+	s.sendText(ctx, from, fmt.Sprintf("You have approved the leave request for %s.", req.Employee.Name))
 
 	if req.Employee.MobileNumber != "" {
-		empMsg := fmt.Sprintf("Hi %s,\n\nYour leave request for %s to %s has been *Approved* by %s.",
-			req.Employee.Name, req.FromDate, req.ToDate, formatManagerRef(mgr.Name))
+		empMsg := buildManagerLeaveApprovedEmployeeText(req.Employee.Name, req.FromDate, req.ToDate, mgr.Name)
 		s.sendText(ctx, req.Employee.MobileNumber, empMsg)
 	}
 
@@ -1106,11 +1113,10 @@ func (s *Service) handleLeaveAwaitRejectionReason(ctx context.Context, sess *Ses
 		return s.sendText(ctx, from, "System error. Could not update leave status.")
 	}
 
-	s.sendText(ctx, from, fmt.Sprintf("✅ You have Rejected the leave request for %s.", req.Employee.Name))
+	s.sendText(ctx, from, fmt.Sprintf("You have rejected the leave request for %s.", req.Employee.Name))
 
 	if req.Employee.MobileNumber != "" {
-		empMsg := fmt.Sprintf("Hi %s,\n\nYour leave request for %s to %s has been *Rejected* by %s.\n\nReason: %s",
-			req.Employee.Name, req.FromDate, req.ToDate, formatManagerRef(mgr.Name), input)
+		empMsg := buildManagerLeaveRejectedEmployeeText(req.Employee.Name, req.FromDate, req.ToDate, mgr.Name, input)
 		s.sendText(ctx, req.Employee.MobileNumber, empMsg)
 	}
 

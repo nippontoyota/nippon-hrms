@@ -155,7 +155,7 @@ func formatManagerRef(name string) string {
 	if name == "" {
 		return "your manager"
 	}
-	return fmt.Sprintf("*Mr. %s*", name)
+	return fmt.Sprintf("Mr. %s", name)
 }
 
 func msgLeavePendingManager(managerName string) string {

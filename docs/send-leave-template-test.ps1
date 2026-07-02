@@ -1,9 +1,10 @@
-# Send leave_approved_v2 / leave_rejected_v2 template via DoubleTick API.
+# Send leave WhatsApp templates via DoubleTick API.
 # Usage:  .\docs\send-leave-template-test.ps1
 #         .\docs\send-leave-template-test.ps1 -Template leave_rejected_v2 -To 918921764648
+#         .\docs\send-leave-template-test.ps1 -Template leave_request_manager_v1 -To 918921764648
 
 param(
-    [ValidateSet("leave_approved_v2", "leave_rejected_v2")]
+    [ValidateSet("leave_approved_v2", "leave_rejected_v2", "leave_request_manager_v1")]
     [string]$Template = "leave_approved_v2",
     [string]$To = "918606723377",
     [string]$From = "917594086900"
@@ -23,8 +24,10 @@ if (-not $apiKey) {
 
 if ($Template -eq "leave_approved_v2") {
     $placeholders = @("Krishnanand G", "2", "09 Jun", "10 Jun")
-} else {
+} elseif ($Template -eq "leave_rejected_v2") {
     $placeholders = @("Ananth Krisha T", "1", "15 Jun", "15 Jun", "Insufficient leave balance for this month")
+} else {
+    $placeholders = @("Rajesh Kumar", "Casual Leave", "01/07/2026", "03/07/2026", "3", "Family function")
 }
 
 $body = @{

@@ -46,9 +46,9 @@ func isLeaveApprovalButtonEcho(input string) bool {
 	if strings.HasPrefix(trimmed, "APPROVE_LEAVE_") || strings.HasPrefix(trimmed, "REJECT_LEAVE_") {
 		return true
 	}
-	lower := strings.ToLower(trimmed)
+	lower := normalizeLeaveApprovalButtonText(trimmed)
 	switch lower {
-	case "approve", "✅ approve", "reject", "❌ reject":
+	case "approve", "reject":
 		return true
 	default:
 		return false
