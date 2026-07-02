@@ -91,6 +91,60 @@ func (r *PostgresRepository) ListAll(ctx context.Context) ([]LeaveRequest, error
 	return leaves, nil
 }
 
+func (r *PostgresRepository) ListPendingForManager(ctx context.Context, managerID string) ([]LeaveRequest, error) {
+	query := `
+		SELECT 
+			l.id, l.employee_id, l.type, l.from_date, l.to_date, l.days, l.reason, l.status, l.rejection_reason, l.reviewed_by, l.reviewed_at, l.created_at,
+			e.name, e.department, e.mobile_number, e.manager_id, COALESCE(m.name, '')
+		FROM leaves l
+		JOIN employees e ON l.employee_id = e.id
+		LEFT JOIN employees m ON e.manager_id = m.id
+		WHERE l.status = 'pending' AND e.manager_id = $1
+		ORDER BY l.created_at DESC
+	`
+	rows, err := r.db.Query(ctx, query, managerID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query pending leaves for manager: %w", err)
+	}
+	defer rows.Close()
+
+	var leaves []LeaveRequest
+	for rows.Next() {
+		var l LeaveRequest
+		var emp employee.Employee
+		var reviewedBy *string
+		var reviewedAt *time.Time
+		var rejectionReason *string
+		var fromDate, toDate time.Time
+		var managerName string
+
+		err := rows.Scan(
+			&l.ID, &l.EmployeeID, &l.Type, &fromDate, &toDate, &l.Days, &l.Reason, &l.Status,
+			&rejectionReason, &reviewedBy, &reviewedAt, &l.CreatedAt,
+			&emp.Name, &emp.Department, &emp.MobileNumber, &emp.ManagerID, &managerName,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan pending leave row: %w", err)
+		}
+
+		l.FromDate = fromDate.Format("2006-01-02")
+		l.ToDate = toDate.Format("2006-01-02")
+		l.RejectionReason = rejectionReason
+		l.ReviewedBy = reviewedBy
+		l.ReviewedAt = reviewedAt
+		if managerName != "" {
+			emp.ManagerName = &managerName
+		}
+
+		emp.ID = l.EmployeeID
+		l.Employee = &emp
+
+		leaves = append(leaves, l)
+	}
+
+	return leaves, nil
+}
+
 func (r *PostgresRepository) UpdateStatus(ctx context.Context, id string, status LeaveStatus, reviewerID *string, rejectionReason *string) error {
 	query := `
 		UPDATE leaves 

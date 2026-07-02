@@ -59,6 +59,9 @@ func (r *flowLeaveRepo) Create(_ context.Context, req *leave.LeaveRequest) error
 	return nil
 }
 func (r *flowLeaveRepo) ListAll(context.Context) ([]leave.LeaveRequest, error) { return nil, nil }
+func (r *flowLeaveRepo) ListPendingForManager(context.Context, string) ([]leave.LeaveRequest, error) {
+	return nil, nil
+}
 func (r *flowLeaveRepo) UpdateStatus(context.Context, string, leave.LeaveStatus, *string, *string) error {
 	return nil
 }

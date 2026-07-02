@@ -36,14 +36,14 @@ func shortLeaveDate(dateStr string) string {
 
 func buildLeaveApprovedText(name string, days int, fromDate, toDate string) string {
 	return fmt.Sprintf(
-		"Hi *%s*,\nyour leave request for *%d* days\n*(%s to %s)*\nhas been *approved* by HR.",
+		"Hi %s, your leave request for %d days (%s to %s) has been approved by HR.",
 		name, days, shortLeaveDate(fromDate), shortLeaveDate(toDate),
 	)
 }
 
 func buildLeaveRejectedText(name string, days int, fromDate, toDate, reason string) string {
 	return fmt.Sprintf(
-		"Hi *%s*,\nyour leave request for %d days\n(%s to %s) has been rejected by HR.\n\n*Reason*: %s.\n\n*Contact HR if you have questions.*",
+		"Hi %s, your leave request for %d days (%s to %s) has been rejected by HR.\n\nReason: %s\n\nContact HR if you have questions.",
 		name, days, shortLeaveDate(fromDate), shortLeaveDate(toDate), reason,
 	)
 }

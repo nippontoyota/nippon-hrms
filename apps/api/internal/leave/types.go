@@ -71,6 +71,7 @@ func (b *LeaveBalance) RemainingSick() int {
 type Repository interface {
 	Create(ctx context.Context, req *LeaveRequest) error
 	ListAll(ctx context.Context) ([]LeaveRequest, error)
+	ListPendingForManager(ctx context.Context, managerID string) ([]LeaveRequest, error)
 	UpdateStatus(ctx context.Context, id string, status LeaveStatus, reviewerID *string, rejectionReason *string) error
 	GetMonthlyBalance(ctx context.Context, employeeID string, month, year int) (*LeaveBalance, error)
 	GetByID(ctx context.Context, id string) (*LeaveRequest, error)
