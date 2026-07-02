@@ -54,3 +54,46 @@ func TestLeaveConfirmSummaryUsesStoredFields(t *testing.T) {
 		t.Fatalf("expected stored reason, got %q", msg)
 	}
 }
+
+func TestFormatDaysLeft(t *testing.T) {
+	if got := formatDaysLeft(1); got != "1 day left" {
+		t.Fatalf("singular = %q", got)
+	}
+	if got := formatDaysLeft(0); got != "0 days left" {
+		t.Fatalf("zero = %q", got)
+	}
+	if got := formatDaysLeft(2); got != "2 days left" {
+		t.Fatalf("plural = %q", got)
+	}
+}
+
+func TestMsgLeaveAwaitTypeWithBalance(t *testing.T) {
+	bal := &leave.LeaveBalance{TotalCasual: 1, UsedCasual: 0, TotalSick: 1, UsedSick: 1}
+	msg := msgLeaveAwaitTypeWithBalance(bal)
+	if !strings.Contains(msg, "Casual Leave: 1 day left") {
+		t.Fatalf("expected casual balance in body, got %q", msg)
+	}
+	if !strings.Contains(msg, "Sick Leave: 0 days left") {
+		t.Fatalf("expected sick balance in body, got %q", msg)
+	}
+	if msgLeaveAwaitTypeWithBalance(nil) != msgLeaveAwaitType {
+		t.Fatal("nil balance should use default prompt")
+	}
+}
+
+func TestLeaveTypeButtonsWithBalance(t *testing.T) {
+	bal := &leave.LeaveBalance{TotalCasual: 1, UsedCasual: 0, TotalSick: 1, UsedSick: 1}
+	buttons := leaveTypeButtonsWithBalance(bal)
+	if len(buttons) != 3 {
+		t.Fatalf("expected 3 buttons, got %d", len(buttons))
+	}
+	if buttons[0].Title != "Casual Leave (1 left)" {
+		t.Fatalf("casual button = %q", buttons[0].Title)
+	}
+	if buttons[1].Title != "Sick Leave (0 left)" {
+		t.Fatalf("sick button = %q", buttons[1].Title)
+	}
+	if buttons[2].Title != "Unpaid Leave" {
+		t.Fatalf("unpaid button = %q", buttons[2].Title)
+	}
+}

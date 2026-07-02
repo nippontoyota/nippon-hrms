@@ -656,8 +656,17 @@ func (s *Service) sendLeaveTypePrompt(ctx context.Context, sess *Session, to str
 	if !sess.LastLeaveTypePromptAt.IsZero() && time.Since(sess.LastLeaveTypePromptAt) < leaveTypePromptCooldown {
 		return nil
 	}
-	body := msgLeaveAwaitType
-	buttons := leaveTypeButtons()
+	var bal *leave.LeaveBalance
+	if sess.EmployeeID != "" && s.leaveRepo != nil {
+		now := time.Now()
+		if b, err := s.leaveRepo.GetMonthlyBalance(ctx, sess.EmployeeID, int(now.Month()), now.Year()); err == nil {
+			bal = b
+		} else {
+			slog.Warn("whatsapp leave balance lookup failed", "employeeId", sess.EmployeeID, "err", err)
+		}
+	}
+	body := msgLeaveAwaitTypeWithBalance(bal)
+	buttons := leaveTypeButtonsWithBalance(bal)
 
 	_, err := s.dt.SendInteractiveButtons(ctx, to, "", body, "", buttons)
 	if err != nil {

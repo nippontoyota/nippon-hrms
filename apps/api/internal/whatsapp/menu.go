@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/nippon-toyota/hrms/internal/doubletick"
+	"github.com/nippon-toyota/hrms/internal/leave"
 )
 
 const msgNotEmployee = `This WhatsApp number is not registered in our system.
@@ -69,6 +70,40 @@ func leaveTypeButtons() []doubletick.InteractiveButton {
 	return []doubletick.InteractiveButton{
 		{ID: payloadLeaveCasual, Title: "Casual Leave"},
 		{ID: payloadLeaveSick, Title: "Sick Leave"},
+		{ID: payloadLeaveUnpaid, Title: "Unpaid Leave"},
+	}
+}
+
+func formatDaysLeft(n int) string {
+	if n == 1 {
+		return "1 day left"
+	}
+	return fmt.Sprintf("%d days left", n)
+}
+
+func leaveTypeButtonTitle(leaveName string, remaining int) string {
+	return fmt.Sprintf("%s (%d left)", leaveName, remaining)
+}
+
+func msgLeaveAwaitTypeWithBalance(bal *leave.LeaveBalance) string {
+	if bal == nil {
+		return msgLeaveAwaitType
+	}
+	return fmt.Sprintf(
+		"%s\n\nCasual Leave: %s\nSick Leave: %s",
+		msgLeaveAwaitType,
+		formatDaysLeft(bal.RemainingCasual()),
+		formatDaysLeft(bal.RemainingSick()),
+	)
+}
+
+func leaveTypeButtonsWithBalance(bal *leave.LeaveBalance) []doubletick.InteractiveButton {
+	if bal == nil {
+		return leaveTypeButtons()
+	}
+	return []doubletick.InteractiveButton{
+		{ID: payloadLeaveCasual, Title: leaveTypeButtonTitle("Casual Leave", bal.RemainingCasual())},
+		{ID: payloadLeaveSick, Title: leaveTypeButtonTitle("Sick Leave", bal.RemainingSick())},
 		{ID: payloadLeaveUnpaid, Title: "Unpaid Leave"},
 	}
 }
