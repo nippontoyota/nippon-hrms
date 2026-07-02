@@ -81,10 +81,6 @@ func formatDaysLeft(n int) string {
 	return fmt.Sprintf("%d days left", n)
 }
 
-func leaveTypeButtonTitle(leaveName string, remaining int) string {
-	return fmt.Sprintf("%s (%d left)", leaveName, remaining)
-}
-
 func msgLeaveAwaitTypeWithBalance(bal *leave.LeaveBalance) string {
 	if bal == nil {
 		return msgLeaveAwaitType
@@ -97,15 +93,8 @@ func msgLeaveAwaitTypeWithBalance(bal *leave.LeaveBalance) string {
 	)
 }
 
-func leaveTypeButtonsWithBalance(bal *leave.LeaveBalance) []doubletick.InteractiveButton {
-	if bal == nil {
-		return leaveTypeButtons()
-	}
-	return []doubletick.InteractiveButton{
-		{ID: payloadLeaveCasual, Title: leaveTypeButtonTitle("Casual Leave", bal.RemainingCasual())},
-		{ID: payloadLeaveSick, Title: leaveTypeButtonTitle("Sick Leave", bal.RemainingSick())},
-		{ID: payloadLeaveUnpaid, Title: "Unpaid Leave"},
-	}
+func leaveTypeButtonsWithBalance(_ *leave.LeaveBalance) []doubletick.InteractiveButton {
+	return leaveTypeButtons()
 }
 
 const msgLeaveAwaitStart = `Leave Application
