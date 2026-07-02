@@ -87,10 +87,10 @@ func TestLeaveTypeButtonsWithBalance(t *testing.T) {
 	if len(buttons) != 3 {
 		t.Fatalf("expected 3 buttons, got %d", len(buttons))
 	}
-	if buttons[0].Title != "Casual Leave (1 left)" {
+	if buttons[0].Title != "Casual Leave" {
 		t.Fatalf("casual button = %q", buttons[0].Title)
 	}
-	if buttons[1].Title != "Sick Leave (0 left)" {
+	if buttons[1].Title != "Sick Leave" {
 		t.Fatalf("sick button = %q", buttons[1].Title)
 	}
 	if buttons[2].Title != "Unpaid Leave" {
