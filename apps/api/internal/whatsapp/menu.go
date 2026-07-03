@@ -3,10 +3,16 @@ package whatsapp
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/nippon-toyota/hrms/internal/doubletick"
 	"github.com/nippon-toyota/hrms/internal/leave"
 )
+
+// exampleDate returns a DD/MM/YYYY string for today + offsetDays.
+func exampleDate(offsetDays int) string {
+	return time.Now().AddDate(0, 0, offsetDays).Format("02/01/2006")
+}
 
 const msgNotEmployee = `This WhatsApp number is not registered in our system.
 
@@ -98,19 +104,23 @@ func leaveTypeButtonsWithBalance(_ *leave.LeaveBalance) []doubletick.Interactive
 	return leaveTypeButtons()
 }
 
-const msgLeaveAwaitStart = `Leave Application
+func msgLeaveAwaitStart() string {
+	return fmt.Sprintf(`Leave Application
 
 Please enter your leave start date.
 
 Format: DD/MM/YYYY
-Example: 01/07/2026`
+Example: %s`, exampleDate(0))
+}
 
-const msgLeaveAwaitEnd = `Please enter your leave end date.
+func msgLeaveAwaitEnd() string {
+	return fmt.Sprintf(`Please enter your leave end date.
 
 Format: DD/MM/YYYY
-Example: 05/07/2026
+Example: %s
 
-For a one-day leave, enter the same date as your start date.`
+For a one-day leave, enter the same date as your start date.`, exampleDate(4))
+}
 
 const msgLeaveAwaitReason = `Please enter the reason for your leave.`
 
@@ -120,19 +130,23 @@ Example: Family function`
 
 const msgLeaveReasonTooShort = `Please enter a longer reason (at least 3 characters).`
 
-const msgLeaveAwaitEndNotDate = `That doesn't look like an end date.
+func msgLeaveAwaitEndNotDate() string {
+	return fmt.Sprintf(`That doesn't look like an end date.
 
 We're still waiting for your leave end date in DD/MM/YYYY format.
-Example: 05/07/2026`
+Example: %s`, exampleDate(4))
+}
 
 const msgLeaveAlreadySubmitted = `Your leave request has already been submitted.
 
 Reply Hi to return to the main menu.`
 
-const msgLeaveInvalidDate = `Invalid format.
+func msgLeaveInvalidDate() string {
+	return fmt.Sprintf(`Invalid format.
 
 Please enter the date as DD/MM/YYYY.
-Example: 01/07/2026`
+Example: %s`, exampleDate(0))
+}
 
 const msgLeaveStartInPast = `The start date cannot be in the past.
 

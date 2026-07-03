@@ -704,7 +704,7 @@ func (s *Service) handleLeaveAwaitType(ctx context.Context, sess *Session, from,
 	sess.TempLeaveType = leaveTypeFromSelection(sel)
 	sess.State = StateLeaveAwaitStart
 	s.sessions.Set(from, sess)
-	return s.sendUserText(ctx, sess, from, msgLeaveAwaitStart)
+	return s.sendUserText(ctx, sess, from, msgLeaveAwaitStart())
 }
 
 func (s *Service) recordOutbound(phone string) {
@@ -761,7 +761,7 @@ func (s *Service) handleLeaveAwaitStart(ctx context.Context, sess *Session, from
 
 	parsed, ok := parseLeaveDate(input)
 	if !ok {
-		return s.sendUserText(ctx, sess, from, msgLeaveInvalidDate)
+		return s.sendUserText(ctx, sess, from, msgLeaveInvalidDate())
 	}
 
 	if startOfDayLocal(parsed).Before(startOfDayLocal(time.Now())) {
@@ -776,7 +776,7 @@ func (s *Service) handleLeaveAwaitStart(ctx context.Context, sess *Session, from
 	sess.HasEndDateAttempt = false
 	sess.State = StateLeaveAwaitEnd
 	s.sessions.Set(from, sess)
-	if err := s.sendUserText(ctx, sess, from, msgLeaveAwaitEnd); err != nil {
+	if err := s.sendUserText(ctx, sess, from, msgLeaveAwaitEnd()); err != nil {
 		return err
 	}
 	sess.LastEndPromptAt = time.Now()
@@ -808,9 +808,9 @@ func (s *Service) handleLeaveAwaitEnd(ctx context.Context, sess *Session, from, 
 	endDate, ok := parseLeaveDate(input)
 	if !ok {
 		if trimmedInput != "" && !looksLikeLeaveDateAttempt(input) {
-			return s.sendUserText(ctx, sess, from, msgLeaveAwaitEndNotDate)
+			return s.sendUserText(ctx, sess, from, msgLeaveAwaitEndNotDate())
 		}
-		return s.sendUserText(ctx, sess, from, msgLeaveInvalidDate)
+		return s.sendUserText(ctx, sess, from, msgLeaveInvalidDate())
 	}
 	return s.applyLeaveEndDate(ctx, sess, from, endDate, trimmedInput)
 }
@@ -818,7 +818,7 @@ func (s *Service) handleLeaveAwaitEnd(ctx context.Context, sess *Session, from, 
 func (s *Service) applyLeaveEndDate(ctx context.Context, sess *Session, from string, endDate time.Time, rawInput string) error {
 	startDate, ok := parseStoredLeaveDate(sess.TempLeaveStart)
 	if !ok {
-		return s.sendUserText(ctx, sess, from, msgLeaveInvalidDate)
+		return s.sendUserText(ctx, sess, from, msgLeaveInvalidDate())
 	}
 	if endDate.Before(startDate) {
 		sess.LastLeaveDateAt = time.Time{}
@@ -877,7 +877,7 @@ func (s *Service) handleLeaveAwaitDateConfirm(ctx context.Context, sess *Session
 		sess.HasEndDateAttempt = false
 		sess.State = StateLeaveAwaitEnd
 		s.sessions.Set(from, sess)
-		if err := s.sendUserText(ctx, sess, from, msgLeaveAwaitEnd); err != nil {
+		if err := s.sendUserText(ctx, sess, from, msgLeaveAwaitEnd()); err != nil {
 			return err
 		}
 		sess.LastEndPromptAt = time.Now()
@@ -944,11 +944,11 @@ func (s *Service) handleLeaveAwaitReason(ctx context.Context, sess *Session, fro
 func (s *Service) sendLeaveConfirmSummary(ctx context.Context, sess *Session, from string) error {
 	sDate, ok := parseStoredLeaveDate(sess.TempLeaveStart)
 	if !ok {
-		return s.sendUserText(ctx, sess, from, msgLeaveInvalidDate)
+		return s.sendUserText(ctx, sess, from, msgLeaveInvalidDate())
 	}
 	eDate, ok := parseStoredLeaveDate(sess.TempLeaveEnd)
 	if !ok {
-		return s.sendUserText(ctx, sess, from, msgLeaveInvalidDate)
+		return s.sendUserText(ctx, sess, from, msgLeaveInvalidDate())
 	}
 	days := int(eDate.Sub(sDate).Hours()/24) + 1
 	return s.sendUserText(ctx, sess, from, msgLeaveConfirmPrompt(
