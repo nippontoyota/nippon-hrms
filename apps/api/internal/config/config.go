@@ -36,6 +36,8 @@ type Config struct {
 
 func Load() (*Config, error) {
 
+	// Try loading from project root first, then current directory
+	_ = godotenv.Load("../../.env")
 	_ = godotenv.Load()
 
 	cfg := &Config{

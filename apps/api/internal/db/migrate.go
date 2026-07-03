@@ -16,6 +16,14 @@ func EnsureSchema(ctx context.Context, pool *pgxpool.Pool) error {
 
 		ALTER TABLE employees
 		ADD COLUMN IF NOT EXISTS manager_id VARCHAR(50) REFERENCES employees(id) ON DELETE SET NULL;
+
+		CREATE TABLE IF NOT EXISTS holidays (
+			id VARCHAR(50) PRIMARY KEY,
+			date DATE NOT NULL UNIQUE,
+			name VARCHAR(255) NOT NULL,
+			created_at TIMESTAMPTZ DEFAULT NOW()
+		);
+		CREATE INDEX IF NOT EXISTS idx_holidays_date ON holidays(date);
 	`)
 	if err != nil {
 		return err
