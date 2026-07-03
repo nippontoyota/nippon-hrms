@@ -149,16 +149,22 @@ func (r *PostgresRepository) UpdateStatus(ctx context.Context, id string, status
 	query := `
 		UPDATE leaves 
 		SET status = $1, reviewed_by = $2, reviewed_at = NOW(), rejection_reason = $4
-		WHERE id = $3
+		WHERE id = $3 AND status = 'pending'
 	`
 	cmd, err := r.db.Exec(ctx, query, status, reviewerID, id, rejectionReason)
 	if err != nil {
 		return fmt.Errorf("failed to update leave status: %w", err)
 	}
-	if cmd.RowsAffected() == 0 {
-		return fmt.Errorf("leave request not found")
+	if cmd.RowsAffected() > 0 {
+		return nil
 	}
-	return nil
+
+	var currentStatus LeaveStatus
+	err = r.db.QueryRow(ctx, `SELECT status FROM leaves WHERE id = $1`, id).Scan(&currentStatus)
+	if err != nil {
+		return ErrLeaveNotFound
+	}
+	return ErrLeaveNotPending
 }
 
 func (r *PostgresRepository) GetByID(ctx context.Context, id string) (*LeaveRequest, error) {

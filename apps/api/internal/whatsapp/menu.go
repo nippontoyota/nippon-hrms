@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/nippon-toyota/hrms/internal/doubletick"
+	"github.com/nippon-toyota/hrms/internal/leave"
 )
 
 const msgNotEmployee = `This WhatsApp number is not registered in our system.
@@ -72,6 +73,29 @@ func leaveTypeButtons() []doubletick.InteractiveButton {
 		{ID: payloadLeaveSick, Title: "Sick Leave"},
 		{ID: payloadLeaveUnpaid, Title: "Unpaid Leave"},
 	}
+}
+
+func formatDaysLeft(n int) string {
+	if n == 1 {
+		return "1 day left"
+	}
+	return fmt.Sprintf("%d days left", n)
+}
+
+func msgLeaveAwaitTypeWithBalance(bal *leave.LeaveBalance) string {
+	if bal == nil {
+		return msgLeaveAwaitType
+	}
+	return fmt.Sprintf(
+		"%s\n\nCasual Leave: %s\nSick Leave: %s",
+		msgLeaveAwaitType,
+		formatDaysLeft(bal.RemainingCasual()),
+		formatDaysLeft(bal.RemainingSick()),
+	)
+}
+
+func leaveTypeButtonsWithBalance(_ *leave.LeaveBalance) []doubletick.InteractiveButton {
+	return leaveTypeButtons()
 }
 
 const msgLeaveAwaitStart = `Leave Application

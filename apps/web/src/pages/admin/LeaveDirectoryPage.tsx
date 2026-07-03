@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useLeaves, useUpdateLeaveStatus, useLeaveBalance } from '@/api/hooks';
-import toast from 'react-hot-toast';
+import { useLeaves, useLeaveBalance } from '@/api/hooks';
 import {
   CheckCircle,
   XCircle,
@@ -8,7 +7,6 @@ import {
   Clock,
 } from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'framer-motion';
-import RejectLeaveModal from '@/components/RejectLeaveModal';
 import LeaveRequestDetailModal from '@/components/LeaveRequestDetailModal';
 import type { LeaveRequest } from '@/api/types';
 
@@ -51,17 +49,22 @@ const shortDate = (dStr?: string) => {
   return `${parts[2]} ${m}`;
 };
 
+function pendingApprovalLabel(leave: LeaveRequest) {
+  if (leave.employee?.managerName) {
+    return `Awaiting ${leave.employee.managerName}`;
+  }
+  return 'No manager assigned';
+}
+
 export default function LeaveDirectoryPage() {
   const { data: leaves = [], isLoading } = useLeaves();
-  const updateStatus = useUpdateLeaveStatus();
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [rejectTarget, setRejectTarget] = useState<LeaveRequest | null>(null);
   const [selectedLeave, setSelectedLeave] = useState<LeaveRequest | null>(null);
 
   const filteredLeaves = useMemo(() => {
     return (leaves || []).filter((l) => {
-      const matchSearch = l.employee?.name?.toLowerCase().includes(search.toLowerCase()) || 
+      const matchSearch = l.employee?.name?.toLowerCase().includes(search.toLowerCase()) ||
                           l.employee?.employeeId?.toLowerCase().includes(search.toLowerCase());
       const matchStatus = filterStatus === 'all' || l.status === filterStatus;
       return matchSearch && matchStatus;
@@ -74,43 +77,9 @@ export default function LeaveDirectoryPage() {
     setSelectedLeave(leave);
   };
 
-  const handleApprove = (id: string, e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    toast.promise(
-      updateStatus.mutateAsync({ id, status: 'approved' }),
-      {
-        loading: 'Updating status...',
-        success: 'Leave approved — employee notified!',
-        error: 'Failed to update leave status',
-      }
-    ).then(() => setSelectedLeave(null));
-  };
-
-  const handleRejectClick = (id: string) => {
-    const leave = leaves.find((l) => l.id === id) ?? selectedLeave;
-    if (!leave) return;
-    setSelectedLeave(null);
-    setRejectTarget(leave);
-  };
-
-  const handleRejectConfirm = (reason: string) => {
-    if (!rejectTarget) return;
-    toast.promise(
-      updateStatus.mutateAsync({ id: rejectTarget.id, status: 'rejected', rejectionReason: reason }),
-      {
-        loading: 'Updating status...',
-        success: 'Leave rejected — employee notified!',
-        error: 'Failed to update leave status',
-      }
-    ).finally(() => {
-      setRejectTarget(null);
-      setSelectedLeave(null);
-    });
-  };
-
   return (
     <div className="space-y-6 max-w-full pb-10">
-      
+
       <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-3">
         <div className="flex items-center gap-3">
           <h2 className="text-lg font-bold text-slate-900 dark:text-white uppercase tracking-wide">Leave Requests</h2>
@@ -118,6 +87,9 @@ export default function LeaveDirectoryPage() {
             {filteredLeaves.length} records
           </span>
         </div>
+        <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-xs text-right leading-snug">
+          Managers approve via WhatsApp. This page is view-only.
+        </p>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -140,7 +112,7 @@ export default function LeaveDirectoryPage() {
             ].map((tab) => {
               let activeTextColor = 'text-slate-800 dark:text-white';
               let activeBgRing = 'ring-slate-200 dark:ring-slate-600 bg-white dark:bg-slate-700';
-              
+
               if (tab.id === 'pending') {
                 activeTextColor = 'text-amber-800 dark:text-amber-300';
                 activeBgRing = 'ring-amber-200 dark:ring-amber-900 bg-amber-50 dark:bg-amber-900/30';
@@ -188,18 +160,17 @@ export default function LeaveDirectoryPage() {
                 <th className="py-3 px-4 font-semibold uppercase tracking-wider text-[10px]">Reason</th>
                 <th className="py-3 px-4 font-semibold uppercase tracking-wider text-[10px]">Reporting Manager</th>
                 <th className="py-3 px-4 font-semibold uppercase tracking-wider text-[10px]">Manager Approval</th>
-                <th className="py-3 px-4 font-semibold uppercase tracking-wider text-[10px] text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               <AnimatePresence mode="popLayout">
                 {isLoading ? (
                   <tr key="loading">
-                    <td colSpan={7} className="py-8 text-center text-slate-500">Loading leave requests...</td>
+                    <td colSpan={6} className="py-8 text-center text-slate-500">Loading leave requests...</td>
                   </tr>
                 ) : filteredLeaves.length === 0 ? (
                   <tr key="empty">
-                    <td colSpan={7} className="py-8 text-center text-slate-500">No leave requests found.</td>
+                    <td colSpan={6} className="py-8 text-center text-slate-500">No leave requests found.</td>
                   </tr>
                 ) : (
                   filteredLeaves.map((l) => (
@@ -239,7 +210,7 @@ export default function LeaveDirectoryPage() {
                     <td className="py-3 px-4">
                       {l.status === 'pending' && (
                         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded shadow-sm text-[10px] uppercase tracking-widest font-bold bg-amber-100/50 text-amber-800 border border-amber-200/60 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800/50">
-                          <Clock size={12} weight="bold" /> Pending
+                          <Clock size={12} weight="bold" /> {pendingApprovalLabel(l)}
                         </span>
                       )}
                       {l.status === 'approved' && (
@@ -254,37 +225,10 @@ export default function LeaveDirectoryPage() {
                           </span>
                           {l.rejectionReason && (
                             <p className="text-[11px] text-rose-700 dark:text-rose-300 max-w-[200px] leading-snug" title={l.rejectionReason}>
-                              HR: {l.rejectionReason}
+                              {l.rejectionReason}
                             </p>
                           )}
                         </div>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      {l.status === 'pending' ? (
-                        <div className="flex justify-end gap-2">
-                          <button
-                            onClick={(e) => handleApprove(l.id, e)}
-                            disabled={updateStatus.isPending}
-                            className="px-3 py-1.5 text-[11px] uppercase tracking-wider font-bold rounded shadow-sm flex items-center gap-1.5 transition-all bg-emerald-500 hover:bg-emerald-600 text-white border border-emerald-600 disabled:opacity-50"
-                          >
-                            <CheckCircle size={14} weight="bold" /> Approve
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setRejectTarget(l);
-                            }}
-                            disabled={updateStatus.isPending}
-                            className="px-3 py-1.5 text-[11px] uppercase tracking-wider font-bold rounded shadow-sm flex items-center gap-1.5 transition-all bg-white hover:bg-rose-50 text-rose-600 border border-slate-200 hover:border-rose-200 dark:bg-slate-800 dark:border-slate-700 dark:hover:border-rose-900 dark:text-rose-400 disabled:opacity-50"
-                          >
-                            <XCircle size={14} weight="bold" /> Reject
-                          </button>
-                        </div>
-                      ) : (
-                        <span className="text-[10px] uppercase font-bold text-slate-400">
-                          Action Completed
-                        </span>
                       )}
                     </td>
                     </tr>
@@ -299,20 +243,6 @@ export default function LeaveDirectoryPage() {
       <LeaveRequestDetailModal
         leave={selectedLeave}
         onClose={() => setSelectedLeave(null)}
-        onApprove={handleApprove}
-        onReject={handleRejectClick}
-        isUpdating={updateStatus.isPending}
-      />
-
-      <RejectLeaveModal
-        open={rejectTarget !== null}
-        employeeName={rejectTarget?.employee?.name}
-        leaveDays={rejectTarget?.days}
-        leaveFromDate={rejectTarget?.fromDate}
-        leaveToDate={rejectTarget?.toDate}
-        onCancel={() => setRejectTarget(null)}
-        onConfirm={handleRejectConfirm}
-        isSubmitting={updateStatus.isPending}
       />
     </div>
   );

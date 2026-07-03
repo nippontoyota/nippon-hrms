@@ -1,6 +1,9 @@
 package whatsapp
 
-import "strings"
+import (
+	"strconv"
+	"strings"
+)
 
 // acceptsInboundAtState reports whether a text message should be handled by the
 // current state handler instead of being dropped as a button echo.
@@ -53,7 +56,14 @@ func acceptsInboundAtState(state State, input string) bool {
 		return isLeaveConfirmKeyword(input)
 
 	case StateLeaveAwaitRejectionReason:
-		return isValidRejectionReason(input)
+		return isValidRejectionReason(input) || strings.ToLower(input) == "cancel" || input == "0"
+
+	case StateLeaveAwaitPickRequest:
+		if strings.ToLower(input) == "cancel" || input == "0" {
+			return true
+		}
+		n, err := strconv.Atoi(strings.TrimSpace(input))
+		return err == nil && n >= 1 && n <= 9
 
 	default:
 		return false
