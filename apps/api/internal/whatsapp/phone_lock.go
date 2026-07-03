@@ -137,6 +137,9 @@ func isInteractiveMenuEcho(input string) bool {
 	if lower == "unpaid leave" || input == payloadLeaveUnpaid {
 		return true
 	}
+	if lower == "holiday calendar" || input == payloadRequestHolidays {
+		return true
+	}
 	if strings.Contains(lower, "nippon hr connect") && strings.Contains(lower, "please select an option") {
 		return true
 	}

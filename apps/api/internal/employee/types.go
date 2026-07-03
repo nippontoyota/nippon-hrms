@@ -13,6 +13,7 @@ type Employee struct {
 	MobileNumber              string    `json:"mobileNo"`
 	Level                     string    `json:"level"`
 	DOJ                       string    `json:"doj"`
+	Birthday                  string    `json:"birthday"`
 	YearsExperience           float64   `json:"yearsExperience"`
 	Branch                    string    `json:"branch"`
 	Designation               string    `json:"designation"`

@@ -3,7 +3,6 @@ import { useHolidays, useCreateHoliday, useDeleteHoliday, useBulkUploadHoliday }
 import toast from 'react-hot-toast';
 import { CaretLeft, CaretRight, Trash, Plus, UploadSimple, CalendarBlank, X, ArrowLeft } from '@phosphor-icons/react';
 import ConfirmDialog from '../../components/ConfirmDialog';
-import type { Holiday } from '../../api/types';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -26,29 +25,6 @@ function getHolidayColor(index: number) {
   return HOLIDAY_COLORS[index % HOLIDAY_COLORS.length];
 }
 
-/* ── Dummy holidays for testing ── */
-const DUMMY_HOLIDAYS: Holiday[] = [
-  { id: 'dummy-1',  date: '2026-01-01', name: 'New Year\'s Day',       createdAt: '' },
-  { id: 'dummy-2',  date: '2026-01-26', name: 'Republic Day',          createdAt: '' },
-  { id: 'dummy-3',  date: '2026-03-14', name: 'Holi',                  createdAt: '' },
-  { id: 'dummy-4',  date: '2026-03-30', name: 'Id-ul-Fitr',            createdAt: '' },
-  { id: 'dummy-5',  date: '2026-04-02', name: 'Ram Navami',            createdAt: '' },
-  { id: 'dummy-6',  date: '2026-04-14', name: 'Dr. Ambedkar Jayanti',  createdAt: '' },
-  { id: 'dummy-7',  date: '2026-05-01', name: 'May Day',               createdAt: '' },
-  { id: 'dummy-8',  date: '2026-05-24', name: 'Buddha Purnima',        createdAt: '' },
-  { id: 'dummy-9',  date: '2026-06-06', name: 'Bakrid',                createdAt: '' },
-  { id: 'dummy-10', date: '2026-07-06', name: 'Muharram',              createdAt: '' },
-  { id: 'dummy-11', date: '2026-08-15', name: 'Independence Day',      createdAt: '' },
-  { id: 'dummy-12', date: '2026-08-16', name: 'Janmashtami',           createdAt: '' },
-  { id: 'dummy-13', date: '2026-09-04', name: 'Milad-un-Nabi',         createdAt: '' },
-  { id: 'dummy-14', date: '2026-10-02', name: 'Gandhi Jayanti',        createdAt: '' },
-  { id: 'dummy-15', date: '2026-10-20', name: 'Dussehra',              createdAt: '' },
-  { id: 'dummy-16', date: '2026-11-08', name: 'Diwali',                createdAt: '' },
-  { id: 'dummy-17', date: '2026-11-10', name: 'Bhai Dooj',             createdAt: '' },
-  { id: 'dummy-18', date: '2026-11-19', name: 'Guru Nanak Jayanti',    createdAt: '' },
-  { id: 'dummy-19', date: '2026-12-25', name: 'Christmas',             createdAt: '' },
-];
-
 export default function HolidaysPage() {
   const [viewMode, setViewMode] = useState<'year' | 'month'>('year');
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -61,17 +37,10 @@ export default function HolidaysPage() {
   const deleteHoliday = useDeleteHoliday();
   const bulkUpload = useBulkUploadHoliday();
 
-  /* Merge API holidays with dummy data (dummy fills gaps for testing) */
+  /* Show only real holidays from the database (matches the WhatsApp PDF). */
   const holidays = useMemo(() => {
-    const apiDates = new Set(apiHolidays.map(h => h.date));
-    const dummyForYear = DUMMY_HOLIDAYS.filter(d => d.date.startsWith(String(year)));
-    const merged = [...apiHolidays];
-    for (const d of dummyForYear) {
-      if (!apiDates.has(d.date)) merged.push(d);
-    }
-    merged.sort((a, b) => a.date.localeCompare(b.date));
-    return merged;
-  }, [apiHolidays, year]);
+    return [...apiHolidays].sort((a, b) => a.date.localeCompare(b.date));
+  }, [apiHolidays]);
 
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [holidayName, setHolidayName] = useState('');

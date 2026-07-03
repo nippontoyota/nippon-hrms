@@ -1,7 +1,7 @@
 package importjob
 
 func employeeCols() string {
-	return `id, name, department, mobile_number, emp_level, doj, years_experience,
+	return `id, name, department, mobile_number, emp_level, doj, birthday, years_experience,
 		branch, designation, zone, basic, da, revised_basic_da, hra, travel,
 		hostel, children, total_salary, mobile, conveyance, wash_allowance,
 		branch_allowance, special_allowance, training, total_allowances,
@@ -9,7 +9,7 @@ func employeeCols() string {
 }
 
 func employeeStagingCols(alias string) string {
-	return alias + `.id, ` + alias + `.name, ` + alias + `.department, ` + alias + `.mobile_number, ` + alias + `.emp_level, ` + alias + `.doj, ` + alias + `.years_experience,
+	return alias + `.id, ` + alias + `.name, ` + alias + `.department, ` + alias + `.mobile_number, ` + alias + `.emp_level, ` + alias + `.doj, ` + alias + `.birthday, ` + alias + `.years_experience,
 		` + alias + `.branch, ` + alias + `.designation, ` + alias + `.zone, ` + alias + `.basic, ` + alias + `.da, ` + alias + `.revised_basic_da, ` + alias + `.hra, ` + alias + `.travel,
 		` + alias + `.hostel, ` + alias + `.children, ` + alias + `.total_salary, ` + alias + `.mobile, ` + alias + `.conveyance, ` + alias + `.wash_allowance,
 		` + alias + `.branch_allowance, ` + alias + `.special_allowance, ` + alias + `.training, ` + alias + `.total_allowances,
@@ -91,6 +91,7 @@ func employeeConflictFields() []conflictField {
 		{"department", "department", "department"},
 		{"mobileNo", "mobile_number", "mobile_number"},
 		{"level", "emp_level", "emp_level"},
+		{"birthday", "birthday", "birthday"},
 		{"branch", "branch", "branch"},
 		{"designation", "designation", "designation"},
 		{"zone", "zone", "zone"},

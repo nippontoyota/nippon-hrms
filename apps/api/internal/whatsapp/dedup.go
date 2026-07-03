@@ -210,7 +210,7 @@ func (d *dedupStore) evict(now time.Time) {
 
 func canonicalInput(input string) string {
 	switch normalizeMenuSelection(input) {
-	case payloadGeneratePay, payloadRequestSalary, payloadRequestLeave:
+	case payloadGeneratePay, payloadRequestSalary, payloadRequestLeave, payloadRequestHolidays:
 		return normalizeMenuSelection(input)
 	default:
 		if sel := normalizeLeaveTypeSelection(input); sel != "" {
@@ -246,6 +246,8 @@ func normalizeMenuSelection(input string) string {
 		return payloadRequestSalary
 	case trimmed == payloadRequestLeave, lower == "request leave":
 		return payloadRequestLeave
+	case trimmed == payloadRequestHolidays, lower == "holiday calendar":
+		return payloadRequestHolidays
 	}
 	// WhatsApp often echoes the full interactive body plus the chosen button label.
 	if isMainMenuEcho(lower) || strings.Contains(lower, "how may we help") {
@@ -256,6 +258,8 @@ func normalizeMenuSelection(input string) string {
 			return payloadRequestSalary
 		case strings.Contains(lower, "generate pay"):
 			return payloadGeneratePay
+		case strings.Contains(lower, "holiday calendar"):
+			return payloadRequestHolidays
 		}
 	}
 	return trimmed

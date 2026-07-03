@@ -181,8 +181,8 @@ func TestIsBotPromptEcho_leavePromptBodies(t *testing.T) {
 		want  bool
 	}{
 		{msgLeaveAwaitType, true},
-		{msgLeaveAwaitStart, true},
-		{msgLeaveAwaitEnd, true},
+		{msgLeaveAwaitStart(), true},
+		{msgLeaveAwaitEnd(), true},
 		{msgLeaveAwaitReason, true},
 		{"Please confirm your leave details:\n\nLeave type: Casual Leave", true},
 		{msgLeaveDateConfirmPrompt("09/09/2026", "10/09/2026", 2), true},

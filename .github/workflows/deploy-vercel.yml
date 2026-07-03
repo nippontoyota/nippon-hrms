@@ -1,80 +1,68 @@
-# Deploys production via Vercel CLI after CI passes.
+# Deploy the web app with the Vercel CLI using the team owner's token.
 #
-# Hobby plan blocks ANY deploy when HEAD commit author is not the Vercel team
-# owner — including deploy hooks. We rewrite the checkout author to the owner
-# identity used on successful historical deploys, then deploy with VERCEL_TOKEN.
+# Why: Vercel Hobby blocks Git-connected deploys when the commit author is not on
+# the team (e.g. Krishnanand-G pushes, nippontoyota owns the Vercel project).
+# CLI deploys authenticated with VERCEL_TOKEN bypass that check.
 #
-# One-time setup (Vercel project owner — nippontoyota account):
-#   1. Vercel → Account Settings → Tokens → Create Token
-#   2. Vercel → Team Settings → General → copy Team ID → GitHub secret VERCEL_ORG_ID
-#   3. GitHub → repo → Settings → Secrets → Actions:
-#        VERCEL_TOKEN        = token from step 1
-#        VERCEL_ORG_ID       = team id from step 2
-#   (VERCEL_PROJECT_ID is set below.)
+# Zero GitHub Actions minutes: runs on a self-hosted runner (your PC or the
+# Vercel owner's machine), not GitHub-hosted ubuntu-latest.
 #
-# Optional: skip noisy blocked Git deploys for non-owner pushes — see vercel.json.
+# One-time setup (Vercel project owner):
+#   1. Vercel → Account Settings → Tokens → create token
+#   2. GitHub → repo Settings → Secrets → Actions:
+#        VERCEL_TOKEN  = token from step 1
+#        VERCEL_ORG_ID = team_CkKkhsvVRRX5FdsJcY2MtNLr
+#   3. On the machine that will run deploys:
+#        GitHub → repo Settings → Actions → Runners → New self-hosted runner
+#        Follow the Windows steps and leave the runner service running.
+#
+# Optional: disable Vercel's blocked Git deploys in the dashboard:
+#   Project → Settings → Git → uncheck "Automatic deployments" for Production,
+#   or keep apps/web/vercel.json git.deploymentEnabled = false.
 
-name: Deploy Vercel
+name: Deploy web (Vercel CLI)
 
 on:
-  workflow_run:
-    workflows: [Enterprise CI]
-    types: [completed]
+  push:
     branches: [main]
+    paths:
+      - 'apps/web/**'
+      - '.github/workflows/deploy-vercel.yml'
+      - 'apps/web/vercel.json'
   workflow_dispatch:
 
-env:
-  VERCEL_PROJECT_ID: prj_QAf3SUCcqmAqzXSRvzxdPZWiLU95
+concurrency:
+  group: vercel-production
+  cancel-in-progress: true
 
 jobs:
   deploy:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
+    timeout-minutes: 15
+
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: prj_QAf3SUCcqmAqzXSRvzxdPZWiLU95
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
     steps:
+      - name: Check secrets
+        shell: pwsh
+        run: |
+          if (-not $env:VERCEL_TOKEN -or -not $env:VERCEL_ORG_ID) {
+            Write-Error "Missing VERCEL_TOKEN or VERCEL_ORG_ID GitHub Actions secrets."
+          }
+
       - uses: actions/checkout@v4
 
-      - name: Rewrite checkout author for Vercel Hobby owner check
-        run: |
-          git config user.email "bharath.c@nippontoyota.com"
-          git config user.name "bharathc-3174"
-          git commit --amend --no-edit --reset-author
-
-      - name: Check Vercel token configured
-        id: check
-        run: |
-          if [ -z "${{ secrets.VERCEL_TOKEN }}" ] || [ -z "${{ secrets.VERCEL_ORG_ID }}" ]; then
-            echo "configured=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::VERCEL_TOKEN and VERCEL_ORG_ID are required. Ask the Vercel owner (nippontoyota) to add them as GitHub Actions secrets."
-          else
-            echo "configured=true" >> "$GITHUB_OUTPUT"
-          fi
-
       - uses: actions/setup-node@v4
-        if: steps.check.outputs.configured == 'true'
         with:
-          node-version: '22'
-          cache: npm
-          cache-dependency-path: apps/web/package-lock.json
+          node-version: 22
 
       - name: Install Vercel CLI
-        if: steps.check.outputs.configured == 'true'
+        shell: pwsh
         run: npm install -g vercel@49
 
-      - name: Install dependencies
-        if: steps.check.outputs.configured == 'true'
-        working-directory: apps/web
-        run: npm ci
-
-      - name: Pull Vercel environment
-        if: steps.check.outputs.configured == 'true'
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
-
       - name: Deploy to production
-        if: steps.check.outputs.configured == 'true'
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-        run: vercel deploy --prod --token="$VERCEL_TOKEN"
+        shell: pwsh
+        run: vercel deploy --prod --yes --token $env:VERCEL_TOKEN

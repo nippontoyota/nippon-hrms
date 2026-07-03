@@ -230,7 +230,7 @@ func (h *EmployeeHandler) ExportExcel(w http.ResponseWriter, r *http.Request) {
 	f.SetSheetName("Sheet1", sheet)
 
 	headers := []string{
-		"employeeId", "name", "department", "mobileNo", "level", "doj", "yearsExperience",
+		"employeeId", "name", "department", "mobileNo", "level", "doj", "birthday", "yearsExperience",
 		"branch", "designation", "basic", "da", "revisedBasicDa", "hra", "travel",
 		"hostel", "children", "totalSalary", "mobile", "conveyance", "washAllowance",
 		"branchAllowance", "specialAllowance", "training", "totalAllowances",
@@ -246,36 +246,18 @@ func (h *EmployeeHandler) ExportExcel(w http.ResponseWriter, r *http.Request) {
 	// Write data
 	for rowIdx, emp := range employees {
 		row := rowIdx + 2
-		f.SetCellValue(sheet, fmt.Sprintf("A%d", row), emp.EmployeeID)
-		f.SetCellValue(sheet, fmt.Sprintf("B%d", row), emp.Name)
-		f.SetCellValue(sheet, fmt.Sprintf("C%d", row), emp.Department)
-		f.SetCellValue(sheet, fmt.Sprintf("D%d", row), emp.MobileNumber)
-		f.SetCellValue(sheet, fmt.Sprintf("E%d", row), emp.Level)
-		f.SetCellValue(sheet, fmt.Sprintf("F%d", row), emp.DOJ)
-		f.SetCellValue(sheet, fmt.Sprintf("G%d", row), emp.YearsExperience)
-		f.SetCellValue(sheet, fmt.Sprintf("H%d", row), emp.Branch)
-		f.SetCellValue(sheet, fmt.Sprintf("I%d", row), emp.Designation)
-		f.SetCellValue(sheet, fmt.Sprintf("J%d", row), emp.Basic)
-		f.SetCellValue(sheet, fmt.Sprintf("K%d", row), emp.DA)
-		f.SetCellValue(sheet, fmt.Sprintf("L%d", row), emp.RevisedBasicDA)
-		f.SetCellValue(sheet, fmt.Sprintf("M%d", row), emp.HRA)
-		f.SetCellValue(sheet, fmt.Sprintf("N%d", row), emp.Travel)
-		f.SetCellValue(sheet, fmt.Sprintf("O%d", row), emp.Hostel)
-		f.SetCellValue(sheet, fmt.Sprintf("P%d", row), emp.Children)
-		f.SetCellValue(sheet, fmt.Sprintf("Q%d", row), emp.TotalSalary)
-		f.SetCellValue(sheet, fmt.Sprintf("R%d", row), emp.Mobile)
-		f.SetCellValue(sheet, fmt.Sprintf("S%d", row), emp.Conveyance)
-		f.SetCellValue(sheet, fmt.Sprintf("T%d", row), emp.WashAllowance)
-		f.SetCellValue(sheet, fmt.Sprintf("U%d", row), emp.BranchAllowance)
-		f.SetCellValue(sheet, fmt.Sprintf("V%d", row), emp.SpecialAllowance)
-		f.SetCellValue(sheet, fmt.Sprintf("W%d", row), emp.Training)
-		f.SetCellValue(sheet, fmt.Sprintf("X%d", row), emp.TotalAllowances)
-		f.SetCellValue(sheet, fmt.Sprintf("Y%d", row), emp.TotalSalaryWithAllowances)
-		f.SetCellValue(sheet, fmt.Sprintf("Z%d", row), emp.BankName)
-		f.SetCellValue(sheet, fmt.Sprintf("AA%d", row), emp.AccountNumber)
-		f.SetCellValue(sheet, fmt.Sprintf("AB%d", row), emp.BankBranch)
-		f.SetCellValue(sheet, fmt.Sprintf("AC%d", row), emp.IFSCCode)
-		f.SetCellValue(sheet, fmt.Sprintf("AD%d", row), emp.Zone)
+		values := []interface{}{
+			emp.EmployeeID, emp.Name, emp.Department, emp.MobileNumber, emp.Level,
+			emp.DOJ, emp.Birthday, emp.YearsExperience, emp.Branch, emp.Designation,
+			emp.Basic, emp.DA, emp.RevisedBasicDA, emp.HRA, emp.Travel, emp.Hostel, emp.Children,
+			emp.TotalSalary, emp.Mobile, emp.Conveyance, emp.WashAllowance, emp.BranchAllowance,
+			emp.SpecialAllowance, emp.Training, emp.TotalAllowances, emp.TotalSalaryWithAllowances,
+			emp.BankName, emp.AccountNumber, emp.BankBranch, emp.IFSCCode, emp.Zone,
+		}
+		for colIdx, val := range values {
+			cell, _ := excelize.CoordinatesToCellName(colIdx+1, row)
+			f.SetCellValue(sheet, cell, val)
+		}
 	}
 
 	// Auto-size columns
@@ -297,7 +279,7 @@ func (h *EmployeeHandler) ExportExcel(w http.ResponseWriter, r *http.Request) {
 // DownloadTemplate returns a CSV file with only column headers (no data).
 func (h *EmployeeHandler) DownloadTemplate(w http.ResponseWriter, r *http.Request) {
 	headers := []string{
-		"employeeId", "name", "department", "mobileNo", "level", "doj", "yearsExperience",
+		"employeeId", "name", "department", "mobileNo", "level", "doj", "birthday", "yearsExperience",
 		"branch", "designation", "basic", "da", "revisedBasicDa", "hra", "travel",
 		"hostel", "children", "totalSalary", "mobile", "conveyance", "washAllowance",
 		"branchAllowance", "specialAllowance", "training", "totalAllowances",
