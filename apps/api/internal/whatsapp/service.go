@@ -16,6 +16,7 @@ import (
 	"github.com/nippon-toyota/hrms/internal/holiday"
 	"github.com/nippon-toyota/hrms/internal/leave"
 	"github.com/nippon-toyota/hrms/internal/payroll"
+	"github.com/nippon-toyota/hrms/internal/referral"
 )
 
 type Service struct {
@@ -30,6 +31,7 @@ type Service struct {
 	payrollRepo   payroll.Repository
 	leaveRepo     leave.Repository
 	holidayRepo   holiday.Repository
+	referralSvc   *referral.Service
 	menuImage     menuImageCache
 }
 
@@ -41,7 +43,7 @@ type menuImageCache struct {
 
 const menuImageCacheRefreshBefore = 5 * time.Minute
 
-func NewService(dt *doubletick.Client, sessions SessionStore, sessionWindow SessionWindowStore, empRepo employee.Repository, epfRepo epf.Repository, payrollRepo payroll.Repository, leaveRepo leave.Repository, holidayRepo holiday.Repository) *Service {
+func NewService(dt *doubletick.Client, sessions SessionStore, sessionWindow SessionWindowStore, empRepo employee.Repository, epfRepo epf.Repository, payrollRepo payroll.Repository, leaveRepo leave.Repository, holidayRepo holiday.Repository, referralSvc *referral.Service) *Service {
 	return &Service{
 		dt:            dt,
 		sessions:      sessions,
@@ -54,6 +56,7 @@ func NewService(dt *doubletick.Client, sessions SessionStore, sessionWindow Sess
 		payrollRepo:   payrollRepo,
 		leaveRepo:     leaveRepo,
 		holidayRepo:   holidayRepo,
+		referralSvc:   referralSvc,
 	}
 }
 
@@ -347,6 +350,8 @@ func (s *Service) handleIdle(ctx context.Context, sess *Session, from, input str
 		return s.beginPayslipFlow(ctx, sess, from)
 	case payloadRequestLeave:
 		return s.beginLeaveFlow(ctx, sess, from)
+	case payloadRequestReferral:
+		return s.handleReferralLinkRequest(ctx, sess, from)
 	case payloadRequestHolidays:
 		return s.beginHolidayFlow(ctx, sess, from)
 	}
@@ -357,6 +362,8 @@ func (s *Service) handleIdle(ctx context.Context, sess *Session, from, input str
 		return s.beginPayslipFlow(ctx, sess, from)
 	case "2", "leave":
 		return s.beginLeaveFlow(ctx, sess, from)
+	case "referral", "referral link":
+		return s.handleReferralLinkRequest(ctx, sess, from)
 	}
 
 	if sel := normalizeLeaveTypeSelection(input); sel != "" {
@@ -449,6 +456,35 @@ func (s *Service) beginPayslipFlow(ctx context.Context, sess *Session, from stri
 	sess.State = StateAwaitPeriod
 	s.sessions.Set(from, sess)
 	return s.sendPeriodPrompt(ctx, sess, from)
+}
+
+func (s *Service) handleReferralLinkRequest(ctx context.Context, sess *Session, from string) error {
+	s.ensureEmployee(ctx, sess, from)
+	if sess.EmployeeID == "" {
+		sess.resetFlow()
+		s.sessions.Set(from, sess)
+		return s.sendText(ctx, from, msgNotEmployee)
+	}
+
+	link, err := s.referralSvc.GenerateLink(ctx, sess.EmployeeID)
+	if err != nil {
+		if errors.Is(err, referral.ErrEmployeeInactive) {
+			return s.sendText(ctx, from, "Only active employees can generate referral links.")
+		}
+		slog.Error("whatsapp referral link generation failed", "employee_id", sess.EmployeeID, "err", err)
+		return s.sendText(ctx, from, "We were unable to generate your referral link at this time. Please try again later.")
+	}
+
+	portalBaseUrl := "http://localhost:5173" // We could inject this from config later.
+	url := fmt.Sprintf("%s/referrals/%s", portalBaseUrl, link.Code)
+	
+	msg := fmt.Sprintf("Here is your unique referral link:\n%s\n\nIt is valid for 30 days.", url)
+	if err := s.sendText(ctx, from, msg); err != nil {
+		return err
+	}
+	sess.resetFlow()
+	s.sessions.Set(from, sess)
+	return nil
 }
 
 func (s *Service) beginLeaveFlow(ctx context.Context, sess *Session, from string) error {

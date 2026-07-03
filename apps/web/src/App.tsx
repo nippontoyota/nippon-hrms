@@ -19,6 +19,8 @@ const SalaryPeriodPage = lazy(() => import('@/pages/admin/SalaryPeriodPage'));
 const DispatchJobPage = lazy(() => import('@/pages/admin/DispatchJobPage'));
 const SettingsPage = lazy(() => import('@/pages/admin/SettingsPage'));
 const HolidaysPage = lazy(() => import('@/pages/admin/HolidaysPage'));
+const ReferralApplicationPage = lazy(() => import('@/pages/public/ReferralApplicationPage'));
+const ReferralsPage = lazy(() => import('@/pages/admin/ReferralsPage'));
 
 export default function App() {
   const isDark = useThemeStore((s) => s.isDark);
@@ -92,6 +94,7 @@ export default function App() {
         <Suspense fallback={<div className="flex h-screen items-center justify-center dark:bg-slate-900"><div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>}>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/referrals/:code" element={<ReferralApplicationPage />} />
             <Route path="/admin" element={<AdminShell />}>
               <Route index element={<DashboardPage />} />
               <Route path="employees" element={<EmployeesPage />} />
@@ -105,6 +108,7 @@ export default function App() {
               <Route path="salary/:periodId" element={<SalaryPeriodPage />} />
               <Route path="salary/dispatch/:jobId" element={<DispatchJobPage />} />
               <Route path="settings" element={<SettingsPage />} />
+              <Route path="referrals" element={<ReferralsPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/admin" replace />} />
           </Routes>
