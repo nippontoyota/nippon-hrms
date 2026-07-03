@@ -38,7 +38,8 @@
       "ifscCode": "FDRL0001009",
       "zone": "Central"
     },
-    "createdAt": "2025-01-15T10:00:00Z"
+    "createdAt": "2025-01-15T10:00:00Z",
+    "birthday": "1978-03-10"
   },
   {
     "id": "emp-2",
@@ -79,7 +80,8 @@
       "ifscCode": "KVBL0001503",
       "zone": "South"
     },
-    "createdAt": "2025-01-15T10:00:00Z"
+    "createdAt": "2025-01-15T10:00:00Z",
+    "birthday": "1978-05-02"
   },
   {
     "id": "emp-3",
@@ -120,7 +122,8 @@
       "ifscCode": "FDRL0001114",
       "zone": "HO"
     },
-    "createdAt": "2025-01-15T10:00:00Z"
+    "createdAt": "2025-01-15T10:00:00Z",
+    "birthday": "1978-06-24"
   },
   {
     "id": "emp-4",
@@ -161,7 +164,8 @@
       "ifscCode": "FDRL0001034",
       "zone": "HO"
     },
-    "createdAt": "2025-01-15T10:00:00Z"
+    "createdAt": "2025-01-15T10:00:00Z",
+    "birthday": "1978-08-16"
   },
   {
     "id": "emp-5",
@@ -202,7 +206,8 @@
       "ifscCode": "FDRL0001599",
       "zone": "North"
     },
-    "createdAt": "2025-01-15T10:00:00Z"
+    "createdAt": "2025-01-15T10:00:00Z",
+    "birthday": "1978-10-08"
   },
   {
     "id": "emp-6",
@@ -243,7 +248,8 @@
       "ifscCode": "FDRL0001114",
       "zone": "Central"
     },
-    "createdAt": "2025-01-15T10:00:00Z"
+    "createdAt": "2025-01-15T10:00:00Z",
+    "birthday": "1978-11-30"
   },
   {
     "id": "emp-7",
@@ -284,7 +290,8 @@
       "ifscCode": "FDRL0001114",
       "zone": "Central"
     },
-    "createdAt": "2025-01-15T10:00:00Z"
+    "createdAt": "2025-01-15T10:00:00Z",
+    "birthday": "1979-01-22"
   },
   {
     "id": "emp-8",
@@ -325,7 +332,8 @@
       "ifscCode": "FDRL0001030",
       "zone": "South"
     },
-    "createdAt": "2025-01-15T10:00:00Z"
+    "createdAt": "2025-01-15T10:00:00Z",
+    "birthday": "1979-03-16"
   },
   {
     "id": "emp-9",
@@ -366,7 +374,8 @@
       "ifscCode": "FDRL0001410",
       "zone": "South"
     },
-    "createdAt": "2025-01-15T10:00:00Z"
+    "createdAt": "2025-01-15T10:00:00Z",
+    "birthday": "1979-05-08"
   },
   {
     "id": "emp-10",
@@ -407,7 +416,8 @@
       "ifscCode": "FDRL0001028",
       "zone": "South"
     },
-    "createdAt": "2025-01-15T10:00:00Z"
+    "createdAt": "2025-01-15T10:00:00Z",
+    "birthday": "1979-06-30"
   },
   {
     "id": "emp-11",
@@ -448,7 +458,8 @@
       "ifscCode": "FDRL0001410",
       "zone": "South"
     },
-    "createdAt": "2025-01-15T10:00:00Z"
+    "createdAt": "2025-01-15T10:00:00Z",
+    "birthday": "1979-08-22"
   },
   {
     "id": "emp-12",
@@ -489,7 +500,8 @@
       "ifscCode": "FDRL0001216",
       "zone": "North"
     },
-    "createdAt": "2025-01-15T10:00:00Z"
+    "createdAt": "2025-01-15T10:00:00Z",
+    "birthday": "1979-10-14"
   },
   {
     "id": "emp-13",
@@ -530,7 +542,8 @@
       "ifscCode": "FDRL0001410",
       "zone": "North"
     },
-    "createdAt": "2025-01-15T10:00:00Z"
+    "createdAt": "2025-01-15T10:00:00Z",
+    "birthday": "1979-12-06"
   },
   {
     "id": "emp-14",
@@ -571,7 +584,8 @@
       "ifscCode": "FDRL0001005",
       "zone": "North"
     },
-    "createdAt": "2025-01-15T10:00:00Z"
+    "createdAt": "2025-01-15T10:00:00Z",
+    "birthday": "1980-01-28"
   },
   {
     "id": "emp-15",
@@ -612,7 +626,8 @@
       "ifscCode": "FDRL0001410",
       "zone": "North"
     },
-    "createdAt": "2025-01-15T10:00:00Z"
+    "createdAt": "2025-01-15T10:00:00Z",
+    "birthday": "1980-03-21"
   },
   {
     "id": "emp-16",
@@ -653,7 +668,8 @@
       "ifscCode": "FDRL0001410",
       "zone": "South"
     },
-    "createdAt": "2025-01-15T10:00:00Z"
+    "createdAt": "2025-01-15T10:00:00Z",
+    "birthday": "1980-05-13"
   },
   {
     "id": "emp-17",
@@ -694,6 +710,7 @@
       "ifscCode": "FDRL0001034",
       "zone": "HO"
     },
-    "createdAt": "2025-01-15T10:00:00Z"
+    "createdAt": "2025-01-15T10:00:00Z",
+    "birthday": "1980-07-05"
   }
 ]

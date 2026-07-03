@@ -30,6 +30,7 @@ export interface Employee {
   mobileNo: string;
   level: string;
   doj: string;
+  birthday?: string;
   yearsExperience?: number;
   branch: string;
   designation: string;
@@ -85,6 +86,7 @@ export interface EmployeeInput {
   mobileNo: string;
   level: string;
   doj: string;
+  birthday?: string;
   branch: string;
   designation: string;
   status: EmployeeStatus;
@@ -186,14 +188,6 @@ export interface DispatchJob {
   items?: DispatchJobItem[];
   createdAt: string;
   completedAt?: string;
-}
-
-export interface HolidayFile {
-  id: string;
-  year: number;
-  fileName: string;
-  fileUrl: string;
-  uploadedAt: string;
 }
 
 export interface AttendancePeriod {

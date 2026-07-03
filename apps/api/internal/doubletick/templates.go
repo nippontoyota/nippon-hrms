@@ -7,5 +7,7 @@ const (
 	TemplatePayslipNotification  = "notification_of_payslip"
 	TemplateReferralReceived     = "referral_received"
 	TemplateCandidateStatus      = "candidate_status_update"
-	TemplateLanguageEN           = "en"
+	TemplateEmployeeBirthday           = "employee_birthday_v1"
+	TemplateEmployeeWorkAnniversary    = "employee_work_anniversary_v1"
+	TemplateLanguageEN                 = "en"
 )
