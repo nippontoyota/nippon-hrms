@@ -364,3 +364,18 @@ export interface LeaveBalance {
   totalSick: number;
   usedSick: number;
 }
+
+export type ReferralStatus = 'pending' | 'reviewed' | 'interviewing' | 'hired' | 'rejected';
+
+export interface Referral {
+  id: string;
+  employeeId: string;
+  candidateName: string;
+  candidatePhone: string;
+  candidateEmail?: string;
+  role: string;
+  resumeUrl?: string;
+  status: ReferralStatus;
+  createdAt: string;
+  employee?: Employee;
+}

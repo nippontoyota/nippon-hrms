@@ -14,6 +14,8 @@ import type {
   LeaveRequest,
   LeaveBalance,
   Holiday,
+  Referral,
+  ReferralStatus,
 } from './types';
 
 export const employeesApi = {
@@ -82,6 +84,24 @@ export const holidaysApi = {
   },
   delete: (id: string) => api.delete(`/holidays/${id}`).then((r) => r.data),
 };
+
+export const referralsApi = {
+  list: () => api.get<Referral[]>('/referrals').then((r) => r.data),
+  updateStatus: (id: string, status: ReferralStatus) =>
+    api.put(`/referrals/${id}`, { status }).then((r) => r.data),
+  submit: (formData: FormData) =>
+    fetch(`${import.meta.env.VITE_API_URL}/api/v1/referrals`, {
+      method: 'POST',
+      body: formData,
+    }).then(async (r) => {
+      if (!r.ok) {
+        const err = await r.json();
+        throw new Error(err.error?.message || 'Failed to submit referral');
+      }
+      return r.json();
+    }),
+};
+
 export const importsApi = {
   start: (file: File, entityType: ImportEntityType, mode: ImportMode, month?: number, year?: number) => {
     const form = new FormData();
