@@ -1,0 +1,68 @@
+# Deploy the web app with the Vercel CLI using the team owner's token.
+#
+# Why: Vercel Hobby blocks Git-connected deploys when the commit author is not on
+# the team (e.g. Krishnanand-G pushes, nippontoyota owns the Vercel project).
+# CLI deploys authenticated with VERCEL_TOKEN bypass that check.
+#
+# Zero GitHub Actions minutes: runs on a self-hosted runner (your PC or the
+# Vercel owner's machine), not GitHub-hosted ubuntu-latest.
+#
+# One-time setup (Vercel project owner):
+#   1. Vercel → Account Settings → Tokens → create token
+#   2. GitHub → repo Settings → Secrets → Actions:
+#        VERCEL_TOKEN  = token from step 1
+#        VERCEL_ORG_ID = team_CkKkhsvVRRX5FdsJcY2MtNLr
+#   3. On the machine that will run deploys:
+#        GitHub → repo Settings → Actions → Runners → New self-hosted runner
+#        Follow the Windows steps and leave the runner service running.
+#
+# Optional: disable Vercel's blocked Git deploys in the dashboard:
+#   Project → Settings → Git → uncheck "Automatic deployments" for Production,
+#   or keep apps/web/vercel.json git.deploymentEnabled = false.
+
+name: Deploy web (Vercel CLI)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/web/**'
+      - '.github/workflows/deploy-vercel.yml'
+      - 'apps/web/vercel.json'
+  workflow_dispatch:
+
+concurrency:
+  group: vercel-production
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    timeout-minutes: 15
+
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: prj_QAf3SUCcqmAqzXSRvzxdPZWiLU95
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+    steps:
+      - name: Check secrets
+        shell: pwsh
+        run: |
+          if (-not $env:VERCEL_TOKEN -or -not $env:VERCEL_ORG_ID) {
+            Write-Error "Missing VERCEL_TOKEN or VERCEL_ORG_ID GitHub Actions secrets."
+          }
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Vercel CLI
+        shell: pwsh
+        run: npm install -g vercel@49
+
+      - name: Deploy to production
+        shell: pwsh
+        run: vercel deploy --prod --yes --token $env:VERCEL_TOKEN

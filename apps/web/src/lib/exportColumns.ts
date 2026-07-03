@@ -6,6 +6,7 @@ export const EMPLOYEE_DIRECTORY_HEADERS = [
   'mobileNo',
   'level',
   'doj',
+  'birthday',
   'yearsExperience',
   'branch',
   'designation',

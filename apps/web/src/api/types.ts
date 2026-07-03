@@ -1,4 +1,4 @@
-export type UserRole = 'SUPER_ADMIN' | 'HR_ADMIN' | 'super_admin' | 'hr_admin';
+﻿export type UserRole = 'SUPER_ADMIN' | 'HR_ADMIN' | 'super_admin' | 'hr_admin';
 
 export interface User {
   id: string;
@@ -30,6 +30,7 @@ export interface Employee {
   mobileNo: string;
   level: string;
   doj: string;
+  birthday?: string;
   yearsExperience?: number;
   branch: string;
   designation: string;
@@ -85,6 +86,7 @@ export interface EmployeeInput {
   mobileNo: string;
   level: string;
   doj: string;
+  birthday?: string;
   branch: string;
   designation: string;
   status: EmployeeStatus;
@@ -186,14 +188,6 @@ export interface DispatchJob {
   items?: DispatchJobItem[];
   createdAt: string;
   completedAt?: string;
-}
-
-export interface HolidayFile {
-  id: string;
-  year: number;
-  fileName: string;
-  fileUrl: string;
-  uploadedAt: string;
 }
 
 export interface AttendancePeriod {
@@ -363,19 +357,4 @@ export interface LeaveBalance {
   usedCasual: number;
   totalSick: number;
   usedSick: number;
-}
-
-export type ReferralStatus = 'pending' | 'reviewed' | 'interviewing' | 'hired' | 'rejected';
-
-export interface Referral {
-  id: string;
-  employeeId: string;
-  candidateName: string;
-  candidatePhone: string;
-  candidateEmail?: string;
-  role: string;
-  resumeUrl?: string;
-  status: ReferralStatus;
-  createdAt: string;
-  employee?: Employee;
 }
