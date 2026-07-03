@@ -239,7 +239,7 @@ func (r *Repository) CopyStagingEmployees(ctx context.Context, jobID string, row
 	_, err := r.db.CopyFrom(ctx, pgx.Identifier{"import_staging_employees"},
 		[]string{
 			"job_id", "row_num", "row_hash", "id", "name", "department", "mobile_number", "emp_level",
-			"doj", "years_experience", "branch", "designation", "zone", "basic", "da", "revised_basic_da",
+			"doj", "birthday", "years_experience", "branch", "designation", "zone", "basic", "da", "revised_basic_da",
 			"hra", "travel", "hostel", "children", "total_salary", "mobile", "conveyance", "wash_allowance",
 			"branch_allowance", "special_allowance", "training", "total_allowances", "total_salary_with_allowances",
 			"bank_name", "account_number", "bank_branch", "ifsc_code",
@@ -248,7 +248,7 @@ func (r *Repository) CopyStagingEmployees(ctx context.Context, jobID string, row
 			e := rows[i]
 			return []interface{}{
 				jobID, e.RowNum, e.RowHash, e.ID, e.Name, e.Department, e.MobileNumber, e.Level,
-				e.DOJDate, e.YearsExperience, e.Branch, e.Designation, e.Zone,
+				e.DOJDate, e.BirthdayDate, e.YearsExperience, e.Branch, e.Designation, e.Zone,
 				e.Basic, e.DA, e.RevisedBasicDA, e.HRA, e.Travel, e.Hostel, e.Children, e.TotalSalary,
 				e.Mobile, e.Conveyance, e.WashAllowance, e.BranchAllowance, e.SpecialAllowance, e.Training,
 				e.TotalAllowances, e.TotalSalaryWithAllowances,
@@ -664,7 +664,7 @@ func fieldToColumn(fieldName string, entity EntityType) string {
 	maps := map[EntityType]map[string]string{
 		EntityEmployees: {
 			"name": "name", "department": "department", "mobileNo": "mobile_number",
-			"level": "emp_level", "branch": "branch", "designation": "designation", "zone": "zone",
+			"level": "emp_level", "birthday": "birthday", "branch": "branch", "designation": "designation", "zone": "zone",
 			"basic": "basic", "da": "da", "revisedBasicDa": "revised_basic_da", "hra": "hra",
 			"bankName": "bank_name", "accountNumber": "account_number", "ifscCode": "ifsc_code",
 		},

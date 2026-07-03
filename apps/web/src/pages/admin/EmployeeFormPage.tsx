@@ -12,6 +12,7 @@ const defaultValues: EmployeeInput = {
   mobileNo: '',
   level: '',
   doj: '',
+  birthday: '',
   branch: '',
   designation: '',
   status: 'Active',
@@ -40,6 +41,7 @@ export default function EmployeeFormPage() {
         mobileNo: employee.mobileNo,
         level: employee.level,
         doj: employee.doj,
+        birthday: employee.birthday ?? '',
         branch: employee.branch,
         designation: employee.designation,
         status: employee.status,
@@ -106,6 +108,10 @@ export default function EmployeeFormPage() {
             <div>
               <label className="label">DOJ</label>
               <input type="date" className="input" {...register('doj', { required: true })} />
+            </div>
+            <div>
+              <label className="label">Date of Birth</label>
+              <input type="date" className="input" {...register('birthday')} />
             </div>
             <div>
               <label className="label">Mobile Number</label>

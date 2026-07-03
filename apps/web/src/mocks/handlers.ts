@@ -4,7 +4,7 @@ import type {
   DispatchJobItem,
   Employee,
   EmployeeInput,
-  HolidayFile,
+  Holiday,
   ImportPreviewResult,
 } from '@/api/types';
 import {
@@ -335,22 +335,40 @@ export const handlers = [
     return HttpResponse.json({ successCount: employees.length, errorCount: 0, year, month });
   }),
 
-  http.get('/api/admin/holidays', () => HttpResponse.json(holidays)),
+  http.get('/api/v1/holidays', ({ request }) => {
+    const url = new URL(request.url);
+    const year = url.searchParams.get('year');
+    const month = url.searchParams.get('month');
+    let result = [...holidays];
+    if (year) {
+      result = result.filter((h) => h.date.startsWith(`${year}-`));
+    }
+    if (month) {
+      const monthStr = month.padStart(2, '0');
+      result = result.filter((h) => h.date.slice(5, 7) === monthStr);
+    }
+    return HttpResponse.json(result);
+  }),
 
-  http.post('/api/admin/holidays/upload', async ({ request }) => {
-    const form = await request.formData();
-    const year = Number(form.get('year'));
-    const file = form.get('file') as File;
-    const entry: HolidayFile = {
+  http.post('/api/v1/holidays', async ({ request }) => {
+    const body = (await request.json()) as { date: string; name: string };
+    const entry: Holiday = {
       id: nextId('hol'),
-      year,
-      fileName: file?.name ?? `holiday_${year}.pdf`,
-      fileUrl: URL.createObjectURL(file),
-      uploadedAt: new Date().toISOString(),
+      date: body.date,
+      name: body.name,
+      createdAt: new Date().toISOString(),
     };
-    holidays = holidays.filter((h) => h.year !== year);
     holidays.push(entry);
     return HttpResponse.json(entry, { status: 201 });
+  }),
+
+  http.post('/api/v1/holidays/upload', async () => {
+    return HttpResponse.json({ imported: 0 });
+  }),
+
+  http.delete('/api/v1/holidays/:id', ({ params }) => {
+    holidays = holidays.filter((h) => h.id !== params.id);
+    return HttpResponse.json({ ok: true });
   }),
 
   http.get('/api/admin/logs/dispatch', ({ request }) => {

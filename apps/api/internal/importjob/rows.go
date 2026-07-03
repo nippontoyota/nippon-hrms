@@ -49,6 +49,8 @@ type StagingEmployee struct {
 	Level                     string
 	DOJ                       string
 	DOJDate                   interface{}
+	Birthday                  string
+	BirthdayDate              interface{}
 	YearsExperience           float64
 	Branch                    string
 	Designation               string
@@ -76,12 +78,13 @@ type StagingEmployee struct {
 }
 
 func parseEmployeeRow(rowNum int, row []string) (*StagingEmployee, string) {
-	row = padRow(row, 30)
+	row = padRow(row, 31)
 	id := strings.TrimSpace(row[0])
 	if id == "" {
 		return nil, "empty EMP ID"
 	}
 	doj := strings.TrimSpace(row[5])
+	birthday := strings.TrimSpace(row[6])
 	e := &StagingEmployee{
 		RowNum:                    rowNum,
 		ID:                        id,
@@ -91,34 +94,36 @@ func parseEmployeeRow(rowNum int, row []string) (*StagingEmployee, string) {
 		Level:                     strings.TrimSpace(row[4]),
 		DOJ:                       doj,
 		DOJDate:                   employee.ParseDOJ(doj),
-		YearsExperience:           parseFloat(row[6]),
-		Branch:                    strings.TrimSpace(row[7]),
-		Designation:               strings.TrimSpace(row[8]),
-		Basic:                     parseFloat(row[9]),
-		DA:                        parseFloat(row[10]),
-		RevisedBasicDA:            parseFloat(row[11]),
-		HRA:                       parseFloat(row[12]),
-		Travel:                    parseFloat(row[13]),
-		Hostel:                    parseFloat(row[14]),
-		Children:                  parseFloat(row[15]),
-		TotalSalary:               parseFloat(row[16]),
-		Mobile:                    parseFloat(row[17]),
-		Conveyance:                parseFloat(row[18]),
-		WashAllowance:             parseFloat(row[19]),
-		BranchAllowance:           parseFloat(row[20]),
-		SpecialAllowance:          parseFloat(row[21]),
-		Training:                  parseFloat(row[22]),
-		TotalAllowances:           parseFloat(row[23]),
-		TotalSalaryWithAllowances: parseFloat(row[24]),
-		BankName:                  strings.TrimSpace(row[25]),
-		AccountNumber:             strings.TrimSpace(row[26]),
-		BankBranch:                strings.TrimSpace(row[27]),
-		IFSCCode:                  strings.TrimSpace(row[28]),
-		Zone:                      strings.TrimSpace(row[29]),
+		Birthday:                  birthday,
+		BirthdayDate:              employee.ParseDOJ(birthday),
+		YearsExperience:           parseFloat(row[7]),
+		Branch:                    strings.TrimSpace(row[8]),
+		Designation:               strings.TrimSpace(row[9]),
+		Basic:                     parseFloat(row[10]),
+		DA:                        parseFloat(row[11]),
+		RevisedBasicDA:            parseFloat(row[12]),
+		HRA:                       parseFloat(row[13]),
+		Travel:                    parseFloat(row[14]),
+		Hostel:                    parseFloat(row[15]),
+		Children:                  parseFloat(row[16]),
+		TotalSalary:               parseFloat(row[17]),
+		Mobile:                    parseFloat(row[18]),
+		Conveyance:                parseFloat(row[19]),
+		WashAllowance:             parseFloat(row[20]),
+		BranchAllowance:           parseFloat(row[21]),
+		SpecialAllowance:          parseFloat(row[22]),
+		Training:                  parseFloat(row[23]),
+		TotalAllowances:           parseFloat(row[24]),
+		TotalSalaryWithAllowances: parseFloat(row[25]),
+		BankName:                  strings.TrimSpace(row[26]),
+		AccountNumber:             strings.TrimSpace(row[27]),
+		BankBranch:                strings.TrimSpace(row[28]),
+		IFSCCode:                  strings.TrimSpace(row[29]),
+		Zone:                      strings.TrimSpace(row[30]),
 	}
 	e.RowHash = EmployeeRowHash(
 		e.ID, e.Name, e.Department, e.MobileNumber, e.Level, e.Branch, e.Designation, e.Zone,
-		e.DOJ, e.YearsExperience,
+		e.DOJ, e.Birthday, e.YearsExperience,
 		e.Basic, e.DA, e.RevisedBasicDA, e.HRA, e.Travel, e.Hostel, e.Children, e.TotalSalary,
 		e.Mobile, e.Conveyance, e.WashAllowance, e.BranchAllowance, e.SpecialAllowance,
 		e.Training, e.TotalAllowances, e.TotalSalaryWithAllowances,
