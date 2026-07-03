@@ -1,12 +1,11 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { referralApi } from '@/api/referral';
 import toast from 'react-hot-toast';
 
 export default function ReferralApplicationPage() {
   const { code } = useParams<{ code: string }>();
-  const navigate = useNavigate();
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
