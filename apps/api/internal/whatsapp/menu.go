@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/nippon-toyota/hrms/internal/doubletick"
+	"github.com/nippon-toyota/hrms/internal/holiday"
 	"github.com/nippon-toyota/hrms/internal/leave"
 )
 
@@ -230,3 +231,30 @@ const msgLeaveFlowReminder = `You have a leave request in progress. Please answe
 const msgLeaveDateWithoutSession = `There is no active leave request to continue.
 
 Reply *Hi* to start a new leave application.`
+
+const msgHolidayNone = `No upcoming holidays found.
+
+Reply *Hi* to return to the main menu.`
+
+const msgHolidayError = `We were unable to fetch the holiday calendar at this time.
+
+Please try again later or contact the HR department.`
+
+const msgHolidayCaption = `Holiday Calendar
+
+Here is the list of company holidays. Reply *Hi* to return to the main menu.`
+
+func msgHolidayList(holidays []holiday.Holiday) string {
+	var b strings.Builder
+	b.WriteString("*Upcoming Holidays*\n")
+	for _, h := range holidays {
+		d, err := time.Parse("2006-01-02", h.Date)
+		if err != nil {
+			continue
+		}
+		// "Thu, 15 Aug 2026 — Independence Day"
+		b.WriteString(fmt.Sprintf("\n📅 %s — %s", d.Format("Mon, 02 Jan 2006"), h.Name))
+	}
+	b.WriteString("\n\nReply *Hi* to return to the main menu.")
+	return b.String()
+}

@@ -347,6 +347,8 @@ func (s *Service) handleIdle(ctx context.Context, sess *Session, from, input str
 		return s.beginPayslipFlow(ctx, sess, from)
 	case payloadRequestLeave:
 		return s.beginLeaveFlow(ctx, sess, from)
+	case payloadRequestHolidays:
+		return s.beginHolidayFlow(ctx, sess, from)
 	}
 
 	lower := strings.ToLower(strings.TrimSpace(input))
@@ -403,7 +405,7 @@ func (s *Service) handleIdle(ctx context.Context, sess *Session, from, input str
 		return s.sendUserText(ctx, sess, from, msgIdleNudge)
 	}
 
-	if !sess.LastMenuSentAt.IsZero() && time.Since(sess.LastMenuSentAt) < menuCooldown {
+	if !isGreeting(input) && !sess.LastMenuSentAt.IsZero() && time.Since(sess.LastMenuSentAt) < menuCooldown {
 		slog.Info("whatsapp menu cooldown", "from", from)
 		return s.sendUserText(ctx, sess, from, msgIdleNudge)
 	}
@@ -472,6 +474,38 @@ func (s *Service) beginLeaveFlow(ctx context.Context, sess *Session, from string
 	sess.State = StateLeaveAwaitType
 	s.sessions.Set(from, sess)
 	return s.sendLeaveTypePrompt(ctx, sess, from)
+}
+
+func (s *Service) beginHolidayFlow(ctx context.Context, sess *Session, from string) error {
+	holidays, err := s.holidayRepo.List(ctx, nil, nil)
+	if err != nil {
+		slog.Error("whatsapp holiday fetch failed", "from", from, "err", err)
+		return s.sendText(ctx, from, msgHolidayError)
+	}
+	if len(holidays) == 0 {
+		return s.sendText(ctx, from, msgHolidayNone)
+	}
+
+	pdfBytes, err := payroll.GenerateHolidayCalendarPDF(holidays)
+	if err != nil {
+		slog.Error("whatsapp holiday pdf generation failed", "from", from, "err", err)
+		return s.sendText(ctx, from, msgHolidayList(holidays))
+	}
+
+	filename := "holiday_calendar.pdf"
+	mediaURL, _, err := s.dt.UploadMedia(ctx, pdfBytes, filename, "application/pdf")
+	if err != nil {
+		slog.Error("whatsapp holiday media upload failed", "from", from, "err", err)
+		return s.sendText(ctx, from, msgHolidayList(holidays))
+	}
+
+	if _, err := s.dt.SendDocument(ctx, from, mediaURL, filename, msgHolidayCaption); err != nil {
+		slog.Error("whatsapp holiday document send failed", "from", from, "err", err)
+		return s.sendText(ctx, from, msgHolidayList(holidays))
+	}
+
+	s.recordOutbound(from)
+	return nil
 }
 
 func (s *Service) handleAwaitPeriod(ctx context.Context, sess *Session, from, input string) error {
