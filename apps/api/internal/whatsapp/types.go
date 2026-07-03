@@ -14,6 +14,7 @@ const (
 	payloadLeaveCasual   = "leave_casual"
 	payloadLeaveSick     = "leave_sick"
 	payloadLeaveUnpaid   = "leave_unpaid"
+	payloadRequestReferral = "request_referral_link"
 
 	leaveReasonWhatsApp = "Requested via WhatsApp"
 )
