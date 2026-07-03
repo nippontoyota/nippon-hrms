@@ -2,6 +2,7 @@ package whatsapp
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strconv"
@@ -175,6 +176,8 @@ func (s *Service) handleWebhookLocked(ctx context.Context, from, input, msgType,
 		err = s.handleLeaveAwaitConfirm(ctx, sess, from, input)
 	case StateLeaveAwaitRejectionReason:
 		err = s.handleLeaveAwaitRejectionReason(ctx, sess, from, input)
+	case StateLeaveAwaitPickRequest:
+		err = s.handleLeaveAwaitPickRequest(ctx, sess, from, input)
 	default:
 		err = s.handleIdle(ctx, sess, from, input)
 	}
@@ -1054,14 +1057,23 @@ func (s *Service) handleLeaveApproval(ctx context.Context, sess *Session, from, 
 		return nil
 	}
 
+	leaveID = strings.TrimSpace(leaveID)
+	if leaveID == "" {
+		return s.sendText(ctx, from, leave.ReviewLeaveErrorMessage(leave.ErrLeaveNotFound))
+	}
+
 	req, err := s.leaveRepo.GetByID(ctx, leaveID)
 	if err != nil {
-		return s.sendText(ctx, from, "Sorry, we could not find that leave request.")
+		return s.sendText(ctx, from, leave.ReviewLeaveErrorMessage(leave.ErrLeaveNotFound))
 	}
 
 	mgr, err := s.empRepo.FindByPhone(ctx, from)
 	if err != nil {
-		return fmt.Errorf("manager not found by phone: %w", err)
+		return s.sendText(ctx, from, "This WhatsApp number is not registered in our system.")
+	}
+
+	if authErr := leave.CanManagerReviewLeave(mgr.ID, req); authErr != nil {
+		return s.sendText(ctx, from, leave.ReviewLeaveErrorMessage(authErr))
 	}
 
 	if !isApprove {
@@ -1073,9 +1085,14 @@ func (s *Service) handleLeaveApproval(ctx context.Context, sess *Session, from, 
 	}
 
 	if err := s.leaveRepo.UpdateStatus(ctx, leaveID, leave.StatusApproved, &mgr.ID, nil); err != nil {
-		return s.sendText(ctx, from, "System error. Could not update leave status.")
+		if errors.Is(err, leave.ErrLeaveNotPending) || errors.Is(err, leave.ErrLeaveNotFound) {
+			return s.sendText(ctx, from, leave.ReviewLeaveErrorMessage(err))
+		}
+		return s.sendText(ctx, from, leave.ReviewLeaveErrorMessage(err))
 	}
 
+	sess.resetFlow()
+	s.sessions.Set(from, sess)
 	s.sendText(ctx, from, fmt.Sprintf("You have approved the leave request for %s.", req.Employee.Name))
 
 	if req.Employee.MobileNumber != "" {
@@ -1084,6 +1101,36 @@ func (s *Service) handleLeaveApproval(ctx context.Context, sess *Session, from, 
 	}
 
 	return nil
+}
+
+func (s *Service) handleLeaveAwaitPickRequest(ctx context.Context, sess *Session, from, input string) error {
+	input = strings.TrimSpace(input)
+	if strings.ToLower(input) == "cancel" || input == "0" {
+		sess.resetFlow()
+		s.sessions.Set(from, sess)
+		return s.sendText(ctx, from, "Selection cancelled.")
+	}
+
+	n, err := strconv.Atoi(input)
+	if err != nil || n < 1 || n > len(sess.PendingPickLeaveIDs) {
+		return s.sendText(ctx, from, fmt.Sprintf("Please reply with a number from 1 to %d, or cancel to abort.", len(sess.PendingPickLeaveIDs)))
+	}
+
+	leaveID := sess.PendingPickLeaveIDs[n-1]
+	approve := true
+	if sess.PendingTemplateApprove != nil {
+		approve = *sess.PendingTemplateApprove
+	}
+	sess.PendingPickLeaveIDs = nil
+	sess.PendingTemplateApprove = nil
+	sess.State = StateIdle
+	s.sessions.Set(from, sess)
+
+	action := "REJECT_LEAVE_" + leaveID
+	if approve {
+		action = "APPROVE_LEAVE_" + leaveID
+	}
+	return s.handleLeaveApproval(ctx, sess, from, action)
 }
 
 func (s *Service) handleLeaveAwaitRejectionReason(ctx context.Context, sess *Session, from, input string) error {
@@ -1115,11 +1162,22 @@ func (s *Service) handleLeaveAwaitRejectionReason(ctx context.Context, sess *Ses
 	if err != nil {
 		sess.resetFlow()
 		s.sessions.Set(from, sess)
-		return fmt.Errorf("manager not found by phone: %w", err)
+		return s.sendText(ctx, from, "This WhatsApp number is not registered in our system.")
+	}
+
+	if authErr := leave.CanManagerReviewLeave(mgr.ID, req); authErr != nil {
+		sess.resetFlow()
+		s.sessions.Set(from, sess)
+		return s.sendText(ctx, from, leave.ReviewLeaveErrorMessage(authErr))
 	}
 
 	if err := s.leaveRepo.UpdateStatus(ctx, leaveID, leave.StatusRejected, &mgr.ID, &input); err != nil {
-		return s.sendText(ctx, from, "System error. Could not update leave status.")
+		if errors.Is(err, leave.ErrLeaveNotPending) || errors.Is(err, leave.ErrLeaveNotFound) {
+			sess.resetFlow()
+			s.sessions.Set(from, sess)
+			return s.sendText(ctx, from, leave.ReviewLeaveErrorMessage(err))
+		}
+		return s.sendText(ctx, from, leave.ReviewLeaveErrorMessage(err))
 	}
 
 	s.sendText(ctx, from, fmt.Sprintf("You have rejected the leave request for %s.", req.Employee.Name))

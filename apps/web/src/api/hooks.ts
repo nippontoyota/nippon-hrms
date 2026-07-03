@@ -147,17 +147,4 @@ export function useLeaveBalance(employeeId: string | undefined) {
   });
 }
 
-export function useUpdateLeaveStatus() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, status, rejectionReason }: { id: string; status: 'approved' | 'rejected'; rejectionReason?: string }) =>
-      leaveApi.updateStatus(id, status, rejectionReason),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['leaves'] });
-      qc.invalidateQueries({ queryKey: ['leave-balance'] });
-      qc.invalidateQueries({ queryKey: ['dashboard'] });
-    },
-  });
-}
-
 export { employeesApi, epfApi, salaryApi, leaveApi };
