@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Navigate, Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { SquaresFour, Users, IdentificationCard, Money, SignOut, ListDashes, List, Sun, Moon, CalendarCheck, Gear, X } from '@phosphor-icons/react';
+import { SquaresFour, Users, IdentificationCard, Money, SignOut, ListDashes, List, Sun, Moon, CalendarCheck, Gear, X, Handshake } from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '@/stores/authStore';
 import { useThemeStore } from '@/stores/themeStore';
@@ -15,6 +15,7 @@ const sideNav = [
   { to: '/admin/holidays', icon: CalendarCheck, label: 'Holidays Calendar' },
   { to: '/admin/salary-directory', icon: ListDashes, label: 'Salary Directory' },
   { to: '/admin/salary', icon: Money, label: 'Process Payroll' },
+  { to: '/admin/referrals', icon: Handshake, label: 'Referrals' },
 ];
 
 export default function AdminShell() {
