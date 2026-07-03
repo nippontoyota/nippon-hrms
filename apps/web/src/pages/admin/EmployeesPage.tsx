@@ -15,7 +15,7 @@ import BulkUploadWizard from '@/components/BulkUploadWizard';
 import ImportConflictPanel from '@/components/ImportConflictPanel';
 import TablePagination from '@/components/TablePagination';
 
-type SortKey = 'employeeId' | 'name' | 'department' | 'managerName' | 'doj' | 'branch' | 'designation';
+type SortKey = 'employeeId' | 'name' | 'department' | 'managerName' | 'doj' | 'birthday' | 'branch' | 'designation';
 type SortDir = 'asc' | 'desc';
 
 function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey; sortDir: SortDir }) {
@@ -391,6 +391,7 @@ export default function EmployeesPage() {
                   <th>Mobile Number</th>
                   <th>Level</th>
                   <Th col="doj">DOJ</Th>
+                  <Th col="birthday">Date of Birth</Th>
                   <th>No: of Yrs</th>
                   <Th col="branch">Branch</Th>
                   <Th col="designation">Designation</Th>
@@ -449,7 +450,8 @@ export default function EmployeesPage() {
                       <Cell {...cellProps} field="managerId" displayField="managerName" options={employees.map(emp => ({ label: `${emp.name} (${emp.employeeId})`, value: emp.id }))} />
                       <Cell {...cellProps} field="mobileNo" className="font-mono text-slate-700 dark:text-slate-200" formatFn={v => formatMobile(v as string)} />
                       <Cell {...cellProps} field="level" className="text-center" />
-                      <Cell {...cellProps} field="doj" />
+                      <Cell {...cellProps} field="doj" type="date" />
+                      <Cell {...cellProps} field="birthday" type="date" />
                       <Cell {...cellProps} field="yearsExperience" type="number" className="text-center" formatFn={v => v?.toString()} />
                       <Cell {...cellProps} field="branch" />
                       <Cell {...cellProps} field="designation" />
@@ -531,7 +533,7 @@ export default function EmployeesPage() {
                 })}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={32} className="text-center p-4 text-slate-500 dark:text-slate-400 font-mono">NO RECORDS FOUND</td>
+                    <td colSpan={33} className="text-center p-4 text-slate-500 dark:text-slate-400 font-mono">NO RECORDS FOUND</td>
                   </tr>
                 )}
               </tbody>
