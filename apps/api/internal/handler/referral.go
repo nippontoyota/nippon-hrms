@@ -14,6 +14,7 @@ import (
 	"github.com/nippon-toyota/hrms/internal/doubletick"
 	"github.com/nippon-toyota/hrms/internal/employee"
 	"github.com/nippon-toyota/hrms/internal/referral"
+	"github.com/nippon-toyota/hrms/pkg/phone"
 	"github.com/nippon-toyota/hrms/pkg/respond"
 )
 
@@ -50,12 +51,13 @@ func (h *ReferralHandler) SubmitApplication(w http.ResponseWriter, r *http.Reque
 	}
 
 	name := r.FormValue("candidateName")
-	phone := r.FormValue("candidatePhone")
+	phoneRaw := r.FormValue("candidatePhone")
 	email := r.FormValue("candidateEmail")
 	role := r.FormValue("role")
 
-	if name == "" || phone == "" || role == "" {
-		respond.BadRequest(w, "name, phone, and role are required")
+	phoneNorm := phone.NormalizeIndian(phoneRaw)
+	if name == "" || phoneNorm == "" || role == "" {
+		respond.BadRequest(w, "name, valid phone number, and role are required")
 		return
 	}
 
@@ -92,7 +94,7 @@ func (h *ReferralHandler) SubmitApplication(w http.ResponseWriter, r *http.Reque
 	ref := &referral.Referral{
 		EmployeeID:     emp.ID,
 		CandidateName:  name,
-		CandidatePhone: phone,
+		CandidatePhone: phoneNorm,
 		CandidateEmail: emailPtr,
 		Role:           role,
 		ResumeURL:      resumeURL,
