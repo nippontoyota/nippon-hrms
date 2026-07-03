@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { referralsApi } from '@/api/endpoints';
 import toast from 'react-hot-toast';
-import { CaretRight, Briefcase, Paperclip, User, Phone, Envelope } from '@phosphor-icons/react';
+import { CaretRight, Briefcase, Paperclip, User, Phone, Envelope, X } from '@phosphor-icons/react';
 
 export default function ReferralPage() {
   const [searchParams] = useSearchParams();
@@ -82,20 +82,21 @@ export default function ReferralPage() {
 
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-100">
           <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-6">
-            {!empId && (
-              <div className="p-4 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg text-sm mb-6 flex items-start gap-3">
-                <svg className="w-5 h-5 shrink-0 mt-0.5 text-amber-500" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                </svg>
-                <span>
-                  This link is missing an employee referral code. You can still apply, but your application won't be linked to a referrer.
-                </span>
+            {!empId ? (
+              <div className="p-6 bg-red-50 border border-red-200 text-red-800 rounded-xl text-center space-y-3 mb-6">
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto text-red-500 mb-2">
+                  <X className="w-6 h-6" weight="bold" />
+                </div>
+                <h3 className="font-semibold text-lg">Invalid Referral Link</h3>
+                <p className="text-sm">
+                  This link is missing a valid employee referral code. You cannot apply through this page without a valid link from a Nippon Toyota employee.
+                </p>
               </div>
-            )}
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Full Name *</label>
+            ) : (
+              <>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Full Name *</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <User className="h-5 w-5 text-slate-400" />
@@ -183,14 +184,16 @@ export default function ReferralPage() {
               </div>
             </div>
 
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-xl transition-all shadow-sm shadow-blue-600/20 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
-            >
-              {isSubmitting ? 'Submitting...' : 'Submit Application'}
-              {!isSubmitting && <CaretRight weight="bold" />}
-            </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-xl transition-all shadow-sm shadow-blue-600/20 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? 'Submitting...' : 'Submit Application'}
+                  {!isSubmitting && <CaretRight weight="bold" />}
+                </button>
+              </>
+            )}
           </form>
         </div>
         
