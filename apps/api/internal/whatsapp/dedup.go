@@ -248,7 +248,7 @@ func normalizeMenuSelection(input string) string {
 		return payloadRequestLeave
 	case trimmed == payloadRequestHolidays, lower == "holiday calendar":
 		return payloadRequestHolidays
-	case trimmed == payloadReferCandidate, lower == "refer a candidate", lower == "refer":
+	case trimmed == payloadReferCandidate, trimmed == payloadRequestReferral, lower == "refer a candidate", lower == "refer", lower == "referral link":
 		return payloadReferCandidate
 	}
 	// WhatsApp often echoes the full interactive body plus the chosen button label.

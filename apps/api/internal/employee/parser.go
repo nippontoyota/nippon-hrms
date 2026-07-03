@@ -40,8 +40,8 @@ func ParseExcel(r io.Reader) ([]Employee, []string, error) {
 			continue // Skip header
 		}
 
-		// Pad row to 30 columns to handle trailing empty cells
-		for len(row) < 30 {
+		// Pad row to 31 columns to handle trailing empty cells
+		for len(row) < 31 {
 			row = append(row, "")
 		}
 
@@ -58,30 +58,31 @@ func ParseExcel(r io.Reader) ([]Employee, []string, error) {
 			MobileNumber:              strings.TrimSpace(row[3]),
 			Level:                     strings.TrimSpace(row[4]),
 			DOJ:                       strings.TrimSpace(row[5]),
-			YearsExperience:           parseFloat(row[6]),
-			Branch:                    strings.TrimSpace(row[7]),
-			Designation:               strings.TrimSpace(row[8]),
-			Basic:                     parseFloat(row[9]),
-			DA:                        parseFloat(row[10]),
-			RevisedBasicDA:            parseFloat(row[11]),
-			HRA:                       parseFloat(row[12]),
-			Travel:                    parseFloat(row[13]),
-			Hostel:                    parseFloat(row[14]),
-			Children:                  parseFloat(row[15]),
-			TotalSalary:               parseFloat(row[16]),
-			Mobile:                    parseFloat(row[17]),
-			Conveyance:                parseFloat(row[18]),
-			WashAllowance:             parseFloat(row[19]),
-			BranchAllowance:           parseFloat(row[20]),
-			SpecialAllowance:          parseFloat(row[21]),
-			Training:                  parseFloat(row[22]),
-			TotalAllowances:           parseFloat(row[23]),
-			TotalSalaryWithAllowances: parseFloat(row[24]),
-			BankName:                  strings.TrimSpace(row[25]),
-			AccountNumber:             strings.TrimSpace(row[26]),
-			BankBranch:                strings.TrimSpace(row[27]),
-			IFSCCode:                  strings.TrimSpace(row[28]),
-			Zone:                      strings.TrimSpace(row[29]),
+			Birthday:                  strings.TrimSpace(row[6]),
+			YearsExperience:           parseFloat(row[7]),
+			Branch:                    strings.TrimSpace(row[8]),
+			Designation:               strings.TrimSpace(row[9]),
+			Basic:                     parseFloat(row[10]),
+			DA:                        parseFloat(row[11]),
+			RevisedBasicDA:            parseFloat(row[12]),
+			HRA:                       parseFloat(row[13]),
+			Travel:                    parseFloat(row[14]),
+			Hostel:                    parseFloat(row[15]),
+			Children:                  parseFloat(row[16]),
+			TotalSalary:               parseFloat(row[17]),
+			Mobile:                    parseFloat(row[18]),
+			Conveyance:                parseFloat(row[19]),
+			WashAllowance:             parseFloat(row[20]),
+			BranchAllowance:           parseFloat(row[21]),
+			SpecialAllowance:          parseFloat(row[22]),
+			Training:                  parseFloat(row[23]),
+			TotalAllowances:           parseFloat(row[24]),
+			TotalSalaryWithAllowances: parseFloat(row[25]),
+			BankName:                  strings.TrimSpace(row[26]),
+			AccountNumber:             strings.TrimSpace(row[27]),
+			BankBranch:                strings.TrimSpace(row[28]),
+			IFSCCode:                  strings.TrimSpace(row[29]),
+			Zone:                      strings.TrimSpace(row[30]),
 			CreatedAt:                 time.Now(),
 			UpdatedAt:                 time.Now(),
 		})

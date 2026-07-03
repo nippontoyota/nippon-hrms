@@ -1,4 +1,4 @@
-package router
+﻿package router
 
 import (
 	"net/http"
@@ -46,7 +46,6 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 	epfRepo := epf.NewPostgresRepository(pgPool)
 	payrollRepo := payroll.NewPostgresRepository(pgPool)
 	leaveRepo := leave.NewPostgresRepository(pgPool)
-	referralRepo := referral.NewPostgresRepository(pgPool)
 
 	sessionStore := whatsapp.NewSessionStore(pgPool)
 	sessionWindow := whatsapp.NewPostgresSessionWindowStore(pgPool)
@@ -68,14 +67,17 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 	holidayRepo := holiday.NewPostgresRepository(pgPool)
 	holidayH := handler.NewHolidayHandler(holidayRepo)
 
-	waSvc := whatsapp.NewService(dtClient, sessionStore, sessionWindow, empRepo, epfRepo, payrollRepo, leaveRepo, holidayRepo)
+	referralRepo := referral.NewPostgresRepository(pgPool)
+	referralSvc := referral.NewService(referralRepo, empRepo, dtClient)
+	referralH := handler.NewReferralHandler(referralSvc)
+
+	waSvc := whatsapp.NewService(dtClient, sessionStore, sessionWindow, empRepo, epfRepo, payrollRepo, leaveRepo, holidayRepo, referralSvc)
 	waHandler := whatsapp.NewHandler(waSvc, cfg.DoubleTickWebhookSecret)
 
 	employeeH := handler.NewEmployeeHandler(empRepo, pgPool)
 	epfH := handler.NewEpfHandler(epfRepo, pgPool)
 	payrollH := handler.NewPayrollHandler(payrollRepo, payrollDispatcher, dispatchService, pgPool)
 	leaveH := handler.NewLeaveHandler(leaveRepo, empRepo, dtClient, sessionWindow)
-	referralH := handler.NewReferralHandler(referralRepo, empRepo, dtClient)
 	vaultH := handler.NewVaultHandler(pgPool)
 	adminH := handler.NewAdminHandler(pgPool, supaClient)
 	importRepo := importjob.NewRepository(pgPool)
@@ -89,10 +91,9 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 		r.Post("/whatsapp/webhook", waHandler.Webhook)
 		r.Post("/vault/verify", vaultH.Verify)
 		r.Patch("/vault/password", vaultH.UpdatePassword)
-		r.Post("/referrals", referralH.SubmitApplication)
-		
-		fileServer := http.FileServer(http.Dir("uploads"))
-		r.Handle("/uploads/*", http.StripPrefix("/api/v1/uploads/", fileServer))
+
+		r.Get("/referrals/{code}", referralH.GetLinkDetails)
+		r.Post("/candidates", referralH.SubmitCandidate)
 
 		r.Group(func(r chi.Router) {
 			r.Use(appMiddleware.RequireAuth(cfg.SupabaseURL, cfg.SupabaseAnonKey))
@@ -154,11 +155,6 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 				r.Patch("/{id}", leaveH.UpdateStatus)
 			})
 
-			r.Route("/referrals", func(r chi.Router) {
-				r.Get("/", referralH.List)
-				r.Put("/{id}", referralH.UpdateStatus)
-			})
-
 			r.Route("/holidays", func(r chi.Router) {
 				r.Get("/", holidayH.List)
 				r.Post("/", holidayH.Create)
@@ -170,6 +166,15 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 				r.Get("/users", adminH.ListHRUsers)
 				r.Post("/users", adminH.CreateHRUser)
 				r.Delete("/users/{id}", adminH.DeleteHRUser)
+			})
+
+			r.Route("/referrals", func(r chi.Router) {
+				r.Post("/generate", referralH.GenerateLink)
+			})
+
+			r.Route("/candidates", func(r chi.Router) {
+				r.Get("/", referralH.ListCandidates)
+				r.Patch("/{id}/status", referralH.UpdateCandidateStatus)
 			})
 		})
 	})

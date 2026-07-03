@@ -19,14 +19,14 @@ func hashParts(parts ...string) string {
 
 func EmployeeRowHash(
 	id, name, department, mobile, level, branch, designation, zone string,
-	doj string, yearsExp float64,
+	doj, birthday string, yearsExp float64,
 	basic, da, revisedBasicDA, hra, travel, hostel, children, totalSalary float64,
 	mobileAllow, conveyance, wash, branchAllow, special, training, totalAllow, totalWithAllow float64,
 	bankName, accountNumber, bankBranch, ifsc string,
 ) string {
 	return hashParts(
 		id, name, department, mobile, level, branch, designation, zone,
-		doj, fmtFloat(yearsExp),
+		doj, birthday, fmtFloat(yearsExp),
 		fmtFloat(basic), fmtFloat(da), fmtFloat(revisedBasicDA), fmtFloat(hra), fmtFloat(travel),
 		fmtFloat(hostel), fmtFloat(children), fmtFloat(totalSalary), fmtFloat(mobileAllow),
 		fmtFloat(conveyance), fmtFloat(wash), fmtFloat(branchAllow), fmtFloat(special),

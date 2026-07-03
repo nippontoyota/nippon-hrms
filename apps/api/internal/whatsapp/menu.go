@@ -30,7 +30,7 @@ Please select an option using the buttons below.`
 
 const msgMainMenuBody = `How may we help you today?`
 
-const msgMenuTextFallback = `Please reply *Salary Slip* or *Request Leave*.`
+const msgMenuTextFallback = `Please reply *Salary Slip*, *Request Leave*, or *Referral Link*.`
 
 const msgPayslipNotFound = `No payslip was found for the month you entered.
 
