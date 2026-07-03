@@ -7,5 +7,8 @@
     "build": "npm run build --prefix apps/web",
     "preview": "npm run preview --prefix apps/web",
     "install:web": "npm install --prefix apps/web"
+  },
+  "dependencies": {
+    "vite": "^8.1.3"
   }
 }
