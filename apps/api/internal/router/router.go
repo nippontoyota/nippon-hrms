@@ -21,6 +21,7 @@ import (
 	"github.com/nippon-toyota/hrms/internal/leave"
 	appMiddleware "github.com/nippon-toyota/hrms/internal/middleware"
 	"github.com/nippon-toyota/hrms/internal/payroll"
+	"github.com/nippon-toyota/hrms/internal/referral"
 	"github.com/nippon-toyota/hrms/internal/whatsapp"
 )
 
@@ -66,7 +67,11 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 	holidayRepo := holiday.NewPostgresRepository(pgPool)
 	holidayH := handler.NewHolidayHandler(holidayRepo)
 
-	waSvc := whatsapp.NewService(dtClient, sessionStore, sessionWindow, empRepo, epfRepo, payrollRepo, leaveRepo, holidayRepo)
+	referralRepo := referral.NewPostgresRepository(pgPool)
+	referralSvc := referral.NewService(referralRepo, empRepo, dtClient)
+	referralH := handler.NewReferralHandler(referralSvc)
+
+	waSvc := whatsapp.NewService(dtClient, sessionStore, sessionWindow, empRepo, epfRepo, payrollRepo, leaveRepo, holidayRepo, referralSvc)
 	waHandler := whatsapp.NewHandler(waSvc, cfg.DoubleTickWebhookSecret)
 
 	employeeH := handler.NewEmployeeHandler(empRepo, pgPool)
@@ -86,6 +91,9 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 		r.Post("/whatsapp/webhook", waHandler.Webhook)
 		r.Post("/vault/verify", vaultH.Verify)
 		r.Patch("/vault/password", vaultH.UpdatePassword)
+
+		r.Get("/referrals/{code}", referralH.GetLinkDetails)
+		r.Post("/candidates", referralH.SubmitCandidate)
 
 		r.Group(func(r chi.Router) {
 			r.Use(appMiddleware.RequireAuth(cfg.SupabaseURL, cfg.SupabaseAnonKey))
@@ -158,6 +166,15 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 				r.Get("/users", adminH.ListHRUsers)
 				r.Post("/users", adminH.CreateHRUser)
 				r.Delete("/users/{id}", adminH.DeleteHRUser)
+			})
+
+			r.Route("/referrals", func(r chi.Router) {
+				r.Post("/generate", referralH.GenerateLink)
+			})
+
+			r.Route("/candidates", func(r chi.Router) {
+				r.Get("/", referralH.ListCandidates)
+				r.Patch("/{id}/status", referralH.UpdateCandidateStatus)
 			})
 		})
 	})

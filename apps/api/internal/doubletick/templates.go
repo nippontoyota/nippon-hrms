@@ -5,5 +5,7 @@ const (
 	TemplateLeaveRejected        = "leave_rejected_v2"
 	TemplateLeaveRequestManager  = "leave_request_manager_v1"
 	TemplatePayslipNotification  = "notification_of_payslip"
+	TemplateReferralReceived     = "referral_received"
+	TemplateCandidateStatus      = "candidate_status_update"
 	TemplateLanguageEN           = "en"
 )
