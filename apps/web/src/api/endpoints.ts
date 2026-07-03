@@ -13,6 +13,7 @@ import type {
   PaginatedConflicts,
   LeaveRequest,
   LeaveBalance,
+  Holiday,
 } from './types';
 
 export const employeesApi = {
@@ -71,7 +72,16 @@ export const salaryApi = {
   downloadTemplateCsv: (month: number, year: number) => api.get(`/payroll/template?month=${month}&year=${year}`, { responseType: 'blob' }).then((r) => r.data),
 };
 
-
+export const holidaysApi = {
+  list: (year?: number, month?: number) => api.get<Holiday[]>('/holidays', { params: { year, month } }).then((r) => r.data),
+  create: (data: { date: string; name: string }) => api.post<Holiday>('/holidays', data).then((r) => r.data),
+  bulkUpload: (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return api.post('/holidays/upload', form, { timeout: 60_000 }).then((r) => r.data);
+  },
+  delete: (id: string) => api.delete(`/holidays/${id}`).then((r) => r.data),
+};
 export const importsApi = {
   start: (file: File, entityType: ImportEntityType, mode: ImportMode, month?: number, year?: number) => {
     const form = new FormData();

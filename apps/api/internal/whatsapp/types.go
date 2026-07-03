@@ -10,6 +10,7 @@ const (
 	payloadGeneratePay   = "generate_pay"
 	payloadRequestSalary = "request_salary_slip"
 	payloadRequestLeave  = "request_leave"
+	payloadRequestHolidays = "request_holidays"
 	payloadLeaveCasual   = "leave_casual"
 	payloadLeaveSick     = "leave_sick"
 	payloadLeaveUnpaid   = "leave_unpaid"

@@ -18,6 +18,7 @@ const LeaveDirectoryPage = lazy(() => import('@/pages/admin/LeaveDirectoryPage')
 const SalaryPeriodPage = lazy(() => import('@/pages/admin/SalaryPeriodPage'));
 const DispatchJobPage = lazy(() => import('@/pages/admin/DispatchJobPage'));
 const SettingsPage = lazy(() => import('@/pages/admin/SettingsPage'));
+const HolidaysPage = lazy(() => import('@/pages/admin/HolidaysPage'));
 
 export default function App() {
   const isDark = useThemeStore((s) => s.isDark);
@@ -98,6 +99,7 @@ export default function App() {
               <Route path="employees/:id/edit" element={<EmployeeFormPage />} />
               <Route path="epf" element={<EpfPage />} />
               <Route path="leaves" element={<LeaveDirectoryPage />} />
+              <Route path="holidays" element={<HolidaysPage />} />
               <Route path="salary" element={<SalaryPage />} />
               <Route path="salary-directory" element={<SalaryDirectoryPage />} />
               <Route path="salary/:periodId" element={<SalaryPeriodPage />} />

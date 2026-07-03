@@ -6,6 +6,7 @@ import {
   salaryApi,
   leaveApi,
   importsApi,
+  holidaysApi,
 } from './endpoints';
 import type { Employee } from './types';
 
@@ -137,6 +138,37 @@ export { importsApi };
 
 export function useLeaves() {
   return useQuery({ queryKey: ['leaves'], queryFn: leaveApi.list });
+}
+
+export function useHolidays(year?: number, month?: number) {
+  return useQuery({
+    queryKey: ['holidays', year, month],
+    queryFn: () => holidaysApi.list(year, month),
+  });
+}
+
+export function useCreateHoliday() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: holidaysApi.create,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['holidays'] }),
+  });
+}
+
+export function useBulkUploadHoliday() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: holidaysApi.bulkUpload,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['holidays'] }),
+  });
+}
+
+export function useDeleteHoliday() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: holidaysApi.delete,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['holidays'] }),
+  });
 }
 
 export function useLeaveBalance(employeeId: string | undefined) {
