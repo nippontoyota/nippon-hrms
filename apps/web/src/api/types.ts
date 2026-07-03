@@ -348,6 +348,13 @@ export interface LeaveRequest {
   employee?: Employee;
 }
 
+export interface Holiday {
+  id: string;
+  date: string;
+  name: string;
+  createdAt: string;
+}
+
 export interface LeaveBalance {
   employeeId: string;
   month: number;

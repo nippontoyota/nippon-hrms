@@ -17,6 +17,7 @@ import (
 	"github.com/nippon-toyota/hrms/internal/epf"
 	"github.com/nippon-toyota/hrms/internal/handler"
 	"github.com/nippon-toyota/hrms/internal/importjob"
+	"github.com/nippon-toyota/hrms/internal/holiday"
 	"github.com/nippon-toyota/hrms/internal/leave"
 	appMiddleware "github.com/nippon-toyota/hrms/internal/middleware"
 	"github.com/nippon-toyota/hrms/internal/payroll"
@@ -61,7 +62,11 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 			ItemDelay: time.Duration(cfg.DispatchItemDelay) * time.Millisecond,
 		},
 	)
-	waSvc := whatsapp.NewService(dtClient, sessionStore, sessionWindow, empRepo, epfRepo, payrollRepo, leaveRepo)
+
+	holidayRepo := holiday.NewPostgresRepository(pgPool)
+	holidayH := handler.NewHolidayHandler(holidayRepo)
+
+	waSvc := whatsapp.NewService(dtClient, sessionStore, sessionWindow, empRepo, epfRepo, payrollRepo, leaveRepo, holidayRepo)
 	waHandler := whatsapp.NewHandler(waSvc, cfg.DoubleTickWebhookSecret)
 
 	employeeH := handler.NewEmployeeHandler(empRepo, pgPool)
@@ -140,6 +145,13 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 				r.Get("/", leaveH.ListAll)
 				r.Get("/balances", leaveH.GetBalance)
 				r.Patch("/{id}", leaveH.UpdateStatus)
+			})
+
+			r.Route("/holidays", func(r chi.Router) {
+				r.Get("/", holidayH.List)
+				r.Post("/", holidayH.Create)
+				r.Post("/upload", holidayH.BulkUpload)
+				r.Delete("/{id}", holidayH.Delete)
 			})
 
 			r.Route("/admin", func(r chi.Router) {

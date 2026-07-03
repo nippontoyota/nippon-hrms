@@ -54,6 +54,7 @@ func mainMenuButtons() []doubletick.InteractiveButton {
 	return []doubletick.InteractiveButton{
 		{ID: payloadRequestSalary, Title: "Salary Slip"},
 		{ID: payloadRequestLeave, Title: "Request Leave"},
+		{ID: payloadRequestHolidays, Title: "Holiday Calendar"},
 	}
 }
 

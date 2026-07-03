@@ -12,6 +12,7 @@ import (
 	"github.com/nippon-toyota/hrms/internal/doubletick"
 	"github.com/nippon-toyota/hrms/internal/employee"
 	"github.com/nippon-toyota/hrms/internal/epf"
+	"github.com/nippon-toyota/hrms/internal/holiday"
 	"github.com/nippon-toyota/hrms/internal/leave"
 	"github.com/nippon-toyota/hrms/internal/payroll"
 )
@@ -27,6 +28,7 @@ type Service struct {
 	epfRepo       epf.Repository
 	payrollRepo   payroll.Repository
 	leaveRepo     leave.Repository
+	holidayRepo   holiday.Repository
 	menuImage     menuImageCache
 }
 
@@ -38,7 +40,7 @@ type menuImageCache struct {
 
 const menuImageCacheRefreshBefore = 5 * time.Minute
 
-func NewService(dt *doubletick.Client, sessions SessionStore, sessionWindow SessionWindowStore, empRepo employee.Repository, epfRepo epf.Repository, payrollRepo payroll.Repository, leaveRepo leave.Repository) *Service {
+func NewService(dt *doubletick.Client, sessions SessionStore, sessionWindow SessionWindowStore, empRepo employee.Repository, epfRepo epf.Repository, payrollRepo payroll.Repository, leaveRepo leave.Repository, holidayRepo holiday.Repository) *Service {
 	return &Service{
 		dt:            dt,
 		sessions:      sessions,
@@ -50,6 +52,7 @@ func NewService(dt *doubletick.Client, sessions SessionStore, sessionWindow Sess
 		epfRepo:       epfRepo,
 		payrollRepo:   payrollRepo,
 		leaveRepo:     leaveRepo,
+		holidayRepo:   holidayRepo,
 	}
 }
 
@@ -770,6 +773,7 @@ func (s *Service) handleLeaveAwaitStart(ctx context.Context, sess *Session, from
 }
 
 func (s *Service) handleLeaveAwaitEnd(ctx context.Context, sess *Session, from, input, messageID string) error {
+	fmt.Printf("handleLeaveAwaitEnd input=%q sess.State=%v\\n", input, sess.State)
 	if handled, err := s.handleLeaveFlowInterrupt(ctx, sess, from, input); handled {
 		return err
 	}
