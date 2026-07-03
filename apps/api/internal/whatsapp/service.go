@@ -1232,8 +1232,15 @@ func (s *Service) sendReferralLink(ctx context.Context, sess *Session, from stri
 		return s.sendText(ctx, from, msgNotEmployee)
 	}
 
-	// Generate a unique referral link for this employee
-	referralLink := fmt.Sprintf("https://hrms.nippontoyota.com/careers/refer?emp_id=%s", sess.EmployeeID)
+	// Generate a unique referral link for this employee using their referral code
+	emp, err := s.empRepo.GetByID(ctx, sess.EmployeeID)
+	if err != nil || emp == nil {
+		sess.resetFlow()
+		s.sessions.Set(from, sess)
+		return s.sendText(ctx, from, msgNotEmployee)
+	}
+	
+	referralLink := fmt.Sprintf("https://hrms.nippontoyota.com/careers/refer?emp_id=%s", emp.ReferralCode)
 	
 	msg := fmt.Sprintf("Here is your unique employee referral link:\n\n%s\n\nShare this link with potential candidates. If they apply and are hired, you may be eligible for a referral bonus!", referralLink)
 	
