@@ -7,6 +7,7 @@ import {
   leaveApi,
   importsApi,
   holidaysApi,
+  referralsApi,
 } from './endpoints';
 import type { Employee } from './types';
 
@@ -180,3 +181,21 @@ export function useLeaveBalance(employeeId: string | undefined) {
 }
 
 export { employeesApi, epfApi, salaryApi, leaveApi };
+
+export function useReferrals() {
+  return useQuery({
+    queryKey: ['referrals'],
+    queryFn: referralsApi.list,
+  });
+}
+
+export function useUpdateReferralStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: any }) =>
+      referralsApi.updateStatus(id, status),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['referrals'] });
+    },
+  });
+}

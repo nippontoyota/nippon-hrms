@@ -58,11 +58,17 @@ func msgPayslipAlreadySent(month, year int) string {
 }
 
 
-func mainMenuButtons() []doubletick.InteractiveButton {
-	return []doubletick.InteractiveButton{
-		{ID: payloadRequestSalary, Title: "Salary Slip"},
-		{ID: payloadRequestLeave, Title: "Request Leave"},
-		{ID: payloadRequestHolidays, Title: "Holiday Calendar"},
+func mainMenuSections() []doubletick.InteractiveListSection {
+	return []doubletick.InteractiveListSection{
+		{
+			Title: "Employee Services",
+			Rows: []doubletick.InteractiveListRow{
+				{ID: payloadRequestSalary, Title: "Salary Slip", Description: "Download your monthly payslips"},
+				{ID: payloadRequestLeave, Title: "Request Leave", Description: "Apply for or view your leaves"},
+				{ID: payloadRequestHolidays, Title: "Holiday Calendar", Description: "View upcoming company holidays"},
+				{ID: payloadReferCandidate, Title: "Refer a Candidate", Description: "Generate your unique referral link"},
+			},
+		},
 	}
 }
 

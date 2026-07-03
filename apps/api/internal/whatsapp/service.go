@@ -349,6 +349,8 @@ func (s *Service) handleIdle(ctx context.Context, sess *Session, from, input str
 		return s.beginLeaveFlow(ctx, sess, from)
 	case payloadRequestHolidays:
 		return s.beginHolidayFlow(ctx, sess, from)
+	case payloadReferCandidate:
+		return s.sendReferralLink(ctx, sess, from)
 	}
 
 	lower := strings.ToLower(strings.TrimSpace(input))
@@ -635,26 +637,14 @@ func (s *Service) deliverPayslip(ctx context.Context, sess *Session, from string
 
 func (s *Service) sendMainMenu(ctx context.Context, to, name string) error {
 	body := msgWelcome(name) + "\n\n" + msgMainMenuBody
-	buttons := mainMenuButtons()
+	sections := mainMenuSections()
 
-	if mediaURL, err := s.menuImageMediaURL(ctx); err == nil {
-		_, err = s.dt.SendInteractiveMedia(ctx, to, body, "", mediaURL, "image/png", buttons)
-		if err == nil {
-			slog.Info("whatsapp menu sent", "to", to, "type", "interactive_media")
-			s.recordOutbound(to)
-			return nil
-		}
-		slog.Warn("interactive media send failed, falling back to buttons", "err", err)
-	} else {
-		slog.Warn("menu image upload failed, falling back to buttons", "err", err)
-	}
-
-	_, err := s.dt.SendInteractiveButtons(ctx, to, "", body, "", buttons)
+	_, err := s.dt.SendInteractiveList(ctx, to, "", body, "", "Main Menu", sections)
 	if err != nil {
-		slog.Warn("interactive button send failed, falling back to text", "err", err)
+		slog.Warn("interactive list send failed, falling back to text", "err", err)
 		return s.sendText(ctx, to, body+"\n\n"+msgMenuTextFallback)
 	}
-	slog.Info("whatsapp menu sent", "to", to, "type", "buttons")
+	slog.Info("whatsapp menu sent", "to", to, "type", "list")
 	s.recordOutbound(to)
 	return nil
 }
@@ -1232,4 +1222,23 @@ func (s *Service) handleLeaveAwaitRejectionReason(ctx context.Context, sess *Ses
 	sess.resetFlow()
 	s.sessions.Set(from, sess)
 	return nil
+}
+
+func (s *Service) sendReferralLink(ctx context.Context, sess *Session, from string) error {
+	s.ensureEmployee(ctx, sess, from)
+	if sess.EmployeeID == "" {
+		sess.resetFlow()
+		s.sessions.Set(from, sess)
+		return s.sendText(ctx, from, msgNotEmployee)
+	}
+
+	// Generate a unique referral link for this employee
+	referralLink := fmt.Sprintf("https://hrms.nippontoyota.com/careers/refer?emp_id=%s", sess.EmployeeID)
+	
+	msg := fmt.Sprintf("Here is your unique employee referral link:\n\n%s\n\nShare this link with potential candidates. If they apply and are hired, you may be eligible for a referral bonus!", referralLink)
+	
+	sess.resetFlow()
+	s.sessions.Set(from, sess)
+	
+	return s.sendText(ctx, from, msg)
 }

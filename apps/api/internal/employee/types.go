@@ -40,6 +40,7 @@ type Employee struct {
 	Status                    string    `json:"status"`
 	ManagerID                 *string   `json:"managerId,omitempty"`
 	ManagerName               *string   `json:"managerName,omitempty"`
+	ReferralCode              string    `json:"referralCode"`
 	CreatedAt                 time.Time `json:"createdAt"`
 	UpdatedAt                 time.Time `json:"updatedAt"`
 }
@@ -58,6 +59,7 @@ type Repository interface {
 	Create(ctx context.Context, emp *Employee) error
 	Update(ctx context.Context, id string, emp *Employee) error
 	FindByPhone(ctx context.Context, phone string) (*Employee, error)
+	FindByReferralCode(ctx context.Context, code string) (*Employee, error)
 	VerifyIdentity(ctx context.Context, id, dob string) (*Employee, error)
 	UpdatePhone(ctx context.Context, id, newPhone string) error
 	BulkInsert(ctx context.Context, employees []Employee) error

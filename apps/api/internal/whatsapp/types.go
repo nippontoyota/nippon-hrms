@@ -11,6 +11,8 @@ const (
 	payloadRequestSalary = "request_salary_slip"
 	payloadRequestLeave  = "request_leave"
 	payloadRequestHolidays = "request_holidays"
+	payloadReferCandidate  = "refer_candidate"
+
 	payloadLeaveCasual   = "leave_casual"
 	payloadLeaveSick     = "leave_sick"
 	payloadLeaveUnpaid   = "leave_unpaid"

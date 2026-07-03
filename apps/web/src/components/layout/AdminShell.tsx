@@ -13,6 +13,7 @@ const sideNav = [
   { to: '/admin/epf', icon: IdentificationCard, label: 'EPF Records' },
   { to: '/admin/leaves', icon: CalendarCheck, label: 'Leave Requests' },
   { to: '/admin/holidays', icon: CalendarCheck, label: 'Holidays Calendar' },
+  { to: '/admin/referrals', icon: Users, label: 'Referrals' },
   { to: '/admin/salary-directory', icon: ListDashes, label: 'Salary Directory' },
   { to: '/admin/salary', icon: Money, label: 'Process Payroll' },
 ];
