@@ -30,6 +30,7 @@ const (
 	StateLeaveAwaitReason
 	StateLeaveAwaitConfirm
 	StateLeaveAwaitRejectionReason
+	StateLeaveAwaitPickRequest
 )
 
 type Session struct {
@@ -59,6 +60,8 @@ type Session struct {
 	TempLeaveReason string
 	PendingRejectionLeaveID string
 	LastRejectionPromptAt   time.Time
+	PendingPickLeaveIDs     []string
+	PendingTemplateApprove  *bool
 }
 
 func (s *Session) resetFlow() {
@@ -71,6 +74,8 @@ func (s *Session) resetFlow() {
 	s.TempLeaveReason = ""
 	s.PendingRejectionLeaveID = ""
 	s.LastRejectionPromptAt = time.Time{}
+	s.PendingPickLeaveIDs = nil
+	s.PendingTemplateApprove = nil
 	s.LastStartMessageID = ""
 }
 

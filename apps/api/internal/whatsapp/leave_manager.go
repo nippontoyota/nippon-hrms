@@ -61,6 +61,22 @@ func (s *Service) tryHandleManagerTemplateLeaveAction(ctx context.Context, sess 
 		return false, nil
 	}
 
+	if len(pending) > 1 {
+		ids := make([]string, len(pending))
+		for i, p := range pending {
+			ids[i] = p.ID
+		}
+		sess.State = StateLeaveAwaitPickRequest
+		sess.PendingPickLeaveIDs = ids
+		sess.PendingTemplateApprove = &approve
+		s.sessions.Set(from, sess)
+		action := "approve"
+		if !approve {
+			action = "reject"
+		}
+		return true, s.sendText(ctx, from, buildManagerPendingPickListText(pending, action))
+	}
+
 	action := "REJECT_LEAVE_" + pending[0].ID
 	if approve {
 		action = "APPROVE_LEAVE_" + pending[0].ID
@@ -68,6 +84,26 @@ func (s *Service) tryHandleManagerTemplateLeaveAction(ctx context.Context, sess 
 
 	err = s.handleLeaveApproval(ctx, sess, from, action)
 	return true, err
+}
+
+func buildManagerPendingPickListText(pending []leave.LeaveRequest, action string) string {
+	var b strings.Builder
+	b.WriteString(fmt.Sprintf("You have %d pending leave requests. Reply with the number of the request you want to %s:\n\n", len(pending), action))
+	for i, req := range pending {
+		empName := "Employee"
+		if req.Employee != nil && req.Employee.Name != "" {
+			empName = req.Employee.Name
+		}
+		fmt.Fprintf(&b, "%d. %s — %s to %s (%d days)\n",
+			i+1,
+			empName,
+			formatLeaveDateDisplay(req.FromDate),
+			formatLeaveDateDisplay(req.ToDate),
+			req.Days,
+		)
+	}
+	b.WriteString("\nReply cancel to abort.")
+	return b.String()
 }
 
 func managerLeaveRequestPlaceholders(empName string, req *leave.LeaveRequest) []string {

@@ -1,13 +1,10 @@
 package handler
 
 import (
-	"encoding/json"
 	"log/slog"
 	"net/http"
-	"strings"
 	"time"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/nippon-toyota/hrms/internal/doubletick"
 	"github.com/nippon-toyota/hrms/internal/employee"
 	"github.com/nippon-toyota/hrms/internal/leave"
@@ -59,61 +56,11 @@ func (h *LeaveHandler) GetBalance(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *LeaveHandler) UpdateStatus(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-	if id == "" {
-		respond.BadRequest(w, "missing leave id")
-		return
-	}
-
-	var req struct {
-		Status          leave.LeaveStatus `json:"status"`
-		RejectionReason *string           `json:"rejectionReason,omitempty"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respond.BadRequest(w, "invalid payload")
-		return
-	}
-
-	if req.Status != leave.StatusApproved && req.Status != leave.StatusRejected {
-		respond.BadRequest(w, "invalid status")
-		return
-	}
-
-	var rejectionReason *string
-	if req.Status == leave.StatusRejected {
-		if req.RejectionReason == nil || strings.TrimSpace(*req.RejectionReason) == "" {
-			respond.BadRequest(w, "rejection reason is required")
-			return
-		}
-		trimmed := strings.TrimSpace(*req.RejectionReason)
-		if len(trimmed) > maxRejectionReasonLen {
-			respond.BadRequest(w, "rejection reason too long")
-			return
-		}
-		if msg := validateRejectionReason(trimmed); msg != "" {
-			respond.BadRequest(w, msg)
-			return
-		}
-		rejectionReason = &trimmed
-	}
-
-	if err := h.leaveRepo.UpdateStatus(r.Context(), id, req.Status, nil, rejectionReason); err != nil {
-		slog.Error("failed to update leave status", "err", err, "id", id)
-		respond.InternalError(w)
-		return
-	}
-
-	lReq, err := h.leaveRepo.GetByID(r.Context(), id)
-	if err == nil {
-		reason := ""
-		if rejectionReason != nil {
-			reason = *rejectionReason
-		}
-		if req.Status == leave.StatusRejected {
-			slog.Info("leave rejected", "leaveId", id, "reasonLen", len(reason))
-		}
-		h.scheduleLeaveNotification(lReq, req.Status, reason)
-	}
-
-	respond.OK(w, map[string]string{"message": "status updated successfully"})
+	respond.JSON(w, http.StatusForbidden, respond.Envelope{
+		Success: false,
+		Error: &respond.APIError{
+			Code:    "FORBIDDEN",
+			Message: "Leave approval is handled by the assigned manager via WhatsApp.",
+		},
+	})
 }

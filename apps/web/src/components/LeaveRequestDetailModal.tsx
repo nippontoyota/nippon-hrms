@@ -5,9 +5,6 @@ import type { LeaveRequest } from '@/api/types';
 interface Props {
   leave: LeaveRequest | null;
   onClose: () => void;
-  onApprove: (id: string) => void;
-  onReject: (id: string) => void;
-  isUpdating: boolean;
 }
 
 const shortDate = (dStr?: string) => {
@@ -55,15 +52,18 @@ function DetailRow({ label, children }: { label: string; children: React.ReactNo
   );
 }
 
-function StatusBadge({ status }: { status: LeaveRequest['status'] }) {
-  if (status === 'pending') {
+function StatusBadge({ leave }: { leave: LeaveRequest }) {
+  if (leave.status === 'pending') {
+    const label = leave.employee?.managerName
+      ? `Awaiting approval from ${leave.employee.managerName}`
+      : 'No manager assigned — contact HR';
     return (
       <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded shadow-sm text-[10px] uppercase tracking-widest font-bold bg-amber-100/50 text-amber-800 border border-amber-200/60 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800/50">
-        <Clock size={12} weight="bold" /> Pending
+        <Clock size={12} weight="bold" /> {label}
       </span>
     );
   }
-  if (status === 'approved') {
+  if (leave.status === 'approved') {
     return (
       <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded shadow-sm text-[10px] uppercase tracking-widest font-bold bg-emerald-100/50 text-emerald-800 border border-emerald-200/60 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800/50">
         <CheckCircle size={12} weight="bold" /> Approved
@@ -77,13 +77,7 @@ function StatusBadge({ status }: { status: LeaveRequest['status'] }) {
   );
 }
 
-export default function LeaveRequestDetailModal({
-  leave,
-  onClose,
-  onApprove,
-  onReject,
-  isUpdating,
-}: Props) {
+export default function LeaveRequestDetailModal({ leave, onClose }: Props) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!leave) return;
@@ -118,6 +112,11 @@ export default function LeaveRequestDetailModal({
               <div className="font-bold text-slate-900 dark:text-white">{leave.employee?.name ?? '—'}</div>
               <div className="text-xs text-slate-500 font-mono mt-0.5">{leave.employee?.employeeId ?? leave.employeeId}</div>
             </DetailRow>
+            {leave.employee?.managerName && (
+              <DetailRow label="Manager">
+                {leave.employee.managerName}
+              </DetailRow>
+            )}
             <DetailRow label="Leave Type">
               <span
                 className={`inline-block px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider rounded border ${leaveTypeBadgeClass(leave.type)}`}
@@ -136,7 +135,7 @@ export default function LeaveRequestDetailModal({
               </span>
             </DetailRow>
             <DetailRow label="Status">
-              <StatusBadge status={leave.status} />
+              <StatusBadge leave={leave} />
             </DetailRow>
             <DetailRow label="Submitted">
               {formatDateTime(leave.createdAt)}
@@ -165,48 +164,28 @@ export default function LeaveRequestDetailModal({
           {leave.status === 'rejected' && leave.rejectionReason && (
             <div className="pt-2 border-t border-slate-100 dark:border-slate-700">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-rose-600 dark:text-rose-400 mb-2">
-                HR Rejection Reason
+                Rejection Reason
               </p>
               <p className="text-sm text-rose-700 dark:text-rose-300 leading-relaxed whitespace-pre-wrap break-words">
                 {leave.rejectionReason}
               </p>
             </div>
           )}
+
+          {leave.status === 'pending' && (
+            <p className="text-xs text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-700 pt-3">
+              The assigned manager approves or rejects this request via WhatsApp.
+            </p>
+          )}
         </div>
 
         <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 shrink-0">
-          {leave.status === 'pending' ? (
-            <>
-              <button
-                onClick={onClose}
-                disabled={isUpdating}
-                className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer disabled:opacity-50"
-              >
-                Close
-              </button>
-              <button
-                onClick={() => onReject(leave.id)}
-                disabled={isUpdating}
-                className="px-3 py-1.5 text-[11px] uppercase tracking-wider font-bold rounded shadow-sm flex items-center gap-1.5 transition-all bg-white hover:bg-rose-50 text-rose-600 border border-slate-200 hover:border-rose-200 dark:bg-slate-800 dark:border-slate-700 dark:hover:border-rose-900 dark:text-rose-400 disabled:opacity-50"
-              >
-                <XCircle size={14} weight="bold" /> Reject
-              </button>
-              <button
-                onClick={() => onApprove(leave.id)}
-                disabled={isUpdating}
-                className="px-3 py-1.5 text-[11px] uppercase tracking-wider font-bold rounded shadow-sm flex items-center gap-1.5 transition-all bg-emerald-500 hover:bg-emerald-600 text-white border border-emerald-600 disabled:opacity-50"
-              >
-                <CheckCircle size={14} weight="bold" /> Approve
-              </button>
-            </>
-          ) : (
-            <button
-              onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
-            >
-              Close
-            </button>
-          )}
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+          >
+            Close
+          </button>
         </div>
       </div>
     </div>
