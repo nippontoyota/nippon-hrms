@@ -1,4 +1,4 @@
-package whatsapp
+﻿package whatsapp
 
 import (
 	"context"
@@ -157,7 +157,7 @@ func newFlowTestService(t *testing.T) (*Service, *recordedOutbound, *InMemorySto
 	store := NewInMemoryStore(0)
 	emp := &flowEmpRepo{emp: employee.Employee{ID: "EMP001", Name: "Krishnanand G", MobileNumber: phone}}
 	leaveRepo := &flowLeaveRepo{}
-	svc := NewService(dt, store, nil, emp, nil, nil, leaveRepo)
+	svc := NewService(dt, store, nil, emp, nil, nil, leaveRepo, nil)
 	return svc, rec, store, phone
 }
 
@@ -196,7 +196,7 @@ func TestFlow_leaveRequest_textOnlyEchoes(t *testing.T) {
 		t.Fatalf("step 2: expected leave-await-type, got state %v ok=%v", sess.State, ok)
 	}
 	if rec.containsText("How may we help you today?") && rec.count() > 1 {
-		// After request leave, only the leave-type prompt should follow the initial menu — not a second welcome.
+		// After request leave, only the leave-type prompt should follow the initial menu ΓÇö not a second welcome.
 		texts := rec.allTexts()
 		menuCount := 0
 		for _, text := range texts {
@@ -261,7 +261,7 @@ func TestFlow_sessionLost_leaveTypeRecovery(t *testing.T) {
 	svc, rec, _, phone := newFlowTestService(t)
 	ctx := context.Background()
 
-	// No prior session — simulates DB drop between messages.
+	// No prior session ΓÇö simulates DB drop between messages.
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m1", "text", "Casual Leave"))
 	if !strings.Contains(rec.lastText(), "Please enter your leave start date") {
 		t.Fatalf("expected recovery into leave flow, got %q", rec.lastText())
