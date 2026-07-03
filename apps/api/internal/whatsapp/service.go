@@ -678,6 +678,9 @@ func (s *Service) sendMainMenu(ctx context.Context, to, name string) error {
 		if err == nil {
 			slog.Info("whatsapp menu sent", "to", to, "type", "interactive_media")
 			s.recordOutbound(to)
+			if err := s.sendMoreOptionsMenu(ctx, to); err != nil {
+				return err
+			}
 			return nil
 		}
 		slog.Warn("interactive media send failed, falling back to buttons", "err", err)
@@ -688,9 +691,25 @@ func (s *Service) sendMainMenu(ctx context.Context, to, name string) error {
 	_, err := s.dt.SendInteractiveButtons(ctx, to, "", body, "", buttons)
 	if err != nil {
 		slog.Warn("interactive button send failed, falling back to text", "err", err)
-		return s.sendText(ctx, to, body+"\n\n"+msgMenuTextFallback)
+		if err := s.sendText(ctx, to, body+"\n\n"+msgMenuTextFallback); err != nil {
+			return err
+		}
+		return s.sendMoreOptionsMenu(ctx, to)
 	}
 	slog.Info("whatsapp menu sent", "to", to, "type", "buttons")
+	s.recordOutbound(to)
+	return s.sendMoreOptionsMenu(ctx, to)
+}
+
+func (s *Service) sendMoreOptionsMenu(ctx context.Context, to string) error {
+	sections := moreOptionsListSections()
+	// Minimal body — WhatsApp requires one; keeps the list as a compact "More Options" row under the 3 buttons.
+	_, err := s.dt.SendInteractiveList(ctx, to, "", "\u200b", "", msgMoreOptionsButton, sections)
+	if err != nil {
+		slog.Warn("interactive list send failed, falling back to text", "err", err)
+		return s.sendText(ctx, to, "Tap *More Options* for *Referral Link*, or reply *Referral Link*.")
+	}
+	slog.Info("whatsapp more options menu sent", "to", to, "type", "list")
 	s.recordOutbound(to)
 	return nil
 }
