@@ -486,6 +486,10 @@ func (s *Service) beginHolidayFlow(ctx context.Context, sess *Session, from stri
 		return s.sendText(ctx, from, msgHolidayNone)
 	}
 
+	sess.State = StateIdle
+	sess.LastMenuSentAt = time.Now()
+	s.sessions.Set(from, sess)
+
 	pdfBytes, err := payroll.GenerateHolidayCalendarPDF(holidays)
 	if err != nil {
 		slog.Error("whatsapp holiday pdf generation failed", "from", from, "err", err)
