@@ -61,11 +61,13 @@ export default function ReferralsPage() {
             <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
               <thead className="bg-gray-50 dark:bg-slate-900/80 border-b border-gray-200 dark:border-slate-700">
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-16">#</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Candidate Details</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Contact</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Referred By</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date Applied</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-12">#</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Candidate Name</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Designation</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Contact</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Resume</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Referred By</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date Applied</th>
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-100 dark:divide-slate-700/50">
@@ -80,28 +82,32 @@ export default function ReferralsPage() {
                 ) : (
                   candidates?.map((candidate, index) => (
                     <tr key={candidate.id} className="hover:bg-gray-50/50 dark:hover:bg-slate-700/30 transition-colors">
-                      <td className="px-6 py-5 whitespace-nowrap text-sm text-gray-400 dark:text-gray-500">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-400 dark:text-gray-500">
                         {String(index + 1).padStart(2, '0')}
                       </td>
-                      <td className="px-6 py-5 whitespace-nowrap">
-                        <div className="text-sm font-semibold text-gray-900 dark:text-white mb-1">{candidate.name}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">{candidate.designation || 'General Application'}</div>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                        {candidate.name}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        {candidate.designation || 'General Application'}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                        {candidate.phone}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
                         <a 
                           href={candidate.resumeUrl} 
                           target="_blank" 
                           rel="noopener noreferrer" 
-                          className="inline-flex items-center text-xs font-medium text-[#EB0A1E] hover:text-[#c00818] transition-colors"
+                          className="inline-flex items-center text-xs font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 px-2.5 py-1.5 rounded-md"
                         >
-                          <svg className="w-3.5 h-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <svg className="w-3.5 h-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                           </svg>
-                          View Resume
+                          View Link
                         </a>
                       </td>
-                      <td className="px-6 py-5 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
-                        {candidate.phone}
-                      </td>
-                      <td className="px-6 py-5 whitespace-nowrap">
+                      <td className="px-4 py-3 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900 dark:text-gray-200">
                           {candidate.referralLink?.employee?.name || 'Unknown'}
                         </div>
@@ -109,7 +115,7 @@ export default function ReferralsPage() {
                           {candidate.referralLink?.employee?.department || 'Employee'}
                         </div>
                       </td>
-                      <td className="px-6 py-5 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {new Date(candidate.createdAt).toLocaleDateString()}
                       </td>
                     </tr>
