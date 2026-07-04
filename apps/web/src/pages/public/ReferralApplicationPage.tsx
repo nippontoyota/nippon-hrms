@@ -8,11 +8,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SpinnerGap, CheckCircle, WarningCircle } from '@phosphor-icons/react';
+import { supabase } from '@/lib/supabase';
 
 const formSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   phone: z.string().regex(/^\+?[0-9]{10,15}$/, 'Enter a valid phone number (e.g., +919876543210)'),
-  resumeUrl: z.string().url('Please enter a valid URL (e.g., https://linkedin.com/...)'),
+  resumeUrl: z.string().url('Please enter a valid URL (e.g., https://linkedin.com/...)').optional().or(z.literal('')),
   designation: z.string().min(2, 'Please specify the role you are applying for'),
 });
 
@@ -21,6 +22,8 @@ type FormData = z.infer<typeof formSchema>;
 export default function ReferralApplicationPage() {
   const { code } = useParams<{ code: string }>();
   const [submitted, setSubmitted] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const { data: link, isLoading, isError } = useQuery({
     queryKey: ['referralLink', code],
@@ -39,7 +42,7 @@ export default function ReferralApplicationPage() {
   });
 
   const submitMutation = useMutation({
-    mutationFn: (data: FormData) => referralApi.submitCandidate(code!, data),
+    mutationFn: (data: FormData & { resumeUrl: string }) => referralApi.submitCandidate(code!, data),
     onSuccess: () => {
       setSubmitted(true);
     },
@@ -52,8 +55,33 @@ export default function ReferralApplicationPage() {
     },
   });
 
-  const onSubmit = (data: FormData) => {
-    submitMutation.mutate(data);
+  const onSubmit = async (data: FormData) => {
+    let finalResumeUrl = data.resumeUrl;
+
+    if (file) {
+      setUploading(true);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      
+      const { data: uploadData, error } = await supabase.storage
+        .from('resumes')
+        .upload(fileName, file);
+        
+      setUploading(false);
+
+      if (error) {
+        toast.error('Failed to upload resume. Please check if the file is too large.');
+        return;
+      }
+      
+      const { data: publicUrlData } = supabase.storage
+        .from('resumes')
+        .getPublicUrl(uploadData.path);
+        
+      finalResumeUrl = publicUrlData.publicUrl;
+    }
+
+    submitMutation.mutate({ ...data, resumeUrl: finalResumeUrl || '' });
   };
 
   if (isLoading) {
@@ -148,15 +176,48 @@ export default function ReferralApplicationPage() {
 
                 <div>
                   <label htmlFor="resumeUrl" className="block text-sm font-medium mb-2">
-                    Resume Link (Drive, Dropbox, LinkedIn) <span className="text-red-500">*</span>
+                    Resume <span className="text-gray-500 font-normal ml-1">(Optional)</span>
                   </label>
-                  <input
-                    {...register('resumeUrl')}
-                    id="resumeUrl"
-                    type="url"
-                    placeholder="https://..."
-                    className={`block w-full px-4 py-3 bg-white dark:bg-slate-950 border ${errors.resumeUrl ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'} rounded-sm text-sm transition-colors outline-none focus:border-gray-900 dark:focus:border-white focus:ring-1 focus:ring-gray-900 dark:focus:ring-white`}
-                  />
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-3">
+                      <label className="flex-1 cursor-pointer">
+                        <input
+                          type="file"
+                          accept=".pdf,.doc,.docx"
+                          className="hidden"
+                          onChange={(e) => setFile(e.target.files?.[0] || null)}
+                        />
+                        <div className="w-full px-4 py-3 bg-white dark:bg-slate-950 border border-gray-300 dark:border-gray-700 border-dashed hover:border-gray-400 dark:hover:border-gray-500 rounded-sm text-sm transition-colors text-center text-gray-500 flex items-center justify-center">
+                          {file ? (
+                            <span className="text-gray-900 dark:text-gray-100">{file.name}</span>
+                          ) : (
+                            'Upload PDF or Word Document'
+                          )}
+                        </div>
+                      </label>
+                      {file && (
+                        <button
+                          type="button"
+                          onClick={() => setFile(null)}
+                          className="text-sm font-medium text-gray-500 hover:text-red-500 p-2"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                    
+                    <div className="text-center text-sm font-medium text-gray-400">OR</div>
+                    
+                    <input
+                      {...register('resumeUrl')}
+                      id="resumeUrl"
+                      type="url"
+                      placeholder="Paste a link (Drive, Dropbox, LinkedIn)"
+                      className={`block w-full px-4 py-3 bg-white dark:bg-slate-950 border ${errors.resumeUrl ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'} rounded-sm text-sm transition-colors outline-none focus:border-gray-900 dark:focus:border-white focus:ring-1 focus:ring-gray-900 dark:focus:ring-white disabled:opacity-50 disabled:cursor-not-allowed`}
+                      disabled={!!file}
+                    />
+                  </div>
                   {errors.resumeUrl && <p className="mt-2 text-sm text-red-500">{errors.resumeUrl.message}</p>}
                 </div>
               </div>
@@ -164,10 +225,10 @@ export default function ReferralApplicationPage() {
               <div className="pt-6 border-t border-gray-200 dark:border-gray-800 flex justify-end">
                 <button
                   type="submit"
-                  disabled={submitMutation.isPending}
+                  disabled={submitMutation.isPending || uploading}
                   className="inline-flex items-center justify-center px-8 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 font-medium text-sm rounded-sm transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {submitMutation.isPending ? (
+                  {(submitMutation.isPending || uploading) ? (
                     <>
                       <SpinnerGap className="w-5 h-5 animate-spin mr-2" />
                       Processing
