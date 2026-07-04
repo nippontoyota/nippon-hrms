@@ -109,7 +109,10 @@ func parseAllowedOrigins(raw string) []string {
 		}
 	}
 	if len(out) == 0 {
-		return []string{"http://localhost:5173"}
+		out = append(out, "http://localhost:5173")
 	}
+	// Always allow the production and preview pages
+	out = append(out, "https://nippon-hrms.pages.dev")
+	out = append(out, "https://*.nippon-hrms.pages.dev")
 	return out
 }

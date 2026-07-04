@@ -3,7 +3,7 @@ import { refreshAccessToken } from '@/lib/authRefresh';
 import { useAuthStore } from '@/stores/authStore';
 
 const api = axios.create({
-  baseURL: '/api/v1',
+  baseURL: import.meta.env.VITE_API_URL || 'https://nippon-hrms.onrender.com/api/v1',
   headers: { 'Content-Type': 'application/json' },
   timeout: 15_000,
 });
