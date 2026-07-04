@@ -53,6 +53,8 @@ func (r *PostgresRepository) FindByPhone(ctx context.Context, rawPhone string) (
 		}
 		return nil, fmt.Errorf("query error: %w", err)
 	}
+	e.EmployeeID = e.ID
+	e.Status = "Active"
 	return &e, nil
 }
 
@@ -87,6 +89,8 @@ func (r *PostgresRepository) GetByID(ctx context.Context, id string) (*Employee,
 		}
 		return nil, fmt.Errorf("query error: %w", err)
 	}
+	e.EmployeeID = e.ID
+	e.Status = "Active"
 	return &e, nil
 }
 
