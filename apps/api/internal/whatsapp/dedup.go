@@ -87,6 +87,8 @@ func (d *dedupStore) isDuplicate(messageID, phone, input, msgType string, state 
 		actionWindow = d.greetingWindow
 	} else if looksLikePeriodAttempt(input) {
 		actionWindow = d.periodWindow
+	} else if cInp := canonicalInput(input); cInp == payloadRequestHolidays || cInp == payloadRequestReferral {
+		actionWindow = 5 * time.Minute
 	}
 	if seenAt, ok := d.byAction[actionKey]; ok && now.Sub(seenAt) < actionWindow {
 		return true
