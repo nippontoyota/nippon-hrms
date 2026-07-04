@@ -53,7 +53,7 @@ export default function ReferralsPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-6">
-        <div className="col-span-1 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden">
+        <div className="col-span-1 bg-white dark:bg-slate-800 rounded-none shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden">
           <div className="px-6 py-5 border-b border-gray-200 dark:border-slate-700">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Candidates</h2>
           </div>
@@ -61,7 +61,6 @@ export default function ReferralsPage() {
             <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
               <thead className="bg-gray-50 dark:bg-slate-900/80 border-b border-gray-200 dark:border-slate-700">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-12">#</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Candidate Name</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Designation</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Contact</th>
@@ -73,18 +72,15 @@ export default function ReferralsPage() {
               <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-100 dark:divide-slate-700/50">
                 {isLoadingCandidates ? (
                   <tr>
-                    <td colSpan={4} className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">Loading...</td>
+                    <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">Loading...</td>
                   </tr>
                 ) : candidates?.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">No candidates found</td>
+                    <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">No candidates found</td>
                   </tr>
                 ) : (
-                  candidates?.map((candidate, index) => (
+                  candidates?.map((candidate) => (
                     <tr key={candidate.id} className="hover:bg-gray-50/50 dark:hover:bg-slate-700/30 transition-colors">
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-400 dark:text-gray-500">
-                        {String(index + 1).padStart(2, '0')}
-                      </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                         {candidate.name}
                       </td>
