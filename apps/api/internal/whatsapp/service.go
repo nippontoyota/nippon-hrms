@@ -678,6 +678,11 @@ func (s *Service) sendMainMenu(ctx context.Context, to, name string) error {
 		if err == nil {
 			slog.Info("whatsapp menu sent", "to", to, "type", "interactive_media")
 			s.recordOutbound(to)
+			
+			// Add a slight delay to ensure the heavier image message is delivered first 
+			// before the lightweight text list message.
+			time.Sleep(1500 * time.Millisecond)
+			
 			if err := s.sendMoreOptionsMenu(ctx, to); err != nil {
 				return err
 			}
@@ -698,6 +703,10 @@ func (s *Service) sendMainMenu(ctx context.Context, to, name string) error {
 	}
 	slog.Info("whatsapp menu sent", "to", to, "type", "buttons")
 	s.recordOutbound(to)
+	
+	// Add delay for button fallback as well just to be consistent
+	time.Sleep(500 * time.Millisecond)
+	
 	return s.sendMoreOptionsMenu(ctx, to)
 }
 
