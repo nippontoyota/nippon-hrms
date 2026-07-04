@@ -40,7 +40,7 @@ func TestHandleWebhook_marksInboundRead(t *testing.T) {
 		FromNumber: "+917594086900",
 		BaseURL:    srv.URL,
 	})
-	svc := NewService(dt, NewInMemoryStore(0), nil, nil, nil, nil, nil, nil)
+	svc := NewService(dt, NewInMemoryStore(0), nil, nil, nil, nil, nil, nil, nil)
 
 	wh := &doubletick.Webhook{
 		Event: "message",
