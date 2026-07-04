@@ -79,10 +79,15 @@ func parseRows(entity EntityType, rows [][]string, month, year, maxRows int) (*P
 	seen := make(map[string]int)
 
 	headerMap := make(map[string]int)
+	counts := make(map[string]int)
 	if len(rows) > 0 {
 		for i, col := range rows[0] {
 			norm := NormalizeHeader(col)
 			if norm != "" {
+				counts[norm]++
+				if counts[norm] > 1 {
+					norm = fmt.Sprintf("%s_%d", norm, counts[norm])
+				}
 				headerMap[norm] = i
 			}
 		}
