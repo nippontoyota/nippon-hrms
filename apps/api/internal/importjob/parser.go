@@ -82,6 +82,18 @@ func parseRows(entity EntityType, rows [][]string, month, year, maxRows int) (*P
 		if i == 0 {
 			continue
 		}
+		
+		isEmpty := true
+		for _, col := range row {
+			if strings.TrimSpace(col) != "" {
+				isEmpty = false
+				break
+			}
+		}
+		if isEmpty {
+			continue
+		}
+
 		rowNum := i + 1
 		if res.TotalRows >= maxRows {
 			res.Errors = append(res.Errors, JobError{RowNum: rowNum, Message: fmt.Sprintf("exceeds max rows limit (%d)", maxRows)})

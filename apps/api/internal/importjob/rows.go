@@ -85,12 +85,21 @@ func parseEmployeeRow(rowNum int, row []string) (*StagingEmployee, string) {
 	}
 	doj := strings.TrimSpace(row[5])
 	birthday := strings.TrimSpace(row[6])
+	name := strings.TrimSpace(row[1])
+	if name == "" {
+		name = "Unknown"
+	}
+	mobile := strings.TrimSpace(row[3])
+	if mobile == "" {
+		mobile = "N/A-" + id
+	}
+
 	e := &StagingEmployee{
 		RowNum:                    rowNum,
 		ID:                        id,
-		Name:                      strings.TrimSpace(row[1]),
+		Name:                      name,
 		Department:                strings.TrimSpace(row[2]),
-		MobileNumber:              strings.TrimSpace(row[3]),
+		MobileNumber:              mobile,
 		Level:                     strings.TrimSpace(row[4]),
 		DOJ:                       doj,
 		DOJDate:                   employee.ParseDOJ(doj),
