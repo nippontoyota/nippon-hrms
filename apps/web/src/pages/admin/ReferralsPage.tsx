@@ -1,28 +1,55 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { referralApi } from '@/api/referral';
-import toast from 'react-hot-toast';
 
 export default function ReferralsPage() {
-  const queryClient = useQueryClient();
 
   const { data: candidates, isLoading: isLoadingCandidates } = useQuery({
     queryKey: ['candidates'],
     queryFn: referralApi.listCandidates,
   });
 
-  const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) => referralApi.updateCandidateStatus(id, status),
-    onSuccess: () => {
-      toast.success('Status updated');
-      queryClient.invalidateQueries({ queryKey: ['candidates'] });
-    },
-    onError: () => toast.error('Failed to update status'),
-  });
+  const handleExportCSV = () => {
+    if (!candidates || candidates.length === 0) return;
+    
+    const headers = ['Candidate Name', 'Designation', 'Phone', 'Resume URL', 'Referred By', 'Referrer Dept', 'Date Applied'];
+    const rows = candidates.map(c => [
+      c.name,
+      c.designation || 'General',
+      c.phone,
+      c.resumeUrl,
+      c.referralLink?.employee?.name || 'Unknown',
+      c.referralLink?.employee?.department || '',
+      new Date(c.createdAt).toLocaleDateString()
+    ]);
+    
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${(cell || '').replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute('download', `referrals_export_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Referrals</h1>
+        <button
+          onClick={handleExportCSV}
+          disabled={!candidates || candidates.length === 0}
+          className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-slate-600 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          Export CSV
+        </button>
       </div>
 
       <div className="grid grid-cols-1 gap-6">
@@ -38,7 +65,7 @@ export default function ReferralsPage() {
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Candidate Details</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Contact</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Referred By</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date Applied</th>
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-100 dark:divide-slate-700/50">
@@ -58,6 +85,7 @@ export default function ReferralsPage() {
                       </td>
                       <td className="px-6 py-5 whitespace-nowrap">
                         <div className="text-sm font-semibold text-gray-900 dark:text-white mb-1">{candidate.name}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">{candidate.designation || 'General Application'}</div>
                         <a 
                           href={candidate.resumeUrl} 
                           target="_blank" 
@@ -81,31 +109,8 @@ export default function ReferralsPage() {
                           {candidate.referralLink?.employee?.department || 'Employee'}
                         </div>
                       </td>
-                      <td className="px-6 py-5 whitespace-nowrap">
-                        <div className="relative inline-block w-36">
-                          <select
-                            value={candidate.status}
-                            onChange={(e) => updateStatusMutation.mutate({ id: candidate.id, status: e.target.value })}
-                            className={`block w-full appearance-none rounded-full border py-1.5 pl-3 pr-8 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-offset-1 transition-colors cursor-pointer
-                              ${candidate.status === 'PENDING' ? 'bg-gray-100 text-gray-800 border-gray-200 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700' : ''}
-                              ${candidate.status === 'REVIEWING' ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800' : ''}
-                              ${candidate.status === 'INTERVIEWED' ? 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800' : ''}
-                              ${candidate.status === 'HIRED' ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800' : ''}
-                              ${candidate.status === 'REJECTED' ? 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800' : ''}
-                            `}
-                          >
-                            <option value="PENDING">Pending</option>
-                            <option value="REVIEWING">Reviewing</option>
-                            <option value="INTERVIEWED">Interviewed</option>
-                            <option value="HIRED">Hired</option>
-                            <option value="REJECTED">Rejected</option>
-                          </select>
-                          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-current opacity-50">
-                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </svg>
-                          </div>
-                        </div>
+                      <td className="px-6 py-5 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        {new Date(candidate.createdAt).toLocaleDateString()}
                       </td>
                     </tr>
                   ))

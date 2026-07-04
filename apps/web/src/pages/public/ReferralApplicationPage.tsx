@@ -13,6 +13,7 @@ const formSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   phone: z.string().regex(/^\+?[0-9]{10,15}$/, 'Enter a valid phone number (e.g., +919876543210)'),
   resumeUrl: z.string().url('Please enter a valid URL (e.g., https://linkedin.com/...)'),
+  designation: z.string().min(2, 'Please specify the role you are applying for'),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -34,7 +35,7 @@ export default function ReferralApplicationPage() {
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(formSchema),
-    defaultValues: { name: '', phone: '', resumeUrl: '' },
+    defaultValues: { name: '', phone: '', resumeUrl: '', designation: '' },
   });
 
   const submitMutation = useMutation({
@@ -129,6 +130,20 @@ export default function ReferralApplicationPage() {
                     className={`block w-full px-4 py-3 bg-white dark:bg-slate-950 border ${errors.phone ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'} rounded-sm text-sm transition-colors outline-none focus:border-gray-900 dark:focus:border-white focus:ring-1 focus:ring-gray-900 dark:focus:ring-white`}
                   />
                   {errors.phone && <p className="mt-2 text-sm text-red-500">{errors.phone.message}</p>}
+                </div>
+
+                <div>
+                  <label htmlFor="designation" className="block text-sm font-medium mb-2">
+                    Designation / Role Applied For <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    {...register('designation')}
+                    id="designation"
+                    type="text"
+                    placeholder="e.g. Senior Sales Executive"
+                    className={`block w-full px-4 py-3 bg-white dark:bg-slate-950 border ${errors.designation ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'} rounded-sm text-sm transition-colors outline-none focus:border-gray-900 dark:focus:border-white focus:ring-1 focus:ring-gray-900 dark:focus:ring-white`}
+                  />
+                  {errors.designation && <p className="mt-2 text-sm text-red-500">{errors.designation.message}</p>}
                 </div>
 
                 <div>

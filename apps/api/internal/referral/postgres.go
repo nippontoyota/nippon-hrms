@@ -59,11 +59,11 @@ func (r *PostgresRepository) GetLinkByCode(ctx context.Context, code string) (*R
 
 func (r *PostgresRepository) CreateCandidate(ctx context.Context, candidate *Candidate) error {
 	query := `
-		INSERT INTO candidates (referral_link_id, name, phone, resume_url, status)
-		VALUES ($1, $2, $3, $4, $5)
+		INSERT INTO candidates (referral_link_id, name, phone, resume_url, designation, status)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING id, created_at, updated_at
 	`
-	err := r.pool.QueryRow(ctx, query, candidate.ReferralLinkID, candidate.Name, candidate.Phone, candidate.ResumeURL, candidate.Status).Scan(&candidate.ID, &candidate.CreatedAt, &candidate.UpdatedAt)
+	err := r.pool.QueryRow(ctx, query, candidate.ReferralLinkID, candidate.Name, candidate.Phone, candidate.ResumeURL, candidate.Designation, candidate.Status).Scan(&candidate.ID, &candidate.CreatedAt, &candidate.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("create candidate: %w", err)
 	}
@@ -72,14 +72,14 @@ func (r *PostgresRepository) CreateCandidate(ctx context.Context, candidate *Can
 
 func (r *PostgresRepository) GetCandidateByPhone(ctx context.Context, phone string) (*Candidate, error) {
 	query := `
-		SELECT id, referral_link_id, name, phone, resume_url, status, created_at, updated_at
+		SELECT id, referral_link_id, name, phone, resume_url, designation, status, created_at, updated_at
 		FROM candidates
 		WHERE phone = $1
 	`
 	var candidate Candidate
 	err := r.pool.QueryRow(ctx, query, phone).Scan(
 		&candidate.ID, &candidate.ReferralLinkID, &candidate.Name, &candidate.Phone,
-		&candidate.ResumeURL, &candidate.Status, &candidate.CreatedAt, &candidate.UpdatedAt,
+		&candidate.ResumeURL, &candidate.Designation, &candidate.Status, &candidate.CreatedAt, &candidate.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -92,7 +92,7 @@ func (r *PostgresRepository) GetCandidateByPhone(ctx context.Context, phone stri
 
 func (r *PostgresRepository) ListCandidates(ctx context.Context) ([]Candidate, error) {
 	query := `
-		SELECT c.id, c.referral_link_id, c.name, c.phone, c.resume_url, c.status, c.created_at, c.updated_at,
+		SELECT c.id, c.referral_link_id, c.name, c.phone, c.resume_url, c.designation, c.status, c.created_at, c.updated_at,
 		       r.id, r.employee_id, r.code, r.expires_at, r.created_at,
 		       e.id, e.name, COALESCE(e.department, ''), e.mobile_number
 		FROM candidates c
@@ -112,7 +112,7 @@ func (r *PostgresRepository) ListCandidates(ctx context.Context) ([]Candidate, e
 		var link ReferralLink
 		var emp employee.Employee
 		err := rows.Scan(
-			&c.ID, &c.ReferralLinkID, &c.Name, &c.Phone, &c.ResumeURL, &c.Status, &c.CreatedAt, &c.UpdatedAt,
+			&c.ID, &c.ReferralLinkID, &c.Name, &c.Phone, &c.ResumeURL, &c.Designation, &c.Status, &c.CreatedAt, &c.UpdatedAt,
 			&link.ID, &link.EmployeeID, &link.Code, &link.ExpiresAt, &link.CreatedAt,
 			&emp.ID, &emp.Name, &emp.Department, &emp.MobileNumber,
 		)
@@ -146,9 +146,9 @@ func (r *PostgresRepository) UpdateCandidateStatus(ctx context.Context, id, stat
 
 func (r *PostgresRepository) GetCandidateByID(ctx context.Context, id string) (*Candidate, error) {
 	query := `
-		SELECT c.id, c.referral_link_id, c.name, c.phone, c.resume_url, c.status, c.created_at, c.updated_at,
+		SELECT c.id, c.referral_link_id, c.name, c.phone, c.resume_url, c.designation, c.status, c.created_at, c.updated_at,
 		       r.id, r.employee_id, r.code, r.expires_at, r.created_at,
-		       e.id, e.employee_id, e.name, e.department, e.status, e.mobile_number
+		       e.id, e.name, COALESCE(e.department, ''), e.mobile_number
 		FROM candidates c
 		JOIN referral_links r ON c.referral_link_id = r.id
 		JOIN employees e ON r.employee_id = e.id
@@ -158,9 +158,9 @@ func (r *PostgresRepository) GetCandidateByID(ctx context.Context, id string) (*
 	var link ReferralLink
 	var emp employee.Employee
 	err := r.pool.QueryRow(ctx, query, id).Scan(
-		&candidate.ID, &candidate.ReferralLinkID, &candidate.Name, &candidate.Phone, &candidate.ResumeURL, &candidate.Status, &candidate.CreatedAt, &candidate.UpdatedAt,
+		&candidate.ID, &candidate.ReferralLinkID, &candidate.Name, &candidate.Phone, &candidate.ResumeURL, &candidate.Designation, &candidate.Status, &candidate.CreatedAt, &candidate.UpdatedAt,
 		&link.ID, &link.EmployeeID, &link.Code, &link.ExpiresAt, &link.CreatedAt,
-		&emp.ID, &emp.EmployeeID, &emp.Name, &emp.Department, &emp.Status, &emp.MobileNumber,
+		&emp.ID, &emp.Name, &emp.Department, &emp.MobileNumber,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -168,6 +168,8 @@ func (r *PostgresRepository) GetCandidateByID(ctx context.Context, id string) (*
 		}
 		return nil, fmt.Errorf("get candidate by id: %w", err)
 	}
+	emp.EmployeeID = emp.ID
+	emp.Status = "Active"
 	link.Employee = &emp
 	candidate.ReferralLink = &link
 	return &candidate, nil

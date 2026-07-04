@@ -28,6 +28,7 @@ type Candidate struct {
 	Name           string    `json:"name"`
 	Phone          string    `json:"phone"`
 	ResumeURL      string    `json:"resumeUrl"`
+	Designation    string    `json:"designation"`
 	Status         string    `json:"status"`
 	CreatedAt      time.Time `json:"createdAt"`
 	UpdatedAt      time.Time `json:"updatedAt"`

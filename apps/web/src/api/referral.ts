@@ -20,6 +20,7 @@ export interface Candidate {
   name: string;
   phone: string;
   resumeUrl: string;
+  designation: string;
   status: string;
   createdAt: string;
   updatedAt: string;
@@ -41,6 +42,6 @@ export const referralApi = {
   getLinkDetails: (code: string) => 
     api.get<ReferralLink>(`/referrals/${code}`).then((res) => res.data),
 
-  submitCandidate: (code: string, data: { name: string; phone: string; resumeUrl: string }) => 
+  submitCandidate: (code: string, data: { name: string; phone: string; resumeUrl: string; designation: string }) => 
     api.post<Candidate>('/candidates', { code, ...data }).then((res) => res.data),
 };
