@@ -34,7 +34,7 @@ func (r *PostgresRepository) CreateLink(ctx context.Context, link *ReferralLink)
 func (r *PostgresRepository) GetLinkByCode(ctx context.Context, code string) (*ReferralLink, error) {
 	query := `
 		SELECT r.id, r.employee_id, r.code, r.expires_at, r.created_at,
-		       e.id, e.employee_id, e.name, e.department, e.status, e.mobile_number
+		       e.id, e.name, COALESCE(e.department, ''), e.mobile_number
 		FROM referral_links r
 		JOIN employees e ON r.employee_id = e.id
 		WHERE r.code = $1
@@ -43,7 +43,7 @@ func (r *PostgresRepository) GetLinkByCode(ctx context.Context, code string) (*R
 	var emp employee.Employee
 	err := r.pool.QueryRow(ctx, query, code).Scan(
 		&link.ID, &link.EmployeeID, &link.Code, &link.ExpiresAt, &link.CreatedAt,
-		&emp.ID, &emp.EmployeeID, &emp.Name, &emp.Department, &emp.Status, &emp.MobileNumber,
+		&emp.ID, &emp.Name, &emp.Department, &emp.MobileNumber,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -51,6 +51,8 @@ func (r *PostgresRepository) GetLinkByCode(ctx context.Context, code string) (*R
 		}
 		return nil, fmt.Errorf("get link by code: %w", err)
 	}
+	emp.EmployeeID = emp.ID
+	emp.Status = "Active"
 	link.Employee = &emp
 	return &link, nil
 }
@@ -92,7 +94,7 @@ func (r *PostgresRepository) ListCandidates(ctx context.Context) ([]Candidate, e
 	query := `
 		SELECT c.id, c.referral_link_id, c.name, c.phone, c.resume_url, c.status, c.created_at, c.updated_at,
 		       r.id, r.employee_id, r.code, r.expires_at, r.created_at,
-		       e.id, e.employee_id, e.name, e.department, e.status, e.mobile_number
+		       e.id, e.name, COALESCE(e.department, ''), e.mobile_number
 		FROM candidates c
 		JOIN referral_links r ON c.referral_link_id = r.id
 		JOIN employees e ON r.employee_id = e.id
@@ -106,20 +108,22 @@ func (r *PostgresRepository) ListCandidates(ctx context.Context) ([]Candidate, e
 
 	var candidates []Candidate
 	for rows.Next() {
-		var candidate Candidate
+		var c Candidate
 		var link ReferralLink
 		var emp employee.Employee
 		err := rows.Scan(
-			&candidate.ID, &candidate.ReferralLinkID, &candidate.Name, &candidate.Phone, &candidate.ResumeURL, &candidate.Status, &candidate.CreatedAt, &candidate.UpdatedAt,
+			&c.ID, &c.ReferralLinkID, &c.Name, &c.Phone, &c.ResumeURL, &c.Status, &c.CreatedAt, &c.UpdatedAt,
 			&link.ID, &link.EmployeeID, &link.Code, &link.ExpiresAt, &link.CreatedAt,
-			&emp.ID, &emp.EmployeeID, &emp.Name, &emp.Department, &emp.Status, &emp.MobileNumber,
+			&emp.ID, &emp.Name, &emp.Department, &emp.MobileNumber,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("scan candidate: %w", err)
 		}
+		emp.EmployeeID = emp.ID
+		emp.Status = "Active"
 		link.Employee = &emp
-		candidate.ReferralLink = &link
-		candidates = append(candidates, candidate)
+		c.ReferralLink = &link
+		candidates = append(candidates, c)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("rows error: %w", err)
