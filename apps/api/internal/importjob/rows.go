@@ -34,10 +34,9 @@ func parseFloatStrict(val string) float64 {
 
 func NormalizeHeader(h string) string {
 	h = strings.ToLower(h)
-	h = strings.ReplaceAll(h, " ", "")
-	h = strings.ReplaceAll(h, "_", "")
-	h = strings.ReplaceAll(h, "-", "")
-	h = strings.ReplaceAll(h, ".", "")
+	for _, char := range []string{" ", "_", "-", ".", "/", ":", "(", ")"} {
+		h = strings.ReplaceAll(h, char, "")
+	}
 	return h
 }
 
@@ -69,6 +68,7 @@ type StagingEmployee struct {
 	Branch                    string
 	Designation               string
 	Zone                      string
+	ManagerID                 string
 	Basic                     float64
 	DA                        float64
 	RevisedBasicDA            float64
@@ -102,7 +102,7 @@ func parseEmployeeRow(rowNum int, row []string, headerMap map[string]int) (*Stag
 	if name == "" {
 		name = "Unknown"
 	}
-	mobile := getValue(row, headerMap, "mobileno", "mobile", "mobilenumber", "phone")
+	mobile := getValue(row, headerMap, "mobilenumber", "mobileno", "mobile", "phone")
 	if mobile == "" {
 		mobile = "N/A-" + id
 	}
@@ -118,36 +118,37 @@ func parseEmployeeRow(rowNum int, row []string, headerMap map[string]int) (*Stag
 		DOJDate:                   employee.ParseDOJ(doj),
 		Birthday:                  birthday,
 		BirthdayDate:              employee.ParseDOJ(birthday),
-		YearsExperience:           parseFloat(getValue(row, headerMap, "yearsexperience", "experience")),
+		YearsExperience:           parseFloat(getValue(row, headerMap, "noofyrs", "yearsexperience", "experience")),
 		Branch:                    getValue(row, headerMap, "branch", "location"),
-		Designation:               getValue(row, headerMap, "designation", "role"),
+		Designation:               getValue(row, headerMap, "designatior", "designation", "role"),
+		Zone:                      getValue(row, headerMap, "zone"),
+		ManagerID:                 getValue(row, headerMap, "manager", "managerid", "reportingmanager"),
 		Basic:                     parseFloat(getValue(row, headerMap, "basic", "basicsalary")),
 		DA:                        parseFloat(getValue(row, headerMap, "da")),
-		RevisedBasicDA:            parseFloat(getValue(row, headerMap, "revisedbasicda")),
+		RevisedBasicDA:            parseFloat(getValue(row, headerMap, "revisedbas", "revisedbasicda")),
 		HRA:                       parseFloat(getValue(row, headerMap, "hra")),
 		Travel:                    parseFloat(getValue(row, headerMap, "travel", "travelallowance")),
 		Hostel:                    parseFloat(getValue(row, headerMap, "hostel", "hostelallowance")),
 		Children:                  parseFloat(getValue(row, headerMap, "children", "childrenallowance")),
 		TotalSalary:               parseFloat(getValue(row, headerMap, "totalsalary")),
 		Mobile:                    parseFloat(getValue(row, headerMap, "mobileallowance", "mobile")),
-		Conveyance:                parseFloat(getValue(row, headerMap, "conveyance")),
-		WashAllowance:             parseFloat(getValue(row, headerMap, "washallowance")),
-		BranchAllowance:           parseFloat(getValue(row, headerMap, "branchallowance")),
-		SpecialAllowance:          parseFloat(getValue(row, headerMap, "specialallowance")),
+		Conveyance:                parseFloat(getValue(row, headerMap, "convy", "conveyance")),
+		WashAllowance:             parseFloat(getValue(row, headerMap, "washallo", "washallowance")),
+		BranchAllowance:           parseFloat(getValue(row, headerMap, "branallo", "branchallowance")),
+		SpecialAllowance:          parseFloat(getValue(row, headerMap, "splall", "specialallowance")),
 		Training:                  parseFloat(getValue(row, headerMap, "training", "trainingallowance")),
-		TotalAllowances:           parseFloat(getValue(row, headerMap, "totalallowances")),
-		TotalSalaryWithAllowances: parseFloat(getValue(row, headerMap, "totalsalarywithallowances")),
-		BankName:                  getValue(row, headerMap, "bankname"),
-		AccountNumber:             getValue(row, headerMap, "accountnumber", "accno"),
-		BankBranch:                getValue(row, headerMap, "bankbranch"),
+		TotalAllowances:           parseFloat(getValue(row, headerMap, "totalallow", "totalallowances")),
+		TotalSalaryWithAllowances: parseFloat(getValue(row, headerMap, "totalsalary_2", "totalsalarywithallowances")),
+		BankName:                  getValue(row, headerMap, "bank", "bankname"),
+		AccountNumber:             getValue(row, headerMap, "acno", "accountnumber"),
+		BankBranch:                getValue(row, headerMap, "bankbranc", "bankbranch"),
 		IFSCCode:                  getValue(row, headerMap, "ifsccode", "ifsc"),
-		Zone:                      getValue(row, headerMap, "zone"),
 	}
 	if e.Mobile == 0 {
 		e.Mobile = parseFloat(getValue(row, headerMap, "mobile", "mobileallowance"))
 	}
 	e.RowHash = EmployeeRowHash(
-		e.ID, e.Name, e.Department, e.MobileNumber, e.Level, e.Branch, e.Designation, e.Zone,
+		e.ID, e.Name, e.Department, e.MobileNumber, e.Level, e.Branch, e.Designation, e.Zone, e.ManagerID,
 		e.DOJ, e.Birthday, e.YearsExperience,
 		e.Basic, e.DA, e.RevisedBasicDA, e.HRA, e.Travel, e.Hostel, e.Children, e.TotalSalary,
 		e.Mobile, e.Conveyance, e.WashAllowance, e.BranchAllowance, e.SpecialAllowance,
