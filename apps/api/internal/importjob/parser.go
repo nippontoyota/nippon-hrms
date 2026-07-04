@@ -78,6 +78,16 @@ func parseRows(entity EntityType, rows [][]string, month, year, maxRows int) (*P
 	res := &ParseResult{}
 	seen := make(map[string]int)
 
+	headerMap := make(map[string]int)
+	if len(rows) > 0 {
+		for i, col := range rows[0] {
+			norm := NormalizeHeader(col)
+			if norm != "" {
+				headerMap[norm] = i
+			}
+		}
+	}
+
 	for i, row := range rows {
 		if i == 0 {
 			continue
@@ -102,7 +112,7 @@ func parseRows(entity EntityType, rows [][]string, month, year, maxRows int) (*P
 
 		switch entity {
 		case EntityEmployees:
-			e, msg := parseEmployeeRow(rowNum, row)
+			e, msg := parseEmployeeRow(rowNum, row, headerMap)
 			if msg != "" {
 				res.Errors = append(res.Errors, JobError{RowNum: rowNum, Message: msg})
 				continue
@@ -116,7 +126,7 @@ func parseRows(entity EntityType, rows [][]string, month, year, maxRows int) (*P
 			res.TotalRows++
 
 		case EntityEPF:
-			e, msg := parseEPFRow(rowNum, row)
+			e, msg := parseEPFRow(rowNum, row, headerMap)
 			if msg != "" {
 				res.Errors = append(res.Errors, JobError{RowNum: rowNum, Message: msg})
 				continue
@@ -130,7 +140,7 @@ func parseRows(entity EntityType, rows [][]string, month, year, maxRows int) (*P
 			res.TotalRows++
 
 		case EntityPayroll:
-			p, msg := parsePayrollRow(rowNum, row, month, year)
+			p, msg := parsePayrollRow(rowNum, row, month, year, headerMap)
 			if msg != "" {
 				res.Errors = append(res.Errors, JobError{RowNum: rowNum, Message: msg})
 				continue

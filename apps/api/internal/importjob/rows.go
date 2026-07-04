@@ -32,11 +32,25 @@ func parseFloatStrict(val string) float64 {
 	return v
 }
 
-func padRow(row []string, n int) []string {
-	for len(row) < n {
-		row = append(row, "")
+func NormalizeHeader(h string) string {
+	h = strings.ToLower(h)
+	h = strings.ReplaceAll(h, " ", "")
+	h = strings.ReplaceAll(h, "_", "")
+	h = strings.ReplaceAll(h, "-", "")
+	h = strings.ReplaceAll(h, ".", "")
+	return h
+}
+
+func getValue(row []string, headerMap map[string]int, keys ...string) string {
+	if headerMap == nil {
+		return ""
 	}
-	return row
+	for _, key := range keys {
+		if idx, ok := headerMap[NormalizeHeader(key)]; ok && idx < len(row) {
+			return strings.TrimSpace(row[idx])
+		}
+	}
+	return ""
 }
 
 type StagingEmployee struct {
@@ -77,19 +91,18 @@ type StagingEmployee struct {
 	IFSCCode                  string
 }
 
-func parseEmployeeRow(rowNum int, row []string) (*StagingEmployee, string) {
-	row = padRow(row, 31)
-	id := strings.TrimSpace(row[0])
+func parseEmployeeRow(rowNum int, row []string, headerMap map[string]int) (*StagingEmployee, string) {
+	id := getValue(row, headerMap, "employeeid", "empid", "id")
 	if id == "" {
 		return nil, "empty EMP ID"
 	}
-	doj := strings.TrimSpace(row[5])
-	birthday := strings.TrimSpace(row[6])
-	name := strings.TrimSpace(row[1])
+	doj := getValue(row, headerMap, "doj", "dateofjoining")
+	birthday := getValue(row, headerMap, "birthday", "dob", "dateofbirth")
+	name := getValue(row, headerMap, "name", "employeename")
 	if name == "" {
 		name = "Unknown"
 	}
-	mobile := strings.TrimSpace(row[3])
+	mobile := getValue(row, headerMap, "mobileno", "mobile", "mobilenumber", "phone")
 	if mobile == "" {
 		mobile = "N/A-" + id
 	}
@@ -98,37 +111,40 @@ func parseEmployeeRow(rowNum int, row []string) (*StagingEmployee, string) {
 		RowNum:                    rowNum,
 		ID:                        id,
 		Name:                      name,
-		Department:                strings.TrimSpace(row[2]),
+		Department:                getValue(row, headerMap, "department", "dept"),
 		MobileNumber:              mobile,
-		Level:                     strings.TrimSpace(row[4]),
+		Level:                     getValue(row, headerMap, "level", "emplevel"),
 		DOJ:                       doj,
 		DOJDate:                   employee.ParseDOJ(doj),
 		Birthday:                  birthday,
 		BirthdayDate:              employee.ParseDOJ(birthday),
-		YearsExperience:           parseFloat(row[7]),
-		Branch:                    strings.TrimSpace(row[8]),
-		Designation:               strings.TrimSpace(row[9]),
-		Basic:                     parseFloat(row[10]),
-		DA:                        parseFloat(row[11]),
-		RevisedBasicDA:            parseFloat(row[12]),
-		HRA:                       parseFloat(row[13]),
-		Travel:                    parseFloat(row[14]),
-		Hostel:                    parseFloat(row[15]),
-		Children:                  parseFloat(row[16]),
-		TotalSalary:               parseFloat(row[17]),
-		Mobile:                    parseFloat(row[18]),
-		Conveyance:                parseFloat(row[19]),
-		WashAllowance:             parseFloat(row[20]),
-		BranchAllowance:           parseFloat(row[21]),
-		SpecialAllowance:          parseFloat(row[22]),
-		Training:                  parseFloat(row[23]),
-		TotalAllowances:           parseFloat(row[24]),
-		TotalSalaryWithAllowances: parseFloat(row[25]),
-		BankName:                  strings.TrimSpace(row[26]),
-		AccountNumber:             strings.TrimSpace(row[27]),
-		BankBranch:                strings.TrimSpace(row[28]),
-		IFSCCode:                  strings.TrimSpace(row[29]),
-		Zone:                      strings.TrimSpace(row[30]),
+		YearsExperience:           parseFloat(getValue(row, headerMap, "yearsexperience", "experience")),
+		Branch:                    getValue(row, headerMap, "branch", "location"),
+		Designation:               getValue(row, headerMap, "designation", "role"),
+		Basic:                     parseFloat(getValue(row, headerMap, "basic", "basicsalary")),
+		DA:                        parseFloat(getValue(row, headerMap, "da")),
+		RevisedBasicDA:            parseFloat(getValue(row, headerMap, "revisedbasicda")),
+		HRA:                       parseFloat(getValue(row, headerMap, "hra")),
+		Travel:                    parseFloat(getValue(row, headerMap, "travel", "travelallowance")),
+		Hostel:                    parseFloat(getValue(row, headerMap, "hostel", "hostelallowance")),
+		Children:                  parseFloat(getValue(row, headerMap, "children", "childrenallowance")),
+		TotalSalary:               parseFloat(getValue(row, headerMap, "totalsalary")),
+		Mobile:                    parseFloat(getValue(row, headerMap, "mobileallowance", "mobile")),
+		Conveyance:                parseFloat(getValue(row, headerMap, "conveyance")),
+		WashAllowance:             parseFloat(getValue(row, headerMap, "washallowance")),
+		BranchAllowance:           parseFloat(getValue(row, headerMap, "branchallowance")),
+		SpecialAllowance:          parseFloat(getValue(row, headerMap, "specialallowance")),
+		Training:                  parseFloat(getValue(row, headerMap, "training", "trainingallowance")),
+		TotalAllowances:           parseFloat(getValue(row, headerMap, "totalallowances")),
+		TotalSalaryWithAllowances: parseFloat(getValue(row, headerMap, "totalsalarywithallowances")),
+		BankName:                  getValue(row, headerMap, "bankname"),
+		AccountNumber:             getValue(row, headerMap, "accountnumber", "accno"),
+		BankBranch:                getValue(row, headerMap, "bankbranch"),
+		IFSCCode:                  getValue(row, headerMap, "ifsccode", "ifsc"),
+		Zone:                      getValue(row, headerMap, "zone"),
+	}
+	if e.Mobile == 0 {
+		e.Mobile = parseFloat(getValue(row, headerMap, "mobile", "mobileallowance"))
 	}
 	e.RowHash = EmployeeRowHash(
 		e.ID, e.Name, e.Department, e.MobileNumber, e.Level, e.Branch, e.Designation, e.Zone,
@@ -159,29 +175,28 @@ type StagingEPF struct {
 	ESINumber     string
 }
 
-func parseEPFRow(rowNum int, row []string) (*StagingEPF, string) {
-	row = padRow(row, 12)
-	id := strings.TrimSpace(row[1])
+func parseEPFRow(rowNum int, row []string, headerMap map[string]int) (*StagingEPF, string) {
+	id := getValue(row, headerMap, "employeeid", "empid", "id")
 	if id == "" {
 		return nil, "empty EMP ID"
 	}
-	doj := strings.TrimSpace(row[5])
-	doa := strings.TrimSpace(row[7])
+	doj := getValue(row, headerMap, "doj", "dateofjoining")
+	doa := getValue(row, headerMap, "doa", "dateofadmission")
 	r := &StagingEPF{
 		RowNum:        rowNum,
 		EmployeeID:    id,
-		Name:          strings.TrimSpace(row[2]),
-		Department:    strings.TrimSpace(row[3]),
-		Level:         strings.TrimSpace(row[4]),
+		Name:          getValue(row, headerMap, "name", "employeename"),
+		Department:    getValue(row, headerMap, "department", "dept"),
+		Level:         getValue(row, headerMap, "level", "emplevel"),
 		DOJ:           doj,
 		DOJDate:       employee.ParseDOJ(doj),
-		YearsSinceDOJ: parseFloatStrict(row[6]),
+		YearsSinceDOJ: parseFloatStrict(getValue(row, headerMap, "yearssincedoj", "yearsincejoining")),
 		DOA:           doa,
 		DOADate:       employee.ParseDOJ(doa),
-		YearsSinceDOA: parseFloatStrict(row[8]),
-		EPFNumber:     strings.TrimSpace(row[9]),
-		UAN:           strings.TrimSpace(row[10]),
-		ESINumber:     strings.TrimSpace(row[11]),
+		YearsSinceDOA: parseFloatStrict(getValue(row, headerMap, "yearssincedoa", "yearsincdoa")),
+		EPFNumber:     getValue(row, headerMap, "epfnumber", "epfno"),
+		UAN:           getValue(row, headerMap, "uan"),
+		ESINumber:     getValue(row, headerMap, "esinumber", "esino"),
 	}
 	r.RowHash = EpfRowHash(
 		r.EmployeeID, r.Name, r.Department, r.Level, r.DOJ, r.DOA,
@@ -241,9 +256,8 @@ type StagingPayroll struct {
 	ActualFinalAmount            float64
 }
 
-func parsePayrollRow(rowNum int, row []string, month, year int) (*StagingPayroll, string) {
-	row = padRow(row, 47)
-	empID := strings.TrimSpace(row[0])
+func parsePayrollRow(rowNum int, row []string, month, year int, headerMap map[string]int) (*StagingPayroll, string) {
+	empID := getValue(row, headerMap, "employeeid", "empid", "id")
 	if empID == "" {
 		return nil, "empty Employee ID"
 	}
@@ -252,49 +266,49 @@ func parsePayrollRow(rowNum int, row []string, month, year int) (*StagingPayroll
 		EmployeeID:                   empID,
 		Month:                        month,
 		Year:                         year,
-		EmpNameSnapshot:              strings.TrimSpace(row[1]),
-		Leaves:                       parseFloat(row[2]),
-		LOP:                          parseFloat(row[3]),
-		Days:                         parseFloat(row[4]),
-		Basic:                        parseFloat(row[5]),
-		DA:                           parseFloat(row[6]),
-		BasicDA:                      parseFloat(row[7]),
-		HRA:                          parseFloat(row[8]),
-		Travel:                       parseFloat(row[9]),
-		ChildrenHostel:               parseFloat(row[10]),
-		ChildrenEducation:            parseFloat(row[11]),
-		Mobile:                       parseFloat(row[12]),
-		Conveyance:                   parseFloat(row[13]),
-		BranchAllowance:              parseFloat(row[14]),
-		WashAllowance:                parseFloat(row[15]),
-		SpecialAllowance:             parseFloat(row[16]),
-		Training:                     parseFloat(row[17]),
-		Incentive:                    parseFloat(row[18]),
-		TotalEarWithIncen:            parseFloat(row[19]),
-		GrossSalWithoutIncentives:    parseFloat(row[20]),
-		PF:                           parseFloat(row[21]),
-		PF367:                        parseFloat(row[22]),
-		PF833:                        parseFloat(row[23]),
-		ESI075:                       parseFloat(row[24]),
-		ESI325:                       parseFloat(row[25]),
-		TDS:                          parseFloat(row[26]),
-		SalAdv:                       parseFloat(row[27]),
-		AdditionalDeduction:          parseFloat(row[28]),
-		Loan:                         parseFloat(row[29]),
-		CompanyStatutoryContribution: parseFloat(row[30]),
-		ReimbMedical:                 parseFloat(row[31]),
-		ReimbLTA:                     parseFloat(row[32]),
-		ZetaMealVoucher:              parseFloat(row[33]),
-		ReimbTravel:                  parseFloat(row[34]),
-		TotalReimbursement:           parseFloat(row[35]),
-		NetIncentive:                 parseFloat(row[36]),
-		TotalDeductions:              parseFloat(row[37]),
-		ActualFinalAmount:            parseFloat(row[38]),
-		LOPDeduction:                 parseFloat(row[39]),
-		EPFER:                        parseFloat(row[40]),
-		GrossForPT:                   parseFloat(row[41]),
-		Advance:                      parseFloat(row[42]),
-		Absents:                      parseFloat(row[46]),
+		EmpNameSnapshot:              getValue(row, headerMap, "empnamesnapshot", "name", "employeename"),
+		Leaves:                       parseFloat(getValue(row, headerMap, "leaves", "takenleaves")),
+		LOP:                          parseFloat(getValue(row, headerMap, "lop", "lossofpay")),
+		Days:                         parseFloat(getValue(row, headerMap, "days", "workingdays")),
+		Basic:                        parseFloat(getValue(row, headerMap, "basic")),
+		DA:                           parseFloat(getValue(row, headerMap, "da")),
+		BasicDA:                      parseFloat(getValue(row, headerMap, "basicda")),
+		HRA:                          parseFloat(getValue(row, headerMap, "hra")),
+		Travel:                       parseFloat(getValue(row, headerMap, "travel")),
+		ChildrenHostel:               parseFloat(getValue(row, headerMap, "childrenhostel")),
+		ChildrenEducation:            parseFloat(getValue(row, headerMap, "childreneducation")),
+		Mobile:                       parseFloat(getValue(row, headerMap, "mobile", "mobileallowance")),
+		Conveyance:                   parseFloat(getValue(row, headerMap, "conveyance")),
+		BranchAllowance:              parseFloat(getValue(row, headerMap, "branchallowance")),
+		WashAllowance:                parseFloat(getValue(row, headerMap, "washallowance")),
+		SpecialAllowance:             parseFloat(getValue(row, headerMap, "specialallowance")),
+		Training:                     parseFloat(getValue(row, headerMap, "training")),
+		Incentive:                    parseFloat(getValue(row, headerMap, "incentive")),
+		TotalEarWithIncen:            parseFloat(getValue(row, headerMap, "totalearwithincen", "totalearnings")),
+		GrossSalWithoutIncentives:    parseFloat(getValue(row, headerMap, "grosssalwithoutincentives")),
+		PF:                           parseFloat(getValue(row, headerMap, "pf", "providentfund")),
+		PF367:                        parseFloat(getValue(row, headerMap, "pf367")),
+		PF833:                        parseFloat(getValue(row, headerMap, "pf833")),
+		ESI075:                       parseFloat(getValue(row, headerMap, "esi075")),
+		ESI325:                       parseFloat(getValue(row, headerMap, "esi325")),
+		TDS:                          parseFloat(getValue(row, headerMap, "tds", "tax")),
+		SalAdv:                       parseFloat(getValue(row, headerMap, "saladv", "salaryadvance")),
+		AdditionalDeduction:          parseFloat(getValue(row, headerMap, "additionaldeduction")),
+		Loan:                         parseFloat(getValue(row, headerMap, "loan")),
+		CompanyStatutoryContribution: parseFloat(getValue(row, headerMap, "companystatutorycontribution")),
+		ReimbMedical:                 parseFloat(getValue(row, headerMap, "reimbmedical", "medicalreimbursement")),
+		ReimbLTA:                     parseFloat(getValue(row, headerMap, "reimblta", "ltareimbursement")),
+		ZetaMealVoucher:              parseFloat(getValue(row, headerMap, "zetamealvoucher")),
+		ReimbTravel:                  parseFloat(getValue(row, headerMap, "reimbtravel", "travelreimbursement")),
+		TotalReimbursement:           parseFloat(getValue(row, headerMap, "totalreimbursement")),
+		NetIncentive:                 parseFloat(getValue(row, headerMap, "netincentive")),
+		TotalDeductions:              parseFloat(getValue(row, headerMap, "totaldeductions")),
+		ActualFinalAmount:            parseFloat(getValue(row, headerMap, "actualfinalamount", "netpay", "netsalary")),
+		LOPDeduction:                 parseFloat(getValue(row, headerMap, "lopdeduction")),
+		EPFER:                        parseFloat(getValue(row, headerMap, "epfer")),
+		GrossForPT:                   parseFloat(getValue(row, headerMap, "grossforpt")),
+		Advance:                      parseFloat(getValue(row, headerMap, "advance")),
+		Absents:                      parseFloat(getValue(row, headerMap, "absents", "absentdays")),
 	}
 	r.RowHash = PayrollRowHash(
 		r.EmployeeID, r.Month, r.Year, r.EmpNameSnapshot,
