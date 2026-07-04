@@ -16,7 +16,7 @@ export default function ReferralsPage() {
   const generateMutation = useMutation({
     mutationFn: () => referralApi.generateLink(employeeIdInput),
     onSuccess: (data) => {
-      setGeneratedLink(`http://localhost:5173/referrals/${data.code}`);
+      setGeneratedLink(`${window.location.origin}/referrals/${data.code}`);
       toast.success('Referral link generated');
     },
     onError: () => toast.error('Failed to generate link'),

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -475,7 +476,10 @@ func (s *Service) handleReferralLinkRequest(ctx context.Context, sess *Session, 
 		return s.sendText(ctx, from, "We were unable to generate your referral link at this time. Please try again later.")
 	}
 
-	portalBaseUrl := "http://localhost:5173" // We could inject this from config later.
+	portalBaseUrl := os.Getenv("PORTAL_BASE_URL")
+	if portalBaseUrl == "" {
+		portalBaseUrl = "http://localhost:5173"
+	}
 	url := fmt.Sprintf("%s/referrals/%s", portalBaseUrl, link.Code)
 	
 	msg := fmt.Sprintf("Here is your unique referral link:\n%s\n\nIt is valid for 30 days.", url)
