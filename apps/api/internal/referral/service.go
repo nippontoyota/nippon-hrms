@@ -102,7 +102,7 @@ func (s *Service) GetLinkDetails(ctx context.Context, code string) (*ReferralLin
 	return link, nil
 }
 
-func (s *Service) SubmitCandidate(ctx context.Context, code, name, phone, resumeURL string) (*Candidate, error) {
+func (s *Service) SubmitCandidate(ctx context.Context, code, name, phone, resumeURL, designation string) (*Candidate, error) {
 	link, err := s.GetLinkDetails(ctx, code)
 	if err != nil {
 		return nil, err
@@ -128,6 +128,7 @@ func (s *Service) SubmitCandidate(ctx context.Context, code, name, phone, resume
 		Name:           name,
 		Phone:          phone,
 		ResumeURL:      resumeURL,
+		Designation:    designation,
 		Status:         "PENDING",
 	}
 
