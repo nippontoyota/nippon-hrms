@@ -1,25 +1,13 @@
-import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { referralApi } from '@/api/referral';
 import toast from 'react-hot-toast';
 
 export default function ReferralsPage() {
   const queryClient = useQueryClient();
-  const [employeeIdInput, setEmployeeIdInput] = useState('');
-  const [generatedLink, setGeneratedLink] = useState('');
 
   const { data: candidates, isLoading: isLoadingCandidates } = useQuery({
     queryKey: ['candidates'],
     queryFn: referralApi.listCandidates,
-  });
-
-  const generateMutation = useMutation({
-    mutationFn: () => referralApi.generateLink(employeeIdInput),
-    onSuccess: (data) => {
-      setGeneratedLink(`${window.location.origin}/referrals/${data.code}`);
-      toast.success('Referral link generated');
-    },
-    onError: () => toast.error('Failed to generate link'),
   });
 
   const updateStatusMutation = useMutation({
@@ -37,36 +25,8 @@ export default function ReferralsPage() {
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Referrals</h1>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="col-span-1 bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Generate Link</h2>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Employee ID (UUID)</label>
-              <input
-                type="text"
-                value={employeeIdInput}
-                onChange={(e) => setEmployeeIdInput(e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 dark:border-slate-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm dark:bg-slate-700 dark:text-white"
-                placeholder="00000000-0000-0000-0000-000000000000"
-              />
-            </div>
-            <button
-              onClick={() => generateMutation.mutate()}
-              disabled={!employeeIdInput || generateMutation.isPending}
-              className="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-400"
-            >
-              {generateMutation.isPending ? 'Generating...' : 'Generate Link'}
-            </button>
-            {generatedLink && (
-              <div className="mt-4 p-3 bg-gray-50 dark:bg-slate-900 rounded-md break-all text-sm font-mono text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-slate-700">
-                {generatedLink}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="col-span-1 md:col-span-2 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden">
+      <div className="grid grid-cols-1 gap-6">
+        <div className="col-span-1 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden">
           <div className="px-6 py-5 border-b border-gray-200 dark:border-slate-700">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Candidates</h2>
           </div>
