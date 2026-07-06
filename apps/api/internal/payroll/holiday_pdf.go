@@ -2,6 +2,7 @@ package payroll
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/johnfercher/maroto/v2"
@@ -19,6 +20,24 @@ import (
 
 	"github.com/nippon-toyota/hrms/internal/holiday"
 )
+
+var (
+	colorHolidayBand   = &props.Color{Red: 31, Green: 78, Blue: 140}   // deep blue section band
+	colorHolidayHead   = &props.Color{Red: 219, Green: 231, Blue: 246} // light blue column header
+	colorHolidayStripe = &props.Color{Red: 240, Green: 246, Blue: 253} // pale blue zebra stripe
+	colorWhite         = &props.Color{Red: 255, Green: 255, Blue: 255}
+)
+
+// nationalHolidayNames identifies which holidays belong to the "National Holidays"
+// section of the Kerala Labour Commissionerate notice; everything else is a festival holiday.
+var nationalHolidayNames = map[string]bool{
+	"republic day":           true,
+	"may day":                true,
+	"independence day":       true,
+	"gandhi jayanthi":        true,
+	"gandhi jayanti":         true,
+	"mahatma gandhi jayanti": true,
+}
 
 type holidayRow struct {
 	Index string
@@ -46,8 +65,19 @@ func newHolidayRows(holidays []holiday.Holiday) []holidayRow {
 	return rows
 }
 
-// holidayTitleLine returns a subtitle covering the year(s) present in the list.
-func holidayTitleLine(holidays []holiday.Holiday) string {
+func splitHolidays(holidays []holiday.Holiday) (national, festival []holiday.Holiday) {
+	for _, h := range holidays {
+		if nationalHolidayNames[strings.ToLower(strings.TrimSpace(h.Name))] {
+			national = append(national, h)
+		} else {
+			festival = append(festival, h)
+		}
+	}
+	return national, festival
+}
+
+// holidayYearLine returns the year(s) covered by the list, e.g. "2026" or "2026 - 2027".
+func holidayYearLine(holidays []holiday.Holiday) string {
 	var minY, maxY int
 	for _, h := range holidays {
 		d, err := time.Parse("2006-01-02", h.Date)
@@ -64,15 +94,23 @@ func holidayTitleLine(holidays []holiday.Holiday) string {
 	}
 	switch {
 	case minY == 0:
-		return "Holiday Calendar"
+		return ""
 	case minY == maxY:
-		return fmt.Sprintf("Holiday Calendar %d", minY)
+		return fmt.Sprintf("%d", minY)
 	default:
-		return fmt.Sprintf("Holiday Calendar %d - %d", minY, maxY)
+		return fmt.Sprintf("%d - %d", minY, maxY)
 	}
 }
 
-// GenerateHolidayCalendarPDF renders the full list of company holidays as a PDF and returns the bytes.
+func holidayTitleLine(holidays []holiday.Holiday) string {
+	if years := holidayYearLine(holidays); years != "" {
+		return "Holiday Calendar " + years
+	}
+	return "Holiday Calendar"
+}
+
+// GenerateHolidayCalendarPDF renders the company holidays as a PDF with separate
+// National and Festival sections and returns the bytes.
 func GenerateHolidayCalendarPDF(holidays []holiday.Holiday) ([]byte, error) {
 	cfg := config.NewBuilder().
 		WithPageSize(pagesize.A4).
@@ -85,7 +123,24 @@ func GenerateHolidayCalendarPDF(holidays []holiday.Holiday) ([]byte, error) {
 	m := maroto.New(cfg)
 
 	addHolidayHeader(m, holidayTitleLine(holidays))
-	addHolidayTable(m, newHolidayRows(holidays))
+
+	national, festival := splitHolidays(holidays)
+	years := holidayYearLine(holidays)
+
+	sectionTitle := func(kind string) string {
+		if years != "" {
+			return fmt.Sprintf("List of %s Holidays for the year %s", kind, years)
+		}
+		return fmt.Sprintf("List of %s Holidays", kind)
+	}
+
+	if len(national) > 0 {
+		addHolidaySection(m, sectionTitle("National"), newHolidayRows(national))
+	}
+	if len(festival) > 0 {
+		addHolidaySection(m, sectionTitle("Festival"), newHolidayRows(festival))
+	}
+
 	addHolidayFooter(m)
 
 	doc, err := m.Generate()
@@ -118,28 +173,35 @@ func addHolidayHeader(m core.Maroto, subtitle string) {
 			WithStyle(styleCell(nil, border.Left|border.Right|border.Bottom)),
 	)
 
-	m.AddRow(3, col.New(12))
+	m.AddRow(4, col.New(12))
 }
 
-func addHolidayTable(m core.Maroto, rows []holidayRow) {
-	headText := props.Text{Size: 10, Style: fontstyle.Bold, Align: align.Left, Top: 1.5, Left: 2}
-	headCenter := props.Text{Size: 10, Style: fontstyle.Bold, Align: align.Center, Top: 1.5}
-
-	m.AddRow(8,
-		col.New(1).Add(text.New("#", headCenter)).WithStyle(styleCell(colorGray, border.Full)),
-		col.New(3).Add(text.New("Date", headText)).WithStyle(styleCell(colorGray, border.Full)),
-		col.New(3).Add(text.New("Day", headText)).WithStyle(styleCell(colorGray, border.Full)),
-		col.New(5).Add(text.New("Holiday", headText)).WithStyle(styleCell(colorGray, border.Full)),
+func addHolidaySection(m core.Maroto, title string, rows []holidayRow) {
+	// Section band: deep blue with white bold text.
+	m.AddRow(9,
+		col.New(12).
+			Add(text.New(title, props.Text{Size: 11, Style: fontstyle.Bold, Align: align.Center, Top: 2, Color: colorWhite})).
+			WithStyle(&props.Cell{BackgroundColor: colorHolidayBand, BorderType: border.Full, BorderColor: colorBlack, BorderThickness: 0.3}),
 	)
 
-	idxProp := props.Text{Size: 9, Align: align.Center, Top: 1, Bottom: 1}
-	cellProp := props.Text{Size: 9, Align: align.Left, Top: 1, Bottom: 1, Left: 2}
-	nameProp := props.Text{Size: 9, Style: fontstyle.Bold, Align: align.Left, Top: 1, Bottom: 1, Left: 2}
+	headText := props.Text{Size: 10, Style: fontstyle.Bold, Align: align.Left, Top: 1.5, Left: 2, Color: colorHolidayBand}
+	headCenter := props.Text{Size: 10, Style: fontstyle.Bold, Align: align.Center, Top: 1.5, Color: colorHolidayBand}
+
+	m.AddRow(8,
+		col.New(1).Add(text.New("#", headCenter)).WithStyle(styleCell(colorHolidayHead, border.Full)),
+		col.New(3).Add(text.New("Date", headText)).WithStyle(styleCell(colorHolidayHead, border.Full)),
+		col.New(3).Add(text.New("Day", headText)).WithStyle(styleCell(colorHolidayHead, border.Full)),
+		col.New(5).Add(text.New("Holiday", headText)).WithStyle(styleCell(colorHolidayHead, border.Full)),
+	)
+
+	idxProp := props.Text{Size: 9, Align: align.Center, Top: 1.2, Bottom: 1.2}
+	cellProp := props.Text{Size: 9, Align: align.Left, Top: 1.2, Bottom: 1.2, Left: 2}
+	nameProp := props.Text{Size: 9, Style: fontstyle.Bold, Align: align.Left, Top: 1.2, Bottom: 1.2, Left: 2}
 
 	for i, r := range rows {
 		bg := (*props.Color)(nil)
 		if i%2 == 1 {
-			bg = colorBeige
+			bg = colorHolidayStripe
 		}
 		m.AddAutoRow(
 			col.New(1).Add(text.New(r.Index, idxProp)).WithStyle(styleCell(bg, border.Full)),
@@ -148,6 +210,9 @@ func addHolidayTable(m core.Maroto, rows []holidayRow) {
 			col.New(5).Add(text.New(r.Name, nameProp)).WithStyle(styleCell(bg, border.Full)),
 		)
 	}
+
+	// Gap before the next section.
+	m.AddRow(5, col.New(12))
 }
 
 func addHolidayFooter(m core.Maroto) {
