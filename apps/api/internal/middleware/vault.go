@@ -11,6 +11,10 @@ import (
 func RequireVault(pool *pgxpool.Pool) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodOptions {
+				next.ServeHTTP(w, r)
+				return
+			}
 			if !vault.IsUnlocked(r.Context(), pool, r) {
 				respond.JSON(w, http.StatusForbidden, respond.Envelope{
 					Success: false,

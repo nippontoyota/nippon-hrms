@@ -355,6 +355,8 @@ func (s *Service) handleIdle(ctx context.Context, sess *Session, from, input str
 		return s.handleReferralLinkRequest(ctx, sess, from)
 	case payloadRequestHolidays:
 		return s.beginHolidayFlow(ctx, sess, from)
+	case payloadReferCandidate:
+		return s.handleReferralLinkRequest(ctx, sess, from)
 	}
 
 	lower := strings.ToLower(strings.TrimSpace(input))
@@ -682,11 +684,11 @@ func (s *Service) sendMainMenu(ctx context.Context, to, name string) error {
 		if err == nil {
 			slog.Info("whatsapp menu sent", "to", to, "type", "interactive_media")
 			s.recordOutbound(to)
-			
-			// Add a slight delay to ensure the heavier image message is delivered first 
+
+			// Add a slight delay to ensure the heavier image message is delivered first
 			// before the lightweight text list message.
 			time.Sleep(1500 * time.Millisecond)
-			
+
 			if err := s.sendMoreOptionsMenu(ctx, to); err != nil {
 				return err
 			}
@@ -707,10 +709,10 @@ func (s *Service) sendMainMenu(ctx context.Context, to, name string) error {
 	}
 	slog.Info("whatsapp menu sent", "to", to, "type", "buttons")
 	s.recordOutbound(to)
-	
+
 	// Add delay for button fallback as well just to be consistent
 	time.Sleep(500 * time.Millisecond)
-	
+
 	return s.sendMoreOptionsMenu(ctx, to)
 }
 
@@ -1301,3 +1303,4 @@ func (s *Service) handleLeaveAwaitRejectionReason(ctx context.Context, sess *Ses
 	s.sessions.Set(from, sess)
 	return nil
 }
+

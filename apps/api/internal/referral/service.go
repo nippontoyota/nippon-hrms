@@ -11,6 +11,7 @@ import (
 
 	"github.com/nippon-toyota/hrms/internal/doubletick"
 	"github.com/nippon-toyota/hrms/internal/employee"
+	"github.com/nippon-toyota/hrms/pkg/phone"
 )
 
 var (
@@ -102,7 +103,12 @@ func (s *Service) GetLinkDetails(ctx context.Context, code string) (*ReferralLin
 	return link, nil
 }
 
-func (s *Service) SubmitCandidate(ctx context.Context, code, name, phone, resumeURL, designation string) (*Candidate, error) {
+func (s *Service) SubmitCandidate(ctx context.Context, code, name, phoneRaw, resumeURL, designation string) (*Candidate, error) {
+	phoneNorm := phone.NormalizeIndian(phoneRaw)
+	if phoneNorm == "" {
+		return nil, errors.New("valid phone number is required")
+	}
+
 	link, err := s.GetLinkDetails(ctx, code)
 	if err != nil {
 		return nil, err
@@ -115,7 +121,7 @@ func (s *Service) SubmitCandidate(ctx context.Context, code, name, phone, resume
 		// The requirements say "processes the candidate normally".
 	}
 
-	existing, err := s.repo.GetCandidateByPhone(ctx, phone)
+	existing, err := s.repo.GetCandidateByPhone(ctx, phoneNorm)
 	if err != nil {
 		return nil, fmt.Errorf("check existing candidate: %w", err)
 	}
@@ -126,7 +132,7 @@ func (s *Service) SubmitCandidate(ctx context.Context, code, name, phone, resume
 	candidate := &Candidate{
 		ReferralLinkID: link.ID,
 		Name:           name,
-		Phone:          phone,
+		Phone:          phoneNorm,
 		ResumeURL:      resumeURL,
 		Designation:    designation,
 		Status:         "PENDING",
