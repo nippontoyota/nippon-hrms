@@ -1,9 +1,121 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
+import { CaretDown, MagnifyingGlass, X } from '@phosphor-icons/react';
 import { useCreateEmployee, useEmployee, useEmployees, useUpdateEmployee } from '@/api/hooks';
-import type { EmployeeInput } from '@/api/types';
+import type { Employee, EmployeeInput } from '@/api/types';
+
+interface ManagerSelectProps {
+  managers: Employee[];
+  value: string;
+  onChange: (id: string) => void;
+}
+
+function ManagerSelect({ managers, value, onChange }: ManagerSelectProps) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const selected = managers.find(m => m.id === value);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleClick = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+        setQuery('');
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [open]);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return managers;
+    return managers.filter(
+      m =>
+        m.name.toLowerCase().includes(q) ||
+        m.employeeId.toLowerCase().includes(q),
+    );
+  }, [managers, query]);
+
+  const select = (id: string) => {
+    onChange(id);
+    setOpen(false);
+    setQuery('');
+  };
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <button
+        type="button"
+        className="input flex items-center justify-between gap-2 text-left"
+        onClick={() => setOpen(o => !o)}
+      >
+        <span className={selected ? 'text-slate-900' : 'text-slate-400'}>
+          {selected ? `${selected.name} (${selected.employeeId})` : '-- None --'}
+        </span>
+        <span className="flex items-center gap-1 shrink-0">
+          {selected && (
+            <X
+              size={14}
+              className="text-slate-400 hover:text-slate-700"
+              onClick={(e) => {
+                e.stopPropagation();
+                select('');
+              }}
+            />
+          )}
+          <CaretDown size={14} className="text-slate-400" />
+        </span>
+      </button>
+
+      {open && (
+        <div className="absolute z-20 mt-1 w-full bg-white border border-slate-300 shadow-lg">
+          <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-200">
+            <MagnifyingGlass size={14} className="text-slate-400 shrink-0" />
+            <input
+              autoFocus
+              className="w-full bg-transparent text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none"
+              placeholder="Search by name or EMP ID…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </div>
+          <ul className="max-h-60 overflow-y-auto py-1">
+            <li>
+              <button
+                type="button"
+                className="w-full px-3 py-1.5 text-left text-sm text-slate-500 hover:bg-slate-100"
+                onClick={() => select('')}
+              >
+                -- None --
+              </button>
+            </li>
+            {filtered.map(m => (
+              <li key={m.id}>
+                <button
+                  type="button"
+                  className={`w-full px-3 py-1.5 text-left text-sm hover:bg-slate-100 ${
+                    m.id === value ? 'bg-slate-50 font-semibold text-[#eb0a1e]' : 'text-slate-900'
+                  }`}
+                  onClick={() => select(m.id)}
+                >
+                  {m.name} <span className="text-slate-400">({m.employeeId})</span>
+                </button>
+              </li>
+            ))}
+            {filtered.length === 0 && (
+              <li className="px-3 py-2 text-sm text-slate-400">No matches</li>
+            )}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
 
 const defaultValues: EmployeeInput = {
   employeeId: '',
@@ -28,9 +140,15 @@ export default function EmployeeFormPage() {
   const createMutation = useCreateEmployee();
   const updateMutation = useUpdateEmployee(id ?? '');
 
-  const { register, handleSubmit, reset, formState: { isSubmitting } } = useForm<EmployeeInput>({
+  const { register, handleSubmit, reset, setValue, watch, formState: { isSubmitting } } = useForm<EmployeeInput>({
     defaultValues,
   });
+
+  useEffect(() => {
+    register('managerId');
+  }, [register]);
+
+  const managerId = watch('managerId') ?? '';
 
   useEffect(() => {
     if (employee) {
@@ -132,14 +250,11 @@ export default function EmployeeFormPage() {
           <div className="grid grid-cols-1 gap-4">
             <div>
               <label className="label">Select Manager</label>
-              <select className="input" {...register('managerId')}>
-                <option value="">-- None --</option>
-                {managers.map(e => (
-                  <option key={e.id} value={e.id}>
-                    {e.name} ({e.employeeId})
-                  </option>
-                ))}
-              </select>
+              <ManagerSelect
+                managers={managers}
+                value={managerId}
+                onChange={(val) => setValue('managerId', val, { shouldDirty: true })}
+              />
             </div>
           </div>
         </div>
