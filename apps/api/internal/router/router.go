@@ -133,6 +133,7 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 			})
 
 			r.Route("/payroll", func(r chi.Router) {
+				r.Get("/periods", payrollH.ListPeriods)
 				r.Get("/list", payrollH.List)
 				r.Post("/upload", payrollH.BulkUpload)
 				r.Post("/upload-preview", payrollH.BulkPreview)

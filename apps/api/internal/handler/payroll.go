@@ -209,6 +209,33 @@ func (h *PayrollHandler) RetryFailedDispatch(w http.ResponseWriter, r *http.Requ
 	respond.OK(w, job)
 }
 
+// ListPeriods handles GET /api/v1/payroll/periods?employeeId=X
+// Returns validated payroll periods available for sending to a single employee.
+func (h *PayrollHandler) ListPeriods(w http.ResponseWriter, r *http.Request) {
+	empID := r.URL.Query().Get("employeeId")
+	if empID == "" {
+		respond.BadRequest(w, "employeeId is required")
+		return
+	}
+
+	periods, err := h.dispatcher.ListSendablePeriods(r.Context(), empID)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			respond.NotFound(w, "employee")
+			return
+		}
+		logger.Error("list sendable periods failed", "emp", empID, "err", err)
+		respond.InternalError(w)
+		return
+	}
+
+	if periods == nil {
+		periods = []payroll.Period{}
+	}
+
+	respond.OK(w, periods)
+}
+
 // SendPayslip handles POST /api/v1/payroll/send — sends a single employee's payslip via WhatsApp.
 func (h *PayrollHandler) SendPayslip(w http.ResponseWriter, r *http.Request) {
 	var req struct {

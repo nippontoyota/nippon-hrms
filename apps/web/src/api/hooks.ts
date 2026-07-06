@@ -96,6 +96,14 @@ export function useDeletePayroll() {
   });
 }
 
+export function useSendablePeriods(employeeId: string | undefined) {
+  return useQuery({
+    queryKey: ['payroll', 'sendable-periods', employeeId],
+    queryFn: () => salaryApi.listSendablePeriods(employeeId!),
+    enabled: !!employeeId,
+  });
+}
+
 export function usePayrollRecords(month: number, year: number, params?: { page?: number; limit?: number; search?: string }) {
   const page = params?.page ?? 1;
   const limit = params?.limit ?? 50;

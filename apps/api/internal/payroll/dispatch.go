@@ -82,8 +82,9 @@ func PayslipCaption(monthStr string, year int, empName string) string {
 func payslipTemplatePlaceholders(empName, monthStr string, year int) []string {
 	yearStr := strconv.Itoa(year)
 	// notification_of_payslip body (Meta numbers {{1}}…{{5}} in appearance order):
-	//   {{1}} name (title line), {{2}} month, {{3}} name (greeting), {{4}} month, {{5}} year.
-	return []string{empName, monthStr, empName, monthStr, yearStr}
+	//   {{1}} month (title line), {{2}} year (title line), {{3}} name (greeting), {{4}} month, {{5}} year.
+	// Title must read "Payslip - July 2026", not the employee name.
+	return []string{monthStr, yearStr, empName, monthStr, yearStr}
 }
 
 func (d *Dispatcher) isSessionOpen(ctx context.Context, to string) bool {
@@ -176,32 +177,54 @@ func (d *Dispatcher) ValidatePayroll(ctx context.Context, month, year int) ([]Va
 			continue
 		}
 
-		if !strings.EqualFold(strings.TrimSpace(rec.EmpNameSnapshot), strings.TrimSpace(emp.Name)) {
+		if reason := validateEmployeeRecord(emp, &rec); reason != "" {
 			validationErrs = append(validationErrs, ValidationError{
 				EmployeeID:   rec.EmployeeID,
 				EmployeeName: rec.EmpNameSnapshot,
-				Reason:       fmt.Sprintf("Name mismatch: Payroll says '%s', but Directory says '%s'", strings.TrimSpace(rec.EmpNameSnapshot), strings.TrimSpace(emp.Name)),
-			})
-		}
-
-		if emp.MobileNumber == "" {
-			validationErrs = append(validationErrs, ValidationError{
-				EmployeeID:   rec.EmployeeID,
-				EmployeeName: rec.EmpNameSnapshot,
-				Reason:       "Missing mobile number",
-			})
-		}
-
-		if rec.ActualFinalAmount <= 0 {
-			validationErrs = append(validationErrs, ValidationError{
-				EmployeeID:   rec.EmployeeID,
-				EmployeeName: rec.EmpNameSnapshot,
-				Reason:       fmt.Sprintf("Net salary is %.2f (must be > 0)", rec.ActualFinalAmount),
+				Reason:       reason,
 			})
 		}
 	}
 
 	return validationErrs, nil
+}
+
+func validateEmployeeRecord(emp *employee.Employee, rec *Record) string {
+	if !strings.EqualFold(strings.TrimSpace(rec.EmpNameSnapshot), strings.TrimSpace(emp.Name)) {
+		return fmt.Sprintf("Name mismatch: Payroll says '%s', but Directory says '%s'", strings.TrimSpace(rec.EmpNameSnapshot), strings.TrimSpace(emp.Name))
+	}
+	if emp.MobileNumber == "" {
+		return "Missing mobile number"
+	}
+	if rec.ActualFinalAmount <= 0 {
+		return fmt.Sprintf("Net salary is %.2f (must be > 0)", rec.ActualFinalAmount)
+	}
+	return ""
+}
+
+// ListSendablePeriods returns payroll periods for an employee that pass validation.
+func (d *Dispatcher) ListSendablePeriods(ctx context.Context, employeeID string) ([]Period, error) {
+	emp, err := d.empRepo.GetByID(ctx, employeeID)
+	if err != nil {
+		return nil, fmt.Errorf("employee not found: %w", err)
+	}
+
+	periods, err := d.repo.ListPeriodsByEmployee(ctx, employeeID)
+	if err != nil {
+		return nil, err
+	}
+
+	var valid []Period
+	for _, p := range periods {
+		rec, err := d.repo.GetPayslip(ctx, employeeID, p.Month, p.Year)
+		if err != nil {
+			continue
+		}
+		if validateEmployeeRecord(emp, rec) == "" {
+			valid = append(valid, p)
+		}
+	}
+	return valid, nil
 }
 
 // DispatchPayslips is deprecated; bulk dispatch is handled by internal/dispatch.Service.
