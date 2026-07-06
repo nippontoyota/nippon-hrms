@@ -14,6 +14,7 @@ import { useTableRowHighlight } from '@/lib/useTableRowHighlight';
 import BulkUploadWizard from '@/components/BulkUploadWizard';
 import ImportConflictPanel from '@/components/ImportConflictPanel';
 import TablePagination from '@/components/TablePagination';
+import ManagerSelect from '@/components/ManagerSelect';
 
 type SortKey = 'employeeId' | 'name' | 'department' | 'managerName' | 'doj' | 'birthday' | 'branch' | 'designation';
 type SortDir = 'asc' | 'desc';
@@ -33,11 +34,12 @@ function formatMobile(mobile: string): string {
 
 const Cell = ({ 
   emp, field, displayField, type = 'text', className = '', formatFn,
-  editingId, editForm, setEditForm, onSave, options
+  editingId, editForm, setEditForm, onSave, managerOptions, options
 }: { 
   emp: Employee, field: keyof Employee, displayField?: keyof Employee, type?: string, className?: string, formatFn?: (v: any) => React.ReactNode,
   editingId: string | null, editForm: Partial<Employee>, setEditForm: React.Dispatch<React.SetStateAction<Partial<Employee>>>,
   onSave?: () => void,
+  managerOptions?: { id: string; employeeId: string; name: string }[],
   options?: {label: string, value: string}[]
 }) => {
   const vaultToken = useVaultStore(s => s.vaultToken);
@@ -50,6 +52,18 @@ const Cell = ({
 
   
   if (isEditing) {
+    if (managerOptions) {
+      return (
+        <td className={`${className} p-1 align-top`}>
+          <ManagerSelect
+            compact
+            managers={managerOptions.filter(m => m.id !== emp.id)}
+            value={(editForm[field] as string) || ''}
+            onChange={(id) => setEditForm(prev => ({ ...prev, [field]: id }))}
+          />
+        </td>
+      );
+    }
     if (options) {
       return (
         <td className={`${className} p-1`}>
@@ -108,7 +122,9 @@ export default function EmployeesPage() {
   }, [search]);
 
   const { data, isLoading } = useEmployees({ page, limit, search: debouncedSearch });
+  const { data: managerListData } = useEmployees({ limit: 500 });
   const employees = data?.items ?? [];
+  const managerOptions = managerListData?.items ?? [];
   const total = data?.total ?? 0;
   const { data: conflictsJob } = useLatestConflictsJob('employees');
   const deleteMutation = useDeleteEmployee();
@@ -425,7 +441,7 @@ export default function EmployeesPage() {
                   
                   // Common cell props
                   const cellProps = {
-                    emp: e, editingId, editForm, setEditForm, onSave: saveEdit
+                    emp: e, editingId, editForm, setEditForm, onSave: saveEdit, managerOptions,
                   };
 
                   return (
@@ -447,7 +463,7 @@ export default function EmployeesPage() {
                       <Cell {...cellProps} field="employeeId" className="font-mono font-bold text-slate-900 dark:text-white" />
                       <Cell {...cellProps} field="name" className="font-semibold text-slate-900 dark:text-white" />
                       <Cell {...cellProps} field="department" />
-                      <Cell {...cellProps} field="managerId" displayField="managerName" options={employees.map(emp => ({ label: `${emp.name} (${emp.employeeId})`, value: emp.id }))} />
+                      <Cell {...cellProps} field="managerId" displayField="managerName" managerOptions={managerOptions} />
                       <Cell {...cellProps} field="mobileNo" className="font-mono text-slate-700 dark:text-slate-200" formatFn={v => formatMobile(v as string)} />
                       <Cell {...cellProps} field="level" className="text-center" />
                       <Cell {...cellProps} field="doj" type="date" />
