@@ -46,6 +46,8 @@ export const epfApi = {
 };
 
 export const salaryApi = {
+  listSendablePeriods: (employeeId: string) =>
+    api.get<{ month: number; year: number }[]>(`/payroll/periods?employeeId=${encodeURIComponent(employeeId)}`).then((r) => r.data),
   list: (month: number, year: number, params?: { page?: number; limit?: number; search?: string }) =>
     api.get<PaginatedResult<PayrollRecord>>(`/payroll/list?month=${month}&year=${year}`, { params }).then((r) => r.data),
   dispatch: (month: number, year: number) =>
