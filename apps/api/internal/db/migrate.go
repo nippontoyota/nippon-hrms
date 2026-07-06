@@ -24,6 +24,9 @@ func EnsureSchema(ctx context.Context, pool *pgxpool.Pool) error {
 			created_at TIMESTAMPTZ DEFAULT NOW()
 		);
 		CREATE INDEX IF NOT EXISTS idx_holidays_date ON holidays(date);
+
+		ALTER TABLE import_staging_employees
+		ADD COLUMN IF NOT EXISTS manager_id VARCHAR(50);
 	`)
 	if err != nil {
 		return err

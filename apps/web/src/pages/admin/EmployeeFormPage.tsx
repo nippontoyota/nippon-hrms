@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { useCreateEmployee, useEmployee, useEmployees, useUpdateEmployee } from '@/api/hooks';
 import type { EmployeeInput } from '@/api/types';
+import SearchableSelect from '@/components/SearchableSelect';
 
 const defaultValues: EmployeeInput = {
   employeeId: '',
@@ -28,9 +29,15 @@ export default function EmployeeFormPage() {
   const createMutation = useCreateEmployee();
   const updateMutation = useUpdateEmployee(id ?? '');
 
-  const { register, handleSubmit, reset, formState: { isSubmitting } } = useForm<EmployeeInput>({
+  const { register, handleSubmit, reset, setValue, watch, formState: { isSubmitting } } = useForm<EmployeeInput>({
     defaultValues,
   });
+
+  useEffect(() => {
+    register('managerId');
+  }, [register]);
+
+  const managerId = watch('managerId') ?? '';
 
   useEffect(() => {
     if (employee) {
@@ -132,14 +139,11 @@ export default function EmployeeFormPage() {
           <div className="grid grid-cols-1 gap-4">
             <div>
               <label className="label">Select Manager</label>
-              <select className="input" {...register('managerId')}>
-                <option value="">-- None --</option>
-                {managers.map(e => (
-                  <option key={e.id} value={e.id}>
-                    {e.name} ({e.employeeId})
-                  </option>
-                ))}
-              </select>
+              <SearchableSelect
+                options={managers.map(m => ({ label: `${m.name} (${m.employeeId})`, value: m.id }))}
+                value={managerId}
+                onChange={(val) => setValue('managerId', val, { shouldDirty: true })}
+              />
             </div>
           </div>
         </div>

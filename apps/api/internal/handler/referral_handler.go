@@ -57,17 +57,18 @@ func (h *ReferralHandler) GetLinkDetails(w http.ResponseWriter, r *http.Request)
 
 func (h *ReferralHandler) SubmitCandidate(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Code      string `json:"code"`
-		Name      string `json:"name"`
-		Phone     string `json:"phone"`
-		ResumeURL string `json:"resumeUrl"`
+		Code        string `json:"code"`
+		Name        string `json:"name"`
+		Phone       string `json:"phone"`
+		ResumeURL   string `json:"resumeUrl"`
+		Designation string `json:"designation"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	candidate, err := h.svc.SubmitCandidate(r.Context(), req.Code, req.Name, req.Phone, req.ResumeURL)
+	candidate, err := h.svc.SubmitCandidate(r.Context(), req.Code, req.Name, req.Phone, req.ResumeURL, req.Designation)
 	if err != nil {
 		if errors.Is(err, referral.ErrDuplicateCandidate) {
 			http.Error(w, err.Error(), http.StatusConflict)

@@ -78,10 +78,37 @@ func parseRows(entity EntityType, rows [][]string, month, year, maxRows int) (*P
 	res := &ParseResult{}
 	seen := make(map[string]int)
 
+	headerMap := make(map[string]int)
+	counts := make(map[string]int)
+	if len(rows) > 0 {
+		for i, col := range rows[0] {
+			norm := NormalizeHeader(col)
+			if norm != "" {
+				counts[norm]++
+				if counts[norm] > 1 {
+					norm = fmt.Sprintf("%s_%d", norm, counts[norm])
+				}
+				headerMap[norm] = i
+			}
+		}
+	}
+
 	for i, row := range rows {
 		if i == 0 {
 			continue
 		}
+		
+		isEmpty := true
+		for _, col := range row {
+			if strings.TrimSpace(col) != "" {
+				isEmpty = false
+				break
+			}
+		}
+		if isEmpty {
+			continue
+		}
+
 		rowNum := i + 1
 		if res.TotalRows >= maxRows {
 			res.Errors = append(res.Errors, JobError{RowNum: rowNum, Message: fmt.Sprintf("exceeds max rows limit (%d)", maxRows)})
@@ -90,7 +117,7 @@ func parseRows(entity EntityType, rows [][]string, month, year, maxRows int) (*P
 
 		switch entity {
 		case EntityEmployees:
-			e, msg := parseEmployeeRow(rowNum, row)
+			e, msg := parseEmployeeRow(rowNum, row, headerMap)
 			if msg != "" {
 				res.Errors = append(res.Errors, JobError{RowNum: rowNum, Message: msg})
 				continue
@@ -104,7 +131,7 @@ func parseRows(entity EntityType, rows [][]string, month, year, maxRows int) (*P
 			res.TotalRows++
 
 		case EntityEPF:
-			e, msg := parseEPFRow(rowNum, row)
+			e, msg := parseEPFRow(rowNum, row, headerMap)
 			if msg != "" {
 				res.Errors = append(res.Errors, JobError{RowNum: rowNum, Message: msg})
 				continue
@@ -118,7 +145,7 @@ func parseRows(entity EntityType, rows [][]string, month, year, maxRows int) (*P
 			res.TotalRows++
 
 		case EntityPayroll:
-			p, msg := parsePayrollRow(rowNum, row, month, year)
+			p, msg := parsePayrollRow(rowNum, row, month, year, headerMap)
 			if msg != "" {
 				res.Errors = append(res.Errors, JobError{RowNum: rowNum, Message: msg})
 				continue

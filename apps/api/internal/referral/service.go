@@ -103,7 +103,7 @@ func (s *Service) GetLinkDetails(ctx context.Context, code string) (*ReferralLin
 	return link, nil
 }
 
-func (s *Service) SubmitCandidate(ctx context.Context, code, name, phoneRaw, resumeURL string) (*Candidate, error) {
+func (s *Service) SubmitCandidate(ctx context.Context, code, name, phoneRaw, resumeURL, designation string) (*Candidate, error) {
 	phoneNorm := phone.NormalizeIndian(phoneRaw)
 	if phoneNorm == "" {
 		return nil, errors.New("valid phone number is required")
@@ -134,6 +134,7 @@ func (s *Service) SubmitCandidate(ctx context.Context, code, name, phoneRaw, res
 		Name:           name,
 		Phone:          phoneNorm,
 		ResumeURL:      resumeURL,
+		Designation:    designation,
 		Status:         "PENDING",
 	}
 

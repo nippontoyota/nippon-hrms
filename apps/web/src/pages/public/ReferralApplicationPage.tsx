@@ -3,14 +3,27 @@ import { useParams } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { referralApi } from '@/api/referral';
 import toast from 'react-hot-toast';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { motion, AnimatePresence } from 'framer-motion';
+import { SpinnerGap, CheckCircle, WarningCircle } from '@phosphor-icons/react';
+import { supabase } from '@/lib/supabase';
+
+const formSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters'),
+  phone: z.string().regex(/^\+?[0-9]{10,15}$/, 'Enter a valid phone number (e.g., +919876543210)'),
+  resumeUrl: z.string().url('Please enter a valid URL (e.g., https://linkedin.com/...)').optional().or(z.literal('')),
+  designation: z.string().min(2, 'Please specify the role you are applying for'),
+});
+
+type FormData = z.infer<typeof formSchema>;
 
 export default function ReferralApplicationPage() {
   const { code } = useParams<{ code: string }>();
-
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [resumeUrl, setResumeUrl] = useState(''); // Normally a file upload, using URL for simplicity
   const [submitted, setSubmitted] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const { data: link, isLoading, isError } = useQuery({
     queryKey: ['referralLink', code],
@@ -19,118 +32,235 @@ export default function ReferralApplicationPage() {
     retry: false,
   });
 
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: { name: '', phone: '', resumeUrl: '', designation: '' },
+  });
+
   const submitMutation = useMutation({
-    mutationFn: () => referralApi.submitCandidate(code!, { name, phone, resumeUrl }),
+    mutationFn: (data: FormData & { resumeUrl: string }) => referralApi.submitCandidate(code!, data),
     onSuccess: () => {
       setSubmitted(true);
-      toast.success('Application submitted successfully!');
     },
     onError: (error: any) => {
       if (error.response?.status === 409) {
         toast.error('An application with this phone number already exists.');
       } else {
-        toast.error('Failed to submit application.');
+        toast.error('Failed to submit application. Please try again.');
       }
     },
   });
 
-  if (isLoading) {
-    return <div className="min-h-screen flex items-center justify-center dark:bg-slate-900"><div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>;
-  }
+  const onSubmit = async (data: FormData) => {
+    let finalResumeUrl = data.resumeUrl;
 
-  if (isError || !link) {
+    if (file) {
+      setUploading(true);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      
+      const { data: uploadData, error } = await supabase.storage
+        .from('resumes')
+        .upload(fileName, file);
+        
+      setUploading(false);
+
+      if (error) {
+        toast.error('Failed to upload resume. Please check if the file is too large.');
+        return;
+      }
+      
+      const { data: publicUrlData } = supabase.storage
+        .from('resumes')
+        .getPublicUrl(uploadData.path);
+        
+      finalResumeUrl = publicUrlData.publicUrl;
+    }
+
+    submitMutation.mutate({ ...data, resumeUrl: finalResumeUrl || '' });
+  };
+
+  if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900">
-        <div className="max-w-md w-full p-8 bg-white dark:bg-slate-800 rounded-xl shadow-xl text-center">
-          <h2 className="text-2xl font-bold text-red-600 mb-4">Invalid Link</h2>
-          <p className="text-gray-600 dark:text-gray-300">This referral link is invalid or has expired.</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-slate-950">
+        <SpinnerGap className="w-8 h-8 animate-spin text-gray-900 dark:text-gray-100" />
       </div>
     );
   }
 
-  if (submitted) {
+  if (isError || !link) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900">
-        <div className="max-w-md w-full p-8 bg-white dark:bg-slate-800 rounded-xl shadow-xl text-center">
-          <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
+      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-slate-950 p-6">
+        <div className="max-w-md w-full">
+          <div className="flex items-center space-x-3 text-red-600 dark:text-red-500 mb-4">
+            <WarningCircle size={28} weight="fill" />
+            <h2 className="text-xl font-semibold">Link Expired</h2>
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Application Received</h2>
-          <p className="text-gray-600 dark:text-gray-300">Thank you for applying. We will review your application and get back to you.</p>
+          <p className="text-gray-600 dark:text-gray-400">
+            This referral link is invalid or has expired. Please contact your referrer to generate a new link.
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8 bg-white dark:bg-slate-800 p-8 rounded-xl shadow-xl border border-gray-100 dark:border-slate-700">
-        <div>
-          <h2 className="mt-2 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
-            Join Our Team
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-            You've been referred by <span className="font-semibold text-blue-600 dark:text-blue-400">{link.employee?.name}</span>
-          </p>
-        </div>
-        <form className="mt-8 space-y-6" onSubmit={(e) => { e.preventDefault(); submitMutation.mutate(); }}>
-          <div className="rounded-md shadow-sm space-y-4">
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Full Name</label>
-              <input
-                id="name"
-                name="name"
-                type="text"
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-slate-600 placeholder-gray-500 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm dark:bg-slate-700"
-                placeholder="John Doe"
-              />
+    <div className="min-h-screen bg-white dark:bg-slate-950 text-gray-900 dark:text-gray-100 selection:bg-gray-900 selection:text-white dark:selection:bg-white dark:selection:text-gray-900 flex flex-col">
+      <AnimatePresence mode="wait">
+        {!submitted ? (
+          <motion.div
+            key="form"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+            className="flex-1 w-full max-w-3xl mx-auto px-6 py-12 sm:py-24"
+          >
+            <div className="mb-12 border-b border-gray-200 dark:border-gray-800 pb-8">
+              <h1 className="text-3xl font-medium tracking-tight mb-2">
+                Candidate Application
+              </h1>
+              <p className="text-gray-500 dark:text-gray-400">
+                Referred by <span className="font-medium text-gray-900 dark:text-gray-200">{link.employee?.name}</span>
+              </p>
             </div>
-            <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Phone Number</label>
-              <input
-                id="phone"
-                name="phone"
-                type="tel"
-                required
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-slate-600 placeholder-gray-500 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm dark:bg-slate-700"
-                placeholder="+919876543210"
-              />
-            </div>
-            <div>
-              <label htmlFor="resumeUrl" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Resume URL</label>
-              <input
-                id="resumeUrl"
-                name="resumeUrl"
-                type="url"
-                required
-                value={resumeUrl}
-                onChange={(e) => setResumeUrl(e.target.value)}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-slate-600 placeholder-gray-500 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm dark:bg-slate-700"
-                placeholder="https://linkedin.com/in/johndoe or Drive link"
-              />
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Please provide a link to your resume or portfolio.</p>
-            </div>
-          </div>
 
-          <div>
-            <button
-              type="submit"
-              disabled={submitMutation.isPending}
-              className="group relative w-full flex justify-center py-2.5 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-400 transition-colors"
-            >
-              {submitMutation.isPending ? 'Submitting...' : 'Submit Application'}
-            </button>
-          </div>
-        </form>
-      </div>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+              <div className="space-y-6">
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium mb-2">
+                    Full Legal Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    {...register('name')}
+                    autoFocus
+                    id="name"
+                    type="text"
+                    placeholder="e.g. Rahul Kumar"
+                    className={`block w-full px-4 py-3 bg-white dark:bg-slate-950 border ${errors.name ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'} rounded-sm text-sm transition-colors outline-none focus:border-gray-900 dark:focus:border-white focus:ring-1 focus:ring-gray-900 dark:focus:ring-white`}
+                  />
+                  {errors.name && <p className="mt-2 text-sm text-red-500">{errors.name.message}</p>}
+                </div>
+
+                <div>
+                  <label htmlFor="phone" className="block text-sm font-medium mb-2">
+                    Contact Number <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    {...register('phone')}
+                    id="phone"
+                    type="tel"
+                    placeholder="+91 98765 43210"
+                    className={`block w-full px-4 py-3 bg-white dark:bg-slate-950 border ${errors.phone ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'} rounded-sm text-sm transition-colors outline-none focus:border-gray-900 dark:focus:border-white focus:ring-1 focus:ring-gray-900 dark:focus:ring-white`}
+                  />
+                  {errors.phone && <p className="mt-2 text-sm text-red-500">{errors.phone.message}</p>}
+                </div>
+
+                <div>
+                  <label htmlFor="designation" className="block text-sm font-medium mb-2">
+                    Designation / Role Applied For <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    {...register('designation')}
+                    id="designation"
+                    type="text"
+                    placeholder="e.g. Senior Sales Executive"
+                    className={`block w-full px-4 py-3 bg-white dark:bg-slate-950 border ${errors.designation ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'} rounded-sm text-sm transition-colors outline-none focus:border-gray-900 dark:focus:border-white focus:ring-1 focus:ring-gray-900 dark:focus:ring-white`}
+                  />
+                  {errors.designation && <p className="mt-2 text-sm text-red-500">{errors.designation.message}</p>}
+                </div>
+
+                <div>
+                  <label htmlFor="resumeUrl" className="block text-sm font-medium mb-2">
+                    Resume <span className="text-gray-500 font-normal ml-1">(Optional)</span>
+                  </label>
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-3">
+                      <label className="flex-1 cursor-pointer">
+                        <input
+                          type="file"
+                          accept=".pdf,.doc,.docx"
+                          className="hidden"
+                          onChange={(e) => setFile(e.target.files?.[0] || null)}
+                        />
+                        <div className="w-full px-4 py-3 bg-white dark:bg-slate-950 border border-gray-300 dark:border-gray-700 border-dashed hover:border-gray-400 dark:hover:border-gray-500 rounded-sm text-sm transition-colors text-center text-gray-500 flex items-center justify-center">
+                          {file ? (
+                            <span className="text-gray-900 dark:text-gray-100">{file.name}</span>
+                          ) : (
+                            'Upload PDF or Word Document'
+                          )}
+                        </div>
+                      </label>
+                      {file && (
+                        <button
+                          type="button"
+                          onClick={() => setFile(null)}
+                          className="text-sm font-medium text-gray-500 hover:text-red-500 p-2"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                    
+                    <div className="text-center text-sm font-medium text-gray-400">OR</div>
+                    
+                    <input
+                      {...register('resumeUrl')}
+                      id="resumeUrl"
+                      type="url"
+                      placeholder="Paste a link (Drive, Dropbox, LinkedIn)"
+                      className={`block w-full px-4 py-3 bg-white dark:bg-slate-950 border ${errors.resumeUrl ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'} rounded-sm text-sm transition-colors outline-none focus:border-gray-900 dark:focus:border-white focus:ring-1 focus:ring-gray-900 dark:focus:ring-white disabled:opacity-50 disabled:cursor-not-allowed`}
+                      disabled={!!file}
+                    />
+                  </div>
+                  {errors.resumeUrl && <p className="mt-2 text-sm text-red-500">{errors.resumeUrl.message}</p>}
+                </div>
+              </div>
+
+              <div className="pt-6 border-t border-gray-200 dark:border-gray-800 flex justify-end">
+                <button
+                  type="submit"
+                  disabled={submitMutation.isPending || uploading}
+                  className="inline-flex items-center justify-center px-8 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 font-medium text-sm rounded-sm transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {(submitMutation.isPending || uploading) ? (
+                    <>
+                      <SpinnerGap className="w-5 h-5 animate-spin mr-2" />
+                      Processing
+                    </>
+                  ) : (
+                    'Submit Application'
+                  )}
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="success"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex-1 w-full max-w-3xl mx-auto px-6 py-12 sm:py-24"
+          >
+            <div className="mb-12 border-b border-gray-200 dark:border-gray-800 pb-8 flex items-center space-x-3">
+              <CheckCircle size={32} weight="fill" className="text-green-600 dark:text-green-500" />
+              <h1 className="text-3xl font-medium tracking-tight">
+                Application Submitted
+              </h1>
+            </div>
+            <p className="text-gray-600 dark:text-gray-400 text-lg leading-relaxed">
+              Your application has been securely recorded in the Nippon HRMS.
+              <br />
+              The HR department will review your profile and contact you directly if there is a match.
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -172,10 +172,8 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 				r.Post("/generate", referralH.GenerateLink)
 			})
 
-			r.Route("/candidates", func(r chi.Router) {
-				r.Get("/", referralH.ListCandidates)
-				r.Patch("/{id}/status", referralH.UpdateCandidateStatus)
-			})
+			r.Get("/candidates", referralH.ListCandidates)
+			r.Patch("/candidates/{id}/status", referralH.UpdateCandidateStatus)
 		})
 	})
 
