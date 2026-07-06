@@ -1,0 +1,1 @@
+ALTER TABLE candidates ADD COLUMN designation VARCHAR(255) NOT NULL DEFAULT '';

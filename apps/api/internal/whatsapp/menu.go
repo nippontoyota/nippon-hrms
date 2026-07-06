@@ -30,7 +30,9 @@ Please select an option using the buttons below.`
 
 const msgMainMenuBody = `How may we help you today?`
 
-const msgMenuTextFallback = `Please reply *Salary Slip*, *Request Leave*, or *Referral Link*.`
+const msgMoreOptionsButton = `More Options`
+
+const msgMenuTextFallback = `Please reply *Salary Slip*, *Request Leave*, *Holiday Calendar*, or tap *More Options* for *Referral Link*.`
 
 const msgPayslipNotFound = `No payslip was found for the month you entered.
 
@@ -58,15 +60,20 @@ func msgPayslipAlreadySent(month, year int) string {
 }
 
 
-func mainMenuSections() []doubletick.InteractiveListSection {
+func mainMenuButtons() []doubletick.InteractiveButton {
+	return []doubletick.InteractiveButton{
+		{ID: payloadRequestSalary, Title: "Salary Slip"},
+		{ID: payloadRequestLeave, Title: "Request Leave"},
+		{ID: payloadRequestHolidays, Title: "Holiday Calendar"},
+	}
+}
+
+func moreOptionsListSections() []doubletick.InteractiveListSection {
 	return []doubletick.InteractiveListSection{
 		{
-			Title: "Employee Services",
+			Title: "More Options",
 			Rows: []doubletick.InteractiveListRow{
-				{ID: payloadRequestSalary, Title: "Salary Slip", Description: "Download your monthly payslips"},
-				{ID: payloadRequestLeave, Title: "Request Leave", Description: "Apply for or view your leaves"},
-				{ID: payloadRequestHolidays, Title: "Holiday Calendar", Description: "View upcoming company holidays"},
-				{ID: payloadReferCandidate, Title: "Refer a Candidate", Description: "Generate your unique referral link"},
+				{ID: payloadRequestReferral, Title: "Referral Link", Description: "Generate your unique employee referral link"},
 			},
 		},
 	}

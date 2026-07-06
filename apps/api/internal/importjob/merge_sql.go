@@ -2,7 +2,7 @@ package importjob
 
 func employeeCols() string {
 	return `id, name, department, mobile_number, emp_level, doj, birthday, years_experience,
-		branch, designation, zone, basic, da, revised_basic_da, hra, travel,
+		branch, designation, zone, manager_id, basic, da, revised_basic_da, hra, travel,
 		hostel, children, total_salary, mobile, conveyance, wash_allowance,
 		branch_allowance, special_allowance, training, total_allowances,
 		total_salary_with_allowances, bank_name, account_number, bank_branch, ifsc_code`
@@ -10,7 +10,7 @@ func employeeCols() string {
 
 func employeeStagingCols(alias string) string {
 	return alias + `.id, ` + alias + `.name, ` + alias + `.department, ` + alias + `.mobile_number, ` + alias + `.emp_level, ` + alias + `.doj, ` + alias + `.birthday, ` + alias + `.years_experience,
-		` + alias + `.branch, ` + alias + `.designation, ` + alias + `.zone, ` + alias + `.basic, ` + alias + `.da, ` + alias + `.revised_basic_da, ` + alias + `.hra, ` + alias + `.travel,
+		` + alias + `.branch, ` + alias + `.designation, ` + alias + `.zone, ` + alias + `.manager_id, ` + alias + `.basic, ` + alias + `.da, ` + alias + `.revised_basic_da, ` + alias + `.hra, ` + alias + `.travel,
 		` + alias + `.hostel, ` + alias + `.children, ` + alias + `.total_salary, ` + alias + `.mobile, ` + alias + `.conveyance, ` + alias + `.wash_allowance,
 		` + alias + `.branch_allowance, ` + alias + `.special_allowance, ` + alias + `.training, ` + alias + `.total_allowances,
 		` + alias + `.total_salary_with_allowances, ` + alias + `.bank_name, ` + alias + `.account_number, ` + alias + `.bank_branch, ` + alias + `.ifsc_code`
@@ -92,6 +92,7 @@ func employeeConflictFields() []conflictField {
 		{"mobileNo", "mobile_number", "mobile_number"},
 		{"level", "emp_level", "emp_level"},
 		{"birthday", "birthday", "birthday"},
+		{"managerId", "manager_id", "manager_id"},
 		{"branch", "branch", "branch"},
 		{"designation", "designation", "designation"},
 		{"zone", "zone", "zone"},

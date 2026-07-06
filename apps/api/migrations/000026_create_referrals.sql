@@ -1,6 +1,6 @@
 CREATE TABLE referral_links (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    employee_id UUID NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+    employee_id VARCHAR(50) NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
     code VARCHAR(255) NOT NULL UNIQUE,
     expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()

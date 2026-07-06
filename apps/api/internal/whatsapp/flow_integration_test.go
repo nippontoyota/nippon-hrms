@@ -1,4 +1,4 @@
-﻿package whatsapp
+package whatsapp
 
 import (
 	"context"
@@ -157,7 +157,7 @@ func newFlowTestService(t *testing.T) (*Service, *recordedOutbound, *InMemorySto
 	store := NewInMemoryStore(0)
 	emp := &flowEmpRepo{emp: employee.Employee{ID: "EMP001", Name: "Krishnanand G", MobileNumber: phone}}
 	leaveRepo := &flowLeaveRepo{}
-	svc := NewService(dt, store, nil, emp, nil, nil, leaveRepo, nil)
+	svc := NewService(dt, store, nil, emp, nil, nil, leaveRepo, nil, nil)
 	return svc, rec, store, phone
 }
 
@@ -187,8 +187,8 @@ func TestFlow_leaveRequest_textOnlyEchoes(t *testing.T) {
 	leaveTypeEcho := "Leave Application\n\nWhat type of leave do you need?\nCasual Leave"
 
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m1", "text", "Hi"))
-	if !strings.Contains(rec.lastText(), "How may we help you today?") {
-		t.Fatalf("step 1: expected main menu, got %q", rec.lastText())
+	if !rec.containsText("How may we help you today?") {
+		t.Fatalf("step 1: expected main menu, got %v", rec.allTexts())
 	}
 
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m2", "text", menuEcho))

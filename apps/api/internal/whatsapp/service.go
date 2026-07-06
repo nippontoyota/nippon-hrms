@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -477,7 +478,10 @@ func (s *Service) handleReferralLinkRequest(ctx context.Context, sess *Session, 
 		return s.sendText(ctx, from, "We were unable to generate your referral link at this time. Please try again later.")
 	}
 
-	portalBaseUrl := "http://localhost:5173" // We could inject this from config later.
+	portalBaseUrl := os.Getenv("PORTAL_BASE_URL")
+	if portalBaseUrl == "" {
+		portalBaseUrl = "http://localhost:5173"
+	}
 	url := fmt.Sprintf("%s/referrals/%s", portalBaseUrl, link.Code)
 	
 	msg := fmt.Sprintf("Here is your unique referral link:\n%s\n\nIt is valid for 30 days.", url)
@@ -673,14 +677,54 @@ func (s *Service) deliverPayslip(ctx context.Context, sess *Session, from string
 
 func (s *Service) sendMainMenu(ctx context.Context, to, name string) error {
 	body := msgWelcome(name) + "\n\n" + msgMainMenuBody
-	sections := mainMenuSections()
+	buttons := mainMenuButtons()
 
-	_, err := s.dt.SendInteractiveList(ctx, to, "", body, "", "Main Menu", sections)
+	if mediaURL, err := s.menuImageMediaURL(ctx); err == nil {
+		_, err = s.dt.SendInteractiveMedia(ctx, to, body, "", mediaURL, "image/png", buttons)
+		if err == nil {
+			slog.Info("whatsapp menu sent", "to", to, "type", "interactive_media")
+			s.recordOutbound(to)
+
+			// Add a slight delay to ensure the heavier image message is delivered first
+			// before the lightweight text list message.
+			time.Sleep(1500 * time.Millisecond)
+
+			if err := s.sendMoreOptionsMenu(ctx, to); err != nil {
+				return err
+			}
+			return nil
+		}
+		slog.Warn("interactive media send failed, falling back to buttons", "err", err)
+	} else {
+		slog.Warn("menu image upload failed, falling back to buttons", "err", err)
+	}
+
+	_, err := s.dt.SendInteractiveButtons(ctx, to, "", body, "", buttons)
+	if err != nil {
+		slog.Warn("interactive button send failed, falling back to text", "err", err)
+		if err := s.sendText(ctx, to, body+"\n\n"+msgMenuTextFallback); err != nil {
+			return err
+		}
+		return s.sendMoreOptionsMenu(ctx, to)
+	}
+	slog.Info("whatsapp menu sent", "to", to, "type", "buttons")
+	s.recordOutbound(to)
+
+	// Add delay for button fallback as well just to be consistent
+	time.Sleep(500 * time.Millisecond)
+
+	return s.sendMoreOptionsMenu(ctx, to)
+}
+
+func (s *Service) sendMoreOptionsMenu(ctx context.Context, to string) error {
+	sections := moreOptionsListSections()
+	// Minimal body — WhatsApp requires one; keeps the list as a compact "More Options" row under the 3 buttons.
+	_, err := s.dt.SendInteractiveList(ctx, to, "", "\u200b", "", msgMoreOptionsButton, sections)
 	if err != nil {
 		slog.Warn("interactive list send failed, falling back to text", "err", err)
-		return s.sendText(ctx, to, body+"\n\n"+msgMenuTextFallback)
+		return s.sendText(ctx, to, "Tap *More Options* for *Referral Link*, or reply *Referral Link*.")
 	}
-	slog.Info("whatsapp menu sent", "to", to, "type", "list")
+	slog.Info("whatsapp more options menu sent", "to", to, "type", "list")
 	s.recordOutbound(to)
 	return nil
 }

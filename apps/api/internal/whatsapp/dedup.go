@@ -87,6 +87,8 @@ func (d *dedupStore) isDuplicate(messageID, phone, input, msgType string, state 
 		actionWindow = d.greetingWindow
 	} else if looksLikePeriodAttempt(input) {
 		actionWindow = d.periodWindow
+	} else if cInp := canonicalInput(input); cInp == payloadRequestHolidays || cInp == payloadRequestReferral {
+		actionWindow = 5 * time.Minute
 	}
 	if seenAt, ok := d.byAction[actionKey]; ok && now.Sub(seenAt) < actionWindow {
 		return true
@@ -210,7 +212,7 @@ func (d *dedupStore) evict(now time.Time) {
 
 func canonicalInput(input string) string {
 	switch normalizeMenuSelection(input) {
-	case payloadGeneratePay, payloadRequestSalary, payloadRequestLeave, payloadRequestHolidays:
+	case payloadGeneratePay, payloadRequestSalary, payloadRequestLeave, payloadRequestHolidays, payloadRequestReferral:
 		return normalizeMenuSelection(input)
 	default:
 		if sel := normalizeLeaveTypeSelection(input); sel != "" {
@@ -248,11 +250,11 @@ func normalizeMenuSelection(input string) string {
 		return payloadRequestLeave
 	case trimmed == payloadRequestHolidays, lower == "holiday calendar":
 		return payloadRequestHolidays
-	case trimmed == payloadReferCandidate, trimmed == payloadRequestReferral, lower == "refer a candidate", lower == "refer", lower == "referral link":
-		return payloadReferCandidate
+	case trimmed == payloadRequestReferral, trimmed == payloadReferCandidate, lower == "referral link", lower == "refer a candidate", lower == "refer":
+		return payloadRequestReferral
 	}
 	// WhatsApp often echoes the full interactive body plus the chosen button label.
-	if isMainMenuEcho(lower) || strings.Contains(lower, "how may we help") {
+	if isMainMenuEcho(lower) || strings.Contains(lower, "how may we help") || strings.Contains(lower, "more options") {
 		switch {
 		case strings.Contains(lower, "request leave"):
 			return payloadRequestLeave
@@ -262,8 +264,8 @@ func normalizeMenuSelection(input string) string {
 			return payloadGeneratePay
 		case strings.Contains(lower, "holiday calendar"):
 			return payloadRequestHolidays
-		case strings.Contains(lower, "refer a candidate"), strings.Contains(lower, "refer"):
-			return payloadReferCandidate
+		case strings.Contains(lower, "referral link"), strings.Contains(lower, "refer a candidate"), strings.Contains(lower, "refer"):
+			return payloadRequestReferral
 		}
 	}
 	return trimmed
