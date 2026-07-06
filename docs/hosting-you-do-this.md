@@ -323,14 +323,16 @@ Submit in DoubleTick / Meta Business Manager:
 Body text — **exactly 5 variables:**
 
 ```
-📄 *Payslip - {{2}} {{3}}*
+📄 *Payslip - {{1}} {{2}}*
 
-Dear *{{1}}*,
+Dear *{{3}}*,
 
-Please find attached your payslip for the month of *{{2}} {{3}}*.
+Please find attached your payslip for the month of *{{4}} {{5}}*.
 
 For any discrepancies, please reach out to HR.
 ```
+
+Variable order: `{{1}}` month, `{{2}}` year, `{{3}}` employee name, `{{4}}` month, `{{5}}` year.
 
 Submit → wait Meta approval (hours to days). Test single send before bulk.
 
