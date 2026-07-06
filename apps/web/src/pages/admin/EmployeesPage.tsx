@@ -14,6 +14,7 @@ import { useTableRowHighlight } from '@/lib/useTableRowHighlight';
 import BulkUploadWizard from '@/components/BulkUploadWizard';
 import ImportConflictPanel from '@/components/ImportConflictPanel';
 import TablePagination from '@/components/TablePagination';
+import SearchableSelect from '@/components/SearchableSelect';
 
 type SortKey = 'employeeId' | 'name' | 'department' | 'managerName' | 'doj' | 'birthday' | 'branch' | 'designation';
 type SortDir = 'asc' | 'desc';
@@ -53,16 +54,12 @@ const Cell = ({
     if (options) {
       return (
         <td className={`${className} p-1`}>
-          <select
-            className="w-full bg-yellow-50 border border-dashed border-slate-400 px-2 py-1 text-xs text-black focus:outline-none focus:border-[#eb0a1e] focus:bg-white dark:bg-slate-800 transition-colors"
+          <SearchableSelect
+            compact
+            options={options}
             value={(editForm[field] as string) || ''}
-            onChange={(e) => setEditForm(prev => ({ ...prev, [field]: e.target.value }))}
-          >
-            <option value="">-- None --</option>
-            {options.map(o => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </select>
+            onChange={(val) => setEditForm(prev => ({ ...prev, [field]: val }))}
+          />
         </td>
       );
     }
