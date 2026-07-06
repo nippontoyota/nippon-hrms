@@ -131,7 +131,7 @@ func newPayslipView(emp *employee.Employee, rec *Record, epfRec *epf.Record) Pay
 
 	v.Deductions = []lineItem{
 		{"PF", money(rec.PF)},
-		{"ESI", money(rec.ESI075 + rec.ESI325)},
+		{"ESI", money(rec.ESI075)},
 		{"TDS", money(rec.TDS)},
 		{"Salary Advance", money(rec.SalAdv)},
 		{"Additional Deduction", money(rec.AdditionalDeduction)},
