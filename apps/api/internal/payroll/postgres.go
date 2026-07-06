@@ -63,7 +63,6 @@ func (r *PostgresRepository) ListPeriodsByEmployee(ctx context.Context, employee
 		FROM payroll_records
 		WHERE employee_id = $1
 		ORDER BY year DESC, month DESC
-		LIMIT 12
 	`
 	rows, err := r.db.Query(ctx, query, employeeID)
 	if err != nil {

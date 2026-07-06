@@ -721,13 +721,14 @@ git push</code></pre>
 <tr><td>Header</td><td>DOCUMENT (dynamic PDF per employee)</td></tr>
 </tbody></table>
 <p><strong>Body text</strong> (exactly 5 variables):</p>
-<pre><code>📄 *Payslip - {{2}} {{3}}*
+<pre><code>📄 *Payslip - {{1}} {{2}}*
 
-Dear *{{1}}*,
+Dear *{{3}}*,
 
-Please find attached your payslip for the month of *{{2}} {{3}}*.
+Please find attached your payslip for the month of *{{4}} {{5}}*.
 
 For any discrepancies, please reach out to HR.</code></pre>
+<p>Variable order: <code>{{1}}</code> month, <code>{{2}}</code> year, <code>{{3}}</code> employee name, <code>{{4}}</code> month, <code>{{5}}</code> year.</p>
 <p>Wait for Meta to approve the template (can take hours to days).</p>
 <hr>
 <h1>PART G — Meta Business Manager (WhatsApp billing)</h1>

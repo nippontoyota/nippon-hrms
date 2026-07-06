@@ -7,7 +7,7 @@ import (
 
 func TestPayslipTemplatePlaceholders(t *testing.T) {
 	got := payslipTemplatePlaceholders("Akhil Jose", "May", 2026)
-	want := []string{"Akhil Jose", "May", "Akhil Jose", "May", "2026"}
+	want := []string{"May", "2026", "Akhil Jose", "May", "2026"}
 	if len(got) != len(want) {
 		t.Fatalf("len = %d, want %d", len(got), len(want))
 	}
