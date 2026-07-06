@@ -113,12 +113,7 @@ func (h *PayrollHandler) Dispatch(w http.ResponseWriter, r *http.Request) {
 
 	job, err := h.dispatchService.StartDispatch(r.Context(), req.Month, req.Year)
 	if err != nil {
-		msg := err.Error()
-		if strings.Contains(msg, "already running") || strings.Contains(msg, "not configured") {
-			respond.JSON(w, http.StatusBadRequest, respond.Envelope{
-				Success: false,
-				Error:   &respond.APIError{Code: "DISPATCH_FAILED", Message: msg},
-			})
+		if h.respondDispatchError(w, err) {
 			return
 		}
 		logger.Error("dispatch init failed", "err", err)
@@ -127,6 +122,55 @@ func (h *PayrollHandler) Dispatch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respond.Accepted(w, map[string]string{"jobId": job.ID})
+}
+
+// GetAllowedDispatchPeriod handles GET /api/v1/payroll/dispatch/allowed-period
+func (h *PayrollHandler) GetAllowedDispatchPeriod(w http.ResponseWriter, r *http.Request) {
+	month, year := h.dispatchService.AllowedDispatchPeriod()
+	respond.OK(w, map[string]int{"month": month, "year": year})
+}
+
+func (h *PayrollHandler) respondDispatchError(w http.ResponseWriter, err error) bool {
+	msg := err.Error()
+	switch {
+	case strings.Contains(msg, "strictly locked"):
+		respond.JSON(w, http.StatusBadRequest, respond.Envelope{
+			Success: false,
+			Error:   &respond.APIError{Code: "DISPATCH_PERIOD_LOCKED", Message: msg},
+		})
+		return true
+	case strings.Contains(msg, "already running"):
+		respond.JSON(w, http.StatusBadRequest, respond.Envelope{
+			Success: false,
+			Error:   &respond.APIError{Code: "DISPATCH_ALREADY_RUNNING", Message: msg},
+		})
+		return true
+	case strings.Contains(msg, "already been dispatched"):
+		respond.JSON(w, http.StatusBadRequest, respond.Envelope{
+			Success: false,
+			Error:   &respond.APIError{Code: "DISPATCH_ALREADY_DISPATCHED", Message: msg},
+		})
+		return true
+	case strings.Contains(msg, "validation failed"):
+		respond.JSON(w, http.StatusBadRequest, respond.Envelope{
+			Success: false,
+			Error:   &respond.APIError{Code: "DISPATCH_VALIDATION_FAILED", Message: msg},
+		})
+		return true
+	case strings.Contains(msg, "not configured"):
+		respond.JSON(w, http.StatusBadRequest, respond.Envelope{
+			Success: false,
+			Error:   &respond.APIError{Code: "DISPATCH_NOT_CONFIGURED", Message: msg},
+		})
+		return true
+	case strings.Contains(msg, "no payroll records"):
+		respond.JSON(w, http.StatusBadRequest, respond.Envelope{
+			Success: false,
+			Error:   &respond.APIError{Code: "DISPATCH_NO_RECORDS", Message: msg},
+		})
+		return true
+	}
+	return false
 }
 
 func (h *PayrollHandler) GetDispatchJob(w http.ResponseWriter, r *http.Request) {
@@ -254,9 +298,24 @@ func (h *PayrollHandler) SendPayslip(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.dispatcher.SendSinglePayslip(r.Context(), req.EmployeeID, req.Month, req.Year); err != nil {
 		logger.Error("single payslip dispatch failed", "emp", req.EmployeeID, "err", err)
+		msg := err.Error()
+		if strings.Contains(msg, "validation failed") {
+			respond.JSON(w, http.StatusBadRequest, respond.Envelope{
+				Success: false,
+				Error:   &respond.APIError{Code: "PAYSLIP_VALIDATION_FAILED", Message: msg},
+			})
+			return
+		}
+		if strings.Contains(msg, "not found") || strings.Contains(msg, "no payroll record") || strings.Contains(msg, "no mobile") {
+			respond.JSON(w, http.StatusBadRequest, respond.Envelope{
+				Success: false,
+				Error:   &respond.APIError{Code: "PAYSLIP_SEND_FAILED", Message: msg},
+			})
+			return
+		}
 		respond.JSON(w, 500, respond.Envelope{
 			Success: false,
-			Error:   &respond.APIError{Code: "DISPATCH_FAILED", Message: err.Error()},
+			Error:   &respond.APIError{Code: "DISPATCH_FAILED", Message: msg},
 		})
 		return
 	}

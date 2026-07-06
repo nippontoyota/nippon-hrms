@@ -202,6 +202,19 @@ func validateEmployeeRecord(emp *employee.Employee, rec *Record) string {
 	return ""
 }
 
+// PreviousMonthYear returns the calendar month immediately before the given time.
+func PreviousMonthYear(from time.Time) (month, year int) {
+	currentMonth := int(from.Month())
+	currentYear := from.Year()
+	month = currentMonth - 1
+	year = currentYear
+	if month == 0 {
+		month = 12
+		year--
+	}
+	return month, year
+}
+
 // ListSendablePeriods returns payroll periods for an employee that pass validation.
 func (d *Dispatcher) ListSendablePeriods(ctx context.Context, employeeID string) ([]Period, error) {
 	emp, err := d.empRepo.GetByID(ctx, employeeID)
@@ -209,19 +222,15 @@ func (d *Dispatcher) ListSendablePeriods(ctx context.Context, employeeID string)
 		return nil, fmt.Errorf("employee not found: %w", err)
 	}
 
-	periods, err := d.repo.ListPeriodsByEmployee(ctx, employeeID)
+	records, err := d.repo.ListRecordsByEmployee(ctx, employeeID)
 	if err != nil {
 		return nil, err
 	}
 
 	var valid []Period
-	for _, p := range periods {
-		rec, err := d.repo.GetPayslip(ctx, employeeID, p.Month, p.Year)
-		if err != nil {
-			continue
-		}
-		if validateEmployeeRecord(emp, rec) == "" {
-			valid = append(valid, p)
+	for _, rec := range records {
+		if validateEmployeeRecord(emp, &rec) == "" {
+			valid = append(valid, Period{Month: rec.Month, Year: rec.Year})
 		}
 	}
 	return valid, nil
@@ -303,6 +312,10 @@ func (d *Dispatcher) SendSinglePayslip(ctx context.Context, employeeID string, m
 		return fmt.Errorf("no payroll record found for %s in %02d/%d: %w", employeeID, month, year, err)
 	}
 
+	if reason := validateEmployeeRecord(emp, rec); reason != "" {
+		return fmt.Errorf("validation failed: %s", reason)
+	}
+
 	pdfBytes, err := GeneratePayslipPDF(emp, rec, d.lookupEpf(ctx, employeeID))
 	if err != nil {
 		return fmt.Errorf("pdf generation failed: %w", err)
@@ -312,7 +325,7 @@ func (d *Dispatcher) SendSinglePayslip(ctx context.Context, employeeID string, m
 	filename := fmt.Sprintf("payslip_%s_%02d_%d.pdf", employeeID, month, year)
 	caption := PayslipCaption(monthStr, year, rec.EmpNameSnapshot)
 
-	if err := d.deliverPayslipMessage(ctx, to, filename, caption, pdfBytes, monthStr, year, rec.EmpNameSnapshot); err != nil {
+	if err := d.deliverPayslipMessageWithRetry(ctx, to, filename, caption, pdfBytes, monthStr, year, rec.EmpNameSnapshot); err != nil {
 		return err
 	}
 

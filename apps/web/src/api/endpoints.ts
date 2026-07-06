@@ -24,8 +24,8 @@ export const employeesApi = {
   update: (id: string, employee: Partial<Employee>) =>
     api.patch(`/employees/${id}`, employee).then((r) => r.data),
   delete: (id: string) => api.delete(`/employees/${id}`).then((r) => r.data),
-  bulkDelete: (ids: string[]) =>
-    api.post<{ deleted: number }>('/employees/bulk-delete', { ids }, { timeout: 120_000 }).then((r) => r.data),
+  bulkDelete: (payload: { ids?: string[]; deleteAll?: boolean; search?: string }) =>
+    api.post<{ deleted: number }>('/employees/bulk-delete', payload, { timeout: 120_000 }).then((r) => r.data),
   downloadTemplate: () =>
     fetch('/templates/employee_template.xlsx').then((r) => r.blob()),
   downloadTemplateCsv: () =>
@@ -50,6 +50,8 @@ export const epfApi = {
 export const salaryApi = {
   listSendablePeriods: (employeeId: string) =>
     api.get<{ month: number; year: number }[]>(`/payroll/periods?employeeId=${encodeURIComponent(employeeId)}`).then((r) => r.data),
+  getAllowedDispatchPeriod: () =>
+    api.get<{ month: number; year: number }>('/payroll/dispatch/allowed-period').then((r) => r.data),
   list: (month: number, year: number, params?: { page?: number; limit?: number; search?: string }) =>
     api.get<PaginatedResult<PayrollRecord>>(`/payroll/list?month=${month}&year=${year}`, { params }).then((r) => r.data),
   dispatch: (month: number, year: number) =>

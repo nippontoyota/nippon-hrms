@@ -7,11 +7,7 @@ import type { DispatchJob, DispatchJobItem } from '@/api/types';
 import { dispatchItemBadge } from '@/lib/format';
 import { useTableRowHighlight } from '@/lib/useTableRowHighlight';
 import DispatchProgressBar from '@/components/DispatchProgressBar';
-
-const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
+import { MONTHS } from '@/lib/payrollPeriod';
 
 function jobStatusBadge(status: DispatchJob['status']) {
   if (status === 'COMPLETED') return 'badge-success';

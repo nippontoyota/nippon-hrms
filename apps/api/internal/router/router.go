@@ -141,6 +141,7 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 				r.Get("/preview", payrollH.PreviewPDF)
 				r.Post("/validate", payrollH.Validate)
 				r.Post("/dispatch", payrollH.Dispatch)
+				r.Get("/dispatch/allowed-period", payrollH.GetAllowedDispatchPeriod)
 				r.Get("/dispatch/latest", payrollH.GetLatestDispatchJob)
 				r.Get("/dispatch/{jobId}", payrollH.GetDispatchJob)
 				r.Get("/dispatch/{jobId}/items", payrollH.ListDispatchJobItems)

@@ -113,6 +113,7 @@ export default function EmployeesPage() {
   const deleteMutation = useDeleteEmployee();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [selectAllMatching, setSelectAllMatching] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>('employeeId');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   
@@ -231,31 +232,28 @@ export default function EmployeesPage() {
     if (selectedCount === 0) return;
     openConfirm(
       'Delete Employees',
-      `You are about to permanently delete ${selectedCount} employee${selectedCount > 1 ? 's' : ''}. This action cannot be undone and will also remove all associated salary records.`,
+      `You are about to permanently delete ${selectedCount} employee${selectedCount > 1 ? 's' : ''}. This action cannot be undone and will also remove associated payroll, EPF, and dispatch records.`,
       `Delete ${selectedCount} Employee${selectedCount > 1 ? 's' : ''}`,
       () => {
         closeConfirm();
+        setIsDeleting(true);
         toast.promise(
           (async () => {
-            let ids: string[];
-            if (selectAllMatching) {
-              const all = await employeesApi.list({ page: 1, limit: total, search: debouncedSearch });
-              ids = all.items.map((e) => e.id);
-            } else {
-              ids = Array.from(selectedIds);
-            }
-            await employeesApi.bulkDelete(ids);
+            const result = selectAllMatching
+              ? await employeesApi.bulkDelete({ deleteAll: true, search: debouncedSearch || undefined })
+              : await employeesApi.bulkDelete({ ids: Array.from(selectedIds) });
             qc.invalidateQueries({ queryKey: ['employees'] });
             qc.invalidateQueries({ queryKey: ['dashboard'] });
             setSelectedIds(new Set());
             setSelectAllMatching(false);
+            return result;
           })(),
           {
             loading: 'Deleting employees...',
-            success: 'Successfully deleted selected employees!',
-            error: 'Failed to delete some employees',
+            success: (result) => `Deleted ${result.deleted} employee${result.deleted === 1 ? '' : 's'}.`,
+            error: 'Failed to delete employees',
           }
-        );
+        ).finally(() => setIsDeleting(false));
       }
     );
   };
@@ -345,7 +343,8 @@ export default function EmployeesPage() {
               {selectedCount > 0 && (
                 <button 
                   onClick={handleBulkDelete}
-                  className="btn-sm !px-4 !py-2 bg-red-100 hover:bg-red-200 text-red-700 border border-red-200 cursor-pointer flex items-center gap-2 font-semibold transition-colors"
+                  disabled={isDeleting}
+                  className="btn-sm !px-4 !py-2 bg-red-100 hover:bg-red-200 text-red-700 border border-red-200 cursor-pointer flex items-center gap-2 font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Trash size={16} weight="bold" /> Delete Selected ({selectedCount})
                 </button>
@@ -467,7 +466,7 @@ export default function EmployeesPage() {
                         <input 
                           type="checkbox" 
                           className="w-3.5 h-3.5 rounded-none border-slate-400 accent-green-600 cursor-pointer align-middle" 
-                          checked={selectedIds.has(e.id)}
+                          checked={selectAllMatching || selectedIds.has(e.id)}
                           onChange={() => handleSelectOne(e.id)}
                           disabled={!!editingId}
                         />
@@ -571,7 +570,16 @@ export default function EmployeesPage() {
         )}
       </div>
 
-      <TablePagination page={page} limit={limit} total={total} onPageChange={setPage} />
+      <TablePagination
+        page={page}
+        limit={limit}
+        total={total}
+        onPageChange={(p) => {
+          setPage(p);
+          setSelectedIds(new Set());
+          setSelectAllMatching(false);
+        }}
+      />
 
       {showImport && (
         <BulkUploadWizard

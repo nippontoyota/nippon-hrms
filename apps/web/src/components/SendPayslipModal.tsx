@@ -4,16 +4,13 @@ import { WhatsappLogo, X, PaperPlaneTilt, WarningCircle, ArrowClockwise, Spinner
 import { salaryApi, useSendablePeriods } from '@/api/hooks';
 import { getApiErrorMessage } from '@/lib/format';
 
+import { MONTHS, comparePeriods } from '@/lib/payrollPeriod';
+
 interface Props {
   open: boolean;
   employee: { id: string; employeeId: string; name: string; mobileNo: string } | null;
   onClose: () => void;
 }
-
-const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
 
 function formatMobile(mobile: string): string {
   if (!mobile) return '';
@@ -54,7 +51,7 @@ export default function SendPayslipModal({ open, employee, onClose }: Props) {
 
   useEffect(() => {
     if (!open || periodsLoading || periods.length === 0) return;
-    const latest = periods[0];
+    const latest = [...periods].sort(comparePeriods)[0];
     setYear(latest.year);
     setMonth(latest.month);
   }, [open, periods, periodsLoading]);

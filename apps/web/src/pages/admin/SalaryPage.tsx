@@ -7,6 +7,8 @@ import { usePayrollRecords } from '@/api/hooks';
 import type { DispatchJob } from '@/api/types';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTableRowHighlight } from '@/lib/useTableRowHighlight';
+import { getApiErrorMessage } from '@/lib/format';
+import { MONTHS, MONTH_SHORT, getPreviousMonthYear } from '@/lib/payrollPeriod';
 
 interface ValidationError {
   employeeId: string;
@@ -14,23 +16,7 @@ interface ValidationError {
   reason: string;
 }
 
-const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
-const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-
-function getPreviousMonthYear(from = new Date()) {
-  const currentMonth = from.getMonth() + 1;
-  const currentYear = from.getFullYear();
-  let month = currentMonth - 1;
-  let year = currentYear;
-  if (month === 0) {
-    month = 12;
-    year--;
-  }
-  return { month, year };
-}
+type ValidationState = 'loading' | 'ok' | 'failed';
 
 export default function SalaryPage() {
   const currentYear = new Date().getFullYear();
@@ -40,11 +26,14 @@ export default function SalaryPage() {
   const [month, setMonth] = useState(defaultPeriod.month);
   const [year, setYear] = useState(defaultPeriod.year);
   const [loading, setLoading] = useState(false);
+  const [validationState, setValidationState] = useState<ValidationState>('loading');
   const [errors, setErrors] = useState<ValidationError[] | null>(null);
   const [dispatching, setDispatching] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [latestJob, setLatestJob] = useState<DispatchJob | null>(null);
   const [latestJobLoading, setLatestJobLoading] = useState(false);
+  const [dispatchableMonth, setDispatchableMonth] = useState(defaultPeriod.month);
+  const [dispatchableYear, setDispatchableYear] = useState(defaultPeriod.year);
 
   const qc = useQueryClient();
   const navigate = useNavigate();
@@ -54,18 +43,31 @@ export default function SalaryPage() {
 
   const isNextMonthDisabled = year === currentYear && month === currentMonth;
   const isNextYearDisabled = year === currentYear;
+  const isValidMonthForDispatch = year === dispatchableYear && month === dispatchableMonth;
 
-  const { month: dispatchableMonth, year: dispatchableYear } = getPreviousMonthYear();
-
-  const isValidMonthForDispatch = (year === dispatchableYear && month === dispatchableMonth);
+  useEffect(() => {
+    salaryApi.getAllowedDispatchPeriod()
+      .then((period) => {
+        setDispatchableMonth(period.month);
+        setDispatchableYear(period.year);
+      })
+      .catch(() => {
+        const fallback = getPreviousMonthYear();
+        setDispatchableMonth(fallback.month);
+        setDispatchableYear(fallback.year);
+      });
+  }, []);
 
   const validate = async (m: number, y: number) => {
     setLoading(true);
+    setValidationState('loading');
     setErrors(null);
     try {
       const res = await salaryApi.validatePayroll(m, y);
       setErrors(res.errors);
+      setValidationState('ok');
     } catch {
+      setValidationState('failed');
       toast.error('Failed to validate payroll records');
     } finally {
       setLoading(false);
@@ -109,18 +111,19 @@ export default function SalaryPage() {
     ? latestJob.status === 'COMPLETED' && (latestJob.failed ?? 0) === 0 && (latestJob.sent ?? 0) > 0
     : (records.some(r => r.dispatchedAt) ?? false);
   const recordCount = payrollData?.total ?? records.length;
+  const validationOk = validationState === 'ok' && errors !== null && errors.length === 0;
 
   const handleDispatch = async () => {
     setDispatching(true);
     try {
       const { jobId } = await salaryApi.dispatch(month, year);
       toast.success('Dispatch started');
-      qc.invalidateQueries({ queryKey: ['payrollRecords', month, year] });
+      qc.invalidateQueries({ queryKey: ['payroll', month, year] });
       setIsConfirmModalOpen(false);
       await loadLatestJob(month, year);
       navigate(`/admin/salary/dispatch/${jobId}`);
-    } catch {
-      toast.error('Failed to trigger dispatch');
+    } catch (err: unknown) {
+      toast.error(getApiErrorMessage(err, 'Failed to trigger dispatch'));
     } finally {
       setDispatching(false);
     }
@@ -129,7 +132,6 @@ export default function SalaryPage() {
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
 
-      {/* Toolbar */}
       <div className="flex items-center gap-3">
         <div className="flex items-center border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 shadow-sm divide-x divide-slate-300 rounded-md overflow-hidden" style={{ borderRadius: '0.375rem' }}>
           <button
@@ -177,12 +179,17 @@ export default function SalaryPage() {
         </div>
       </div>
 
-      {/* Validation Panel */}
       <div className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 shadow-sm min-h-[400px] flex flex-col relative">
-        {loading ? (
+        {loading || recordsLoading ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-4 py-16">
             <Spinner className="animate-spin text-green-600" size={32} weight="bold" />
             <p className="text-xs font-mono text-slate-500 dark:text-slate-400 uppercase tracking-widest">Validating records...</p>
+          </div>
+        ) : validationState === 'failed' ? (
+          <div className="flex-1 flex flex-col items-center justify-center gap-2 py-24 bg-white dark:bg-slate-800">
+            <WarningCircle size={32} weight="fill" className="text-red-500" />
+            <p className="text-sm font-bold text-red-700 uppercase tracking-widest">Validation Unavailable</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Could not validate payroll records. Try again in a moment.</p>
           </div>
         ) : errors && errors.length > 0 ? (
           <div className="flex-1 flex flex-col">
@@ -251,7 +258,7 @@ export default function SalaryPage() {
             <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">No Records Found</p>
             <p className="text-xs text-slate-400">Import records in the Salary Directory first.</p>
           </div>
-        ) : (
+        ) : validationOk ? (
           <div className="flex-1 flex flex-col">
             <div className="flex items-start gap-3 bg-green-50 border-b border-green-200 p-5 shrink-0">
               <div className="p-2 bg-green-100 rounded-full shrink-0">
@@ -278,12 +285,11 @@ export default function SalaryPage() {
               </p>
             </div>
           </div>
-        )}
+        ) : null}
 
-        {/* Action Footer */}
         <div className="border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-5 flex items-center justify-between shrink-0">
           <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-            {!isValidMonthForDispatch 
+            {!isValidMonthForDispatch
               ? 'Dispatch Locked for this period'
               : isFullyDispatched
               ? 'Process Completed'
@@ -291,9 +297,11 @@ export default function SalaryPage() {
                 ? `${latestJob?.failed} delivery failure${latestJob?.failed === 1 ? '' : 's'} — action required`
                 : isJobActive
                   ? 'Dispatch in progress'
-                  : errors?.length === 0
-                    ? 'Ready to process'
-                    : 'Action required'}
+                  : validationState === 'failed'
+                    ? 'Validation unavailable'
+                    : validationOk
+                      ? 'Ready to process'
+                      : 'Action required'}
           </div>
 
           {isJobActive && latestJob ? (
@@ -329,7 +337,7 @@ export default function SalaryPage() {
               )}
               <button
                 onClick={() => setIsConfirmModalOpen(true)}
-                disabled={!isValidMonthForDispatch || loading || latestJobLoading || (errors && errors.length > 0) || dispatching || recordsLoading || !records || records.length === 0}
+                disabled={!isValidMonthForDispatch || !validationOk || latestJobLoading || dispatching || recordsLoading || !records || records.length === 0}
                 className="bg-green-700 hover:bg-green-800 text-white font-bold uppercase tracking-wider !px-6 !py-3 flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed shadow-md transition-colors text-sm rounded-md"
               >
                 <WhatsappLogo size={18} weight="fill" />
@@ -340,7 +348,6 @@ export default function SalaryPage() {
         </div>
       </div>
 
-      {/* Confirmation Modal */}
       {isConfirmModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-[2px] p-4">
           <div className="bg-white dark:bg-slate-800 rounded-lg shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200" style={{ borderRadius: '0.5rem' }}>

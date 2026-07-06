@@ -182,8 +182,7 @@ func (r *PostgresRepository) ListPaginated(ctx context.Context, page, limit int,
 	baseWhere := ""
 	args := []interface{}{}
 	if search != "" {
-		baseWhere = ` WHERE (e.id ILIKE $1 OR e.name ILIKE $1 OR COALESCE(e.department,'') ILIKE $1 OR e.mobile_number ILIKE $1)`
-		args = append(args, "%"+search+"%")
+		baseWhere, args = employeeSearchClause(search)
 	}
 
 	countQ := `SELECT COUNT(*) FROM employees e` + baseWhere
@@ -276,17 +275,81 @@ func (r *PostgresRepository) Update(ctx context.Context, id string, e *Employee)
 	return err
 }
 
+func employeeSearchClause(search string) (where string, args []interface{}) {
+	if search == "" {
+		return "", nil
+	}
+	return ` WHERE (e.id ILIKE $1 OR e.name ILIKE $1 OR COALESCE(e.department,'') ILIKE $1 OR e.mobile_number ILIKE $1)`,
+		[]interface{}{"%" + search + "%"}
+}
+
+func (r *PostgresRepository) deleteEmployeesByIDs(ctx context.Context, ids []string) (int64, error) {
+	if len(ids) == 0 {
+		return 0, nil
+	}
+
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback(ctx)
+
+	if _, err := tx.Exec(ctx, `UPDATE leaves SET reviewed_by = NULL WHERE reviewed_by = ANY($1)`, ids); err != nil {
+		return 0, fmt.Errorf("clear leave reviewers: %w", err)
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM payroll_records WHERE employee_id = ANY($1)`, ids); err != nil {
+		return 0, fmt.Errorf("delete payroll records: %w", err)
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM epf_records WHERE employee_id = ANY($1)`, ids); err != nil {
+		return 0, fmt.Errorf("delete epf records: %w", err)
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM dispatch_job_items WHERE employee_id = ANY($1)`, ids); err != nil {
+		return 0, fmt.Errorf("delete dispatch items: %w", err)
+	}
+
+	tag, err := tx.Exec(ctx, `DELETE FROM employees WHERE id = ANY($1)`, ids)
+	if err != nil {
+		return 0, fmt.Errorf("delete employees: %w", err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return 0, err
+	}
+	return tag.RowsAffected(), nil
+}
+
 func (r *PostgresRepository) Delete(ctx context.Context, id string) error {
-	_, err := r.db.Exec(ctx, "DELETE FROM employees WHERE id = $1", id)
+	_, err := r.deleteEmployeesByIDs(ctx, []string{id})
 	return err
 }
 
-func (r *PostgresRepository) DeleteMany(ctx context.Context, ids []string) error {
-	if len(ids) == 0 {
-		return nil
+func (r *PostgresRepository) DeleteMany(ctx context.Context, ids []string) (int64, error) {
+	return r.deleteEmployeesByIDs(ctx, ids)
+}
+
+func (r *PostgresRepository) DeleteManyByFilter(ctx context.Context, search string) (int64, error) {
+	where, args := employeeSearchClause(search)
+	query := `SELECT e.id FROM employees e` + where
+
+	rows, err := r.db.Query(ctx, query, args...)
+	if err != nil {
+		return 0, fmt.Errorf("list employees for delete: %w", err)
 	}
-	_, err := r.db.Exec(ctx, "DELETE FROM employees WHERE id = ANY($1)", ids)
-	return err
+	defer rows.Close()
+
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return 0, err
+		}
+		ids = append(ids, id)
+	}
+	if err := rows.Err(); err != nil {
+		return 0, err
+	}
+
+	return r.deleteEmployeesByIDs(ctx, ids)
 }
 
 func (r *PostgresRepository) DeleteAll(ctx context.Context) error {

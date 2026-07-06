@@ -53,23 +53,8 @@ func (s *Service) StartDispatch(ctx context.Context, month, year int) (*Job, err
 		return nil, err
 	}
 
-	now := time.Now()
-	currentMonth := int(now.Month())
-	currentYear := now.Year()
-	
-	prevMonth := currentMonth - 1
-	prevYear := currentYear
-	if prevMonth == 0 {
-		prevMonth = 12
-		prevYear--
-	}
-
-	isValid := false
-	if year == prevYear && month == prevMonth {
-		isValid = true
-	}
-
-	if !isValid {
+	prevMonth, prevYear := payroll.PreviousMonthYear(time.Now())
+	if year != prevYear || month != prevMonth {
 		return nil, fmt.Errorf("payroll dispatch is strictly locked to the previous month (%02d/%d) to prevent mistakes", prevMonth, prevYear)
 	}
 
@@ -79,6 +64,22 @@ func (s *Service) StartDispatch(ctx context.Context, month, year int) (*Job, err
 	}
 	if running {
 		return nil, fmt.Errorf("a dispatch job is already running for %02d/%d", month, year)
+	}
+
+	latestJob, err := s.repo.GetLatestJobForPeriod(ctx, month, year)
+	if err != nil {
+		return nil, err
+	}
+	if latestJob != nil && latestJob.Status == JobCompleted && latestJob.Failed == 0 && latestJob.Sent > 0 {
+		return nil, fmt.Errorf("payslips for %02d/%d have already been dispatched", month, year)
+	}
+
+	validationErrs, err := s.dispatcher.ValidatePayroll(ctx, month, year)
+	if err != nil {
+		return nil, fmt.Errorf("validate payroll: %w", err)
+	}
+	if len(validationErrs) > 0 {
+		return nil, fmt.Errorf("payroll validation failed: %d record(s) have errors", len(validationErrs))
 	}
 
 	records, err := s.payrollRepo.ListByPeriod(ctx, month, year)
@@ -138,8 +139,17 @@ func (s *Service) RetryFailed(ctx context.Context, jobID string) error {
 		return err
 	}
 
+	if !s.registry.TryStart(jobID) {
+		return fmt.Errorf("dispatch job is already running")
+	}
+
 	s.runJobAsync(jobID, job.Month, job.Year, records)
 	return nil
+}
+
+// AllowedDispatchPeriod returns the only month/year bulk dispatch is permitted for.
+func (s *Service) AllowedDispatchPeriod() (month, year int) {
+	return payroll.PreviousMonthYear(time.Now())
 }
 
 func (s *Service) runJobAsync(jobID string, month, year int, records []payroll.Record) {

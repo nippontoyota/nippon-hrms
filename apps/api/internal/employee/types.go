@@ -63,6 +63,7 @@ type Repository interface {
 	UpdatePhone(ctx context.Context, id, newPhone string) error
 	BulkInsert(ctx context.Context, employees []Employee) error
 	Delete(ctx context.Context, id string) error
-	DeleteMany(ctx context.Context, ids []string) error
+	DeleteMany(ctx context.Context, ids []string) (int64, error)
+	DeleteManyByFilter(ctx context.Context, search string) (int64, error)
 	DeleteAll(ctx context.Context) error
 }
