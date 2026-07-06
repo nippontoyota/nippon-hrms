@@ -195,6 +195,49 @@ func (h *EmployeeHandler) Update(w http.ResponseWriter, r *http.Request) {
 	respond.OK(w, emp)
 }
 
+type bulkDeleteEmployeesRequest struct {
+	IDs []string `json:"ids"`
+}
+
+// BulkDelete handles POST /api/v1/employees/bulk-delete.
+func (h *EmployeeHandler) BulkDelete(w http.ResponseWriter, r *http.Request) {
+	var req bulkDeleteEmployeesRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respond.BadRequest(w, "invalid request payload")
+		return
+	}
+	if len(req.IDs) == 0 {
+		respond.BadRequest(w, "at least one employee ID required")
+		return
+	}
+
+	ids := make([]string, 0, len(req.IDs))
+	seen := make(map[string]struct{}, len(req.IDs))
+	for _, id := range req.IDs {
+		id = strings.TrimSpace(id)
+		if id == "" {
+			continue
+		}
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		ids = append(ids, id)
+	}
+	if len(ids) == 0 {
+		respond.BadRequest(w, "at least one employee ID required")
+		return
+	}
+
+	if err := h.repo.DeleteMany(r.Context(), ids); err != nil {
+		logger.Error("failed to bulk delete employees", "err", err, "count", len(ids))
+		respond.InternalError(w)
+		return
+	}
+
+	respond.OK(w, map[string]int{"deleted": len(ids)})
+}
+
 // Delete handles DELETE /api/v1/employees/{id}.
 func (h *EmployeeHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")

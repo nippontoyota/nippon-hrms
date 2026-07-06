@@ -100,6 +100,8 @@ export default function EmployeesPage() {
     const t = setTimeout(() => {
       setDebouncedSearch(search);
       setPage(1);
+      setSelectedIds(new Set());
+      setSelectAllMatching(false);
     }, 300);
     return () => clearTimeout(t);
   }, [search]);
@@ -110,6 +112,7 @@ export default function EmployeesPage() {
   const { data: conflictsJob } = useLatestConflictsJob('employees');
   const deleteMutation = useDeleteEmployee();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectAllMatching, setSelectAllMatching] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>('employeeId');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   
@@ -171,15 +174,23 @@ export default function EmployeesPage() {
     });
   }, [employees, sortKey, sortDir]);
 
+  const allPageSelected = filtered.length > 0 && filtered.every((emp) => selectedIds.has(emp.id));
+  const headerChecked = selectAllMatching || allPageSelected;
+  const selectedCount = selectAllMatching ? total : selectedIds.size;
+  const showSelectAllBanner = !selectAllMatching && allPageSelected && total > filtered.length;
+
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
       setSelectedIds(new Set(filtered.map((emp) => emp.id)));
+      setSelectAllMatching(false);
     } else {
       setSelectedIds(new Set());
+      setSelectAllMatching(false);
     }
   };
 
   const handleSelectOne = (id: string) => {
+    setSelectAllMatching(false);
     const next = new Set(selectedIds);
     if (next.has(id)) {
       next.delete(id);
@@ -217,21 +228,27 @@ export default function EmployeesPage() {
   };
 
   const handleBulkDelete = () => {
-    if (selectedIds.size === 0) return;
+    if (selectedCount === 0) return;
     openConfirm(
       'Delete Employees',
-      `You are about to permanently delete ${selectedIds.size} employee${selectedIds.size > 1 ? 's' : ''}. This action cannot be undone and will also remove all associated salary records.`,
-      `Delete ${selectedIds.size} Employee${selectedIds.size > 1 ? 's' : ''}`,
+      `You are about to permanently delete ${selectedCount} employee${selectedCount > 1 ? 's' : ''}. This action cannot be undone and will also remove all associated salary records.`,
+      `Delete ${selectedCount} Employee${selectedCount > 1 ? 's' : ''}`,
       () => {
         closeConfirm();
         toast.promise(
           (async () => {
-            for (const id of Array.from(selectedIds)) {
-              await employeesApi.delete(id);
+            let ids: string[];
+            if (selectAllMatching) {
+              const all = await employeesApi.list({ page: 1, limit: total, search: debouncedSearch });
+              ids = all.items.map((e) => e.id);
+            } else {
+              ids = Array.from(selectedIds);
             }
+            await employeesApi.bulkDelete(ids);
             qc.invalidateQueries({ queryKey: ['employees'] });
             qc.invalidateQueries({ queryKey: ['dashboard'] });
             setSelectedIds(new Set());
+            setSelectAllMatching(false);
           })(),
           {
             loading: 'Deleting employees...',
@@ -325,12 +342,12 @@ export default function EmployeesPage() {
             </div>
           ) : (
             <>
-              {selectedIds.size > 0 && (
+              {selectedCount > 0 && (
                 <button 
                   onClick={handleBulkDelete}
                   className="btn-sm !px-4 !py-2 bg-red-100 hover:bg-red-200 text-red-700 border border-red-200 cursor-pointer flex items-center gap-2 font-semibold transition-colors"
                 >
-                  <Trash size={16} weight="bold" /> Delete Selected ({selectedIds.size})
+                  <Trash size={16} weight="bold" /> Delete Selected ({selectedCount})
                 </button>
               )}
               <button
@@ -360,6 +377,21 @@ export default function EmployeesPage() {
         </div>
       </div>
 
+      {showSelectAllBanner && (
+        <div className="mt-3 px-4 py-2 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-sm text-blue-900 dark:text-blue-100 flex items-center gap-2 flex-wrap">
+          <span>
+            All {filtered.length} employees on this page are selected.
+          </span>
+          <button
+            type="button"
+            onClick={() => setSelectAllMatching(true)}
+            className="font-semibold underline hover:no-underline"
+          >
+            Select all {total} employees
+          </button>
+        </div>
+      )}
+
       <div className="mt-6 border-t border-l border-slate-300 dark:border-slate-600 relative z-0">
         {isLoading ? (
           <div className="p-12 flex flex-col items-center justify-center gap-4 bg-white dark:bg-slate-800 border-b border-r border-slate-300 dark:border-slate-600">
@@ -375,7 +407,7 @@ export default function EmployeesPage() {
                     <input 
                       type="checkbox" 
                       className="w-3.5 h-3.5 rounded-none border-slate-400 accent-green-600 cursor-pointer align-middle" 
-                      checked={filtered.length > 0 && selectedIds.size === filtered.length}
+                      checked={headerChecked}
                       onChange={handleSelectAll}
                       disabled={!!editingId}
                     />

@@ -24,6 +24,8 @@ export const employeesApi = {
   update: (id: string, employee: Partial<Employee>) =>
     api.patch(`/employees/${id}`, employee).then((r) => r.data),
   delete: (id: string) => api.delete(`/employees/${id}`).then((r) => r.data),
+  bulkDelete: (ids: string[]) =>
+    api.post<{ deleted: number }>('/employees/bulk-delete', { ids }, { timeout: 120_000 }).then((r) => r.data),
   downloadTemplate: () =>
     fetch('/templates/employee_template.xlsx').then((r) => r.blob()),
   downloadTemplateCsv: () =>

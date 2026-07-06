@@ -281,6 +281,14 @@ func (r *PostgresRepository) Delete(ctx context.Context, id string) error {
 	return err
 }
 
+func (r *PostgresRepository) DeleteMany(ctx context.Context, ids []string) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	_, err := r.db.Exec(ctx, "DELETE FROM employees WHERE id = ANY($1)", ids)
+	return err
+}
+
 func (r *PostgresRepository) DeleteAll(ctx context.Context) error {
 	_, err := r.db.Exec(ctx, "DELETE FROM employees")
 	return err
