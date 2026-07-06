@@ -41,19 +41,19 @@ export const seedRecords: SalaryRecord[] = (salarySeed as { id: string; employee
 );
 
 export const seedHolidays: Holiday[] = [
-  { id: 'in-hol-2026-01-26', date: '2026-01-26', name: 'Republic Day', createdAt: '2026-01-01T00:00:00Z' },
-  { id: 'in-hol-2026-03-04', date: '2026-03-04', name: 'Holi', createdAt: '2026-01-01T00:00:00Z' },
-  { id: 'in-hol-2026-03-21', date: '2026-03-21', name: 'Id-ul-Fitr', createdAt: '2026-01-01T00:00:00Z' },
-  { id: 'in-hol-2026-03-26', date: '2026-03-26', name: 'Ram Navami', createdAt: '2026-01-01T00:00:00Z' },
-  { id: 'in-hol-2026-04-03', date: '2026-04-03', name: 'Good Friday', createdAt: '2026-01-01T00:00:00Z' },
-  { id: 'in-hol-2026-05-01', date: '2026-05-01', name: 'Buddha Purnima', createdAt: '2026-01-01T00:00:00Z' },
-  { id: 'in-hol-2026-05-27', date: '2026-05-27', name: 'Id-ul-Zuha (Bakrid)', createdAt: '2026-01-01T00:00:00Z' },
-  { id: 'in-hol-2026-08-15', date: '2026-08-15', name: 'Independence Day', createdAt: '2026-01-01T00:00:00Z' },
-  { id: 'in-hol-2026-09-04', date: '2026-09-04', name: 'Janmashtami', createdAt: '2026-01-01T00:00:00Z' },
-  { id: 'in-hol-2026-10-02', date: '2026-10-02', name: 'Mahatma Gandhi Jayanti', createdAt: '2026-01-01T00:00:00Z' },
-  { id: 'in-hol-2026-10-20', date: '2026-10-20', name: 'Dussehra (Vijay Dashami)', createdAt: '2026-01-01T00:00:00Z' },
-  { id: 'in-hol-2026-11-08', date: '2026-11-08', name: 'Diwali (Deepavali)', createdAt: '2026-01-01T00:00:00Z' },
-  { id: 'in-hol-2026-12-25', date: '2026-12-25', name: 'Christmas Day', createdAt: '2026-01-01T00:00:00Z' },
+  { id: 'kl-hol-2026-01-26', date: '2026-01-26', name: 'Republic Day', createdAt: '2026-01-01T00:00:00Z' },
+  { id: 'kl-hol-2026-05-01', date: '2026-05-01', name: 'May Day', createdAt: '2026-01-01T00:00:00Z' },
+  { id: 'kl-hol-2026-08-15', date: '2026-08-15', name: 'Independence Day', createdAt: '2026-01-01T00:00:00Z' },
+  { id: 'kl-hol-2026-10-02', date: '2026-10-02', name: 'Gandhi Jayanthi', createdAt: '2026-01-01T00:00:00Z' },
+  { id: 'kl-hol-2026-03-20', date: '2026-03-20', name: 'Ramzan', createdAt: '2026-01-01T00:00:00Z' },
+  { id: 'kl-hol-2026-04-03', date: '2026-04-03', name: 'Good Friday', createdAt: '2026-01-01T00:00:00Z' },
+  { id: 'kl-hol-2026-04-04', date: '2026-04-04', name: 'Easter Saturday', createdAt: '2026-01-01T00:00:00Z' },
+  { id: 'kl-hol-2026-04-15', date: '2026-04-15', name: 'Vishu', createdAt: '2026-01-01T00:00:00Z' },
+  { id: 'kl-hol-2026-05-27', date: '2026-05-27', name: 'Bakrid', createdAt: '2026-01-01T00:00:00Z' },
+  { id: 'kl-hol-2026-08-26', date: '2026-08-26', name: 'Thiruvonam', createdAt: '2026-01-01T00:00:00Z' },
+  { id: 'kl-hol-2026-08-27', date: '2026-08-27', name: 'Third Onam', createdAt: '2026-01-01T00:00:00Z' },
+  { id: 'kl-hol-2026-10-21', date: '2026-10-21', name: 'Vijayadasami', createdAt: '2026-01-01T00:00:00Z' },
+  { id: 'kl-hol-2026-12-25', date: '2026-12-25', name: 'Christmas', createdAt: '2026-01-01T00:00:00Z' },
 ];
 
 export const seedAttendancePeriods: AttendancePeriod[] = [
