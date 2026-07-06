@@ -42,14 +42,14 @@ export default function SalaryPage() {
   const isNextMonthDisabled = year === currentYear && month === currentMonth;
   const isNextYearDisabled = year === currentYear;
 
-  let prevMonth = currentMonth - 1;
-  let prevYear = currentYear;
-  if (prevMonth === 0) {
-    prevMonth = 12;
-    prevYear--;
+  let dispatchableMonth = currentMonth - 1;
+  let dispatchableYear = currentYear;
+  if (dispatchableMonth === 0) {
+    dispatchableMonth = 12;
+    dispatchableYear--;
   }
 
-  const isValidMonthForDispatch = (year === prevYear && month === prevMonth);
+  const isValidMonthForDispatch = (year === dispatchableYear && month === dispatchableMonth);
 
   const validate = async (m: number, y: number) => {
     setLoading(true);
@@ -316,7 +316,7 @@ export default function SalaryPage() {
             <div className="flex items-center gap-3">
               {!isValidMonthForDispatch && (
                 <span className="text-xs text-red-600 font-bold bg-red-50 border border-red-200 px-3 py-2 rounded-md">
-                  Only the previous month ({MONTHS[prevMonth - 1]} {prevYear}) can be dispatched.
+                  Only the previous month ({MONTHS[dispatchableMonth - 1]} {dispatchableYear}) can be dispatched.
                 </span>
               )}
               <button
