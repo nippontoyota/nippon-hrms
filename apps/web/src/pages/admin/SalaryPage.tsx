@@ -20,12 +20,25 @@ const MONTHS = [
 ];
 const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
+function getPreviousMonthYear(from = new Date()) {
+  const currentMonth = from.getMonth() + 1;
+  const currentYear = from.getFullYear();
+  let month = currentMonth - 1;
+  let year = currentYear;
+  if (month === 0) {
+    month = 12;
+    year--;
+  }
+  return { month, year };
+}
+
 export default function SalaryPage() {
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
+  const defaultPeriod = getPreviousMonthYear();
 
-  const [month, setMonth] = useState(currentMonth);
-  const [year, setYear] = useState(currentYear);
+  const [month, setMonth] = useState(defaultPeriod.month);
+  const [year, setYear] = useState(defaultPeriod.year);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<ValidationError[] | null>(null);
   const [dispatching, setDispatching] = useState(false);
@@ -42,12 +55,7 @@ export default function SalaryPage() {
   const isNextMonthDisabled = year === currentYear && month === currentMonth;
   const isNextYearDisabled = year === currentYear;
 
-  let dispatchableMonth = currentMonth - 1;
-  let dispatchableYear = currentYear;
-  if (dispatchableMonth === 0) {
-    dispatchableMonth = 12;
-    dispatchableYear--;
-  }
+  const { month: dispatchableMonth, year: dispatchableYear } = getPreviousMonthYear();
 
   const isValidMonthForDispatch = (year === dispatchableYear && month === dispatchableMonth);
 
