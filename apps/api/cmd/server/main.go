@@ -13,6 +13,8 @@ import (
 	"github.com/nippon-toyota/hrms/internal/config"
 	"github.com/nippon-toyota/hrms/internal/db"
 	"github.com/nippon-toyota/hrms/internal/doubletick"
+	"github.com/nippon-toyota/hrms/internal/employee"
+	"github.com/nippon-toyota/hrms/internal/greetings"
 	"github.com/nippon-toyota/hrms/internal/router"
 	"github.com/nippon-toyota/hrms/pkg/logger"
 )
@@ -52,6 +54,25 @@ func main() {
 		APIKey:     cfg.DoubleTickAPIKey,
 		FromNumber: cfg.WABAPhoneNumberID,
 	})
+	
+	empRepo := employee.NewPostgresRepository(pgPool)
+	greetingsSvc := greetings.NewService(empRepo, dtClient, pgPool)
+
+	// Run greetings on startup and then daily at 9:00 AM
+	go func() {
+		// Try running once on startup just in case
+		_ = greetingsSvc.ProcessDailyGreetings(context.Background())
+		
+		for {
+			now := time.Now()
+			next := time.Date(now.Year(), now.Month(), now.Day(), 9, 0, 0, 0, now.Location())
+			if now.After(next) {
+				next = next.Add(24 * time.Hour)
+			}
+			time.Sleep(time.Until(next))
+			_ = greetingsSvc.ProcessDailyGreetings(context.Background())
+		}
+	}()
 
 	srv := &http.Server{
 		Addr:         cfg.Addr(),
