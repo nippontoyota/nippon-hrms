@@ -53,6 +53,26 @@ func (s *Service) StartDispatch(ctx context.Context, month, year int) (*Job, err
 		return nil, err
 	}
 
+	now := time.Now()
+	currentMonth := int(now.Month())
+	currentYear := now.Year()
+	
+	prevMonth := currentMonth - 1
+	prevYear := currentYear
+	if prevMonth == 0 {
+		prevMonth = 12
+		prevYear--
+	}
+
+	isValid := false
+	if year == prevYear && month == prevMonth {
+		isValid = true
+	}
+
+	if !isValid {
+		return nil, fmt.Errorf("payroll dispatch is strictly locked to the previous month (%02d/%d) to prevent mistakes", prevMonth, prevYear)
+	}
+
 	running, err := s.repo.HasRunningJobForPeriod(ctx, month, year)
 	if err != nil {
 		return nil, err

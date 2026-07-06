@@ -42,6 +42,15 @@ export default function SalaryPage() {
   const isNextMonthDisabled = year === currentYear && month === currentMonth;
   const isNextYearDisabled = year === currentYear;
 
+  let prevMonth = currentMonth - 1;
+  let prevYear = currentYear;
+  if (prevMonth === 0) {
+    prevMonth = 12;
+    prevYear--;
+  }
+
+  const isValidMonthForDispatch = (year === prevYear && month === prevMonth);
+
   const validate = async (m: number, y: number) => {
     setLoading(true);
     setErrors(null);
@@ -266,7 +275,9 @@ export default function SalaryPage() {
         {/* Action Footer */}
         <div className="border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-5 flex items-center justify-between shrink-0">
           <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-            {isFullyDispatched
+            {!isValidMonthForDispatch 
+              ? 'Dispatch Locked for this period'
+              : isFullyDispatched
               ? 'Process Completed'
               : hasPartialFailure
                 ? `${latestJob?.failed} delivery failure${latestJob?.failed === 1 ? '' : 's'} — action required`
@@ -302,14 +313,21 @@ export default function SalaryPage() {
               Payslips Dispatched
             </div>
           ) : (
-            <button
-              onClick={() => setIsConfirmModalOpen(true)}
-              disabled={loading || latestJobLoading || (errors && errors.length > 0) || dispatching || recordsLoading || !records || records.length === 0}
-              className="bg-green-700 hover:bg-green-800 text-white font-bold uppercase tracking-wider !px-6 !py-3 flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed shadow-md transition-colors text-sm rounded-md"
-            >
-              <WhatsappLogo size={18} weight="fill" />
-              {dispatching ? 'Dispatching...' : 'Dispatch Payslips'}
-            </button>
+            <div className="flex items-center gap-3">
+              {!isValidMonthForDispatch && (
+                <span className="text-xs text-red-600 font-bold bg-red-50 border border-red-200 px-3 py-2 rounded-md">
+                  Only the previous month ({MONTHS[prevMonth - 1]} {prevYear}) can be dispatched.
+                </span>
+              )}
+              <button
+                onClick={() => setIsConfirmModalOpen(true)}
+                disabled={!isValidMonthForDispatch || loading || latestJobLoading || (errors && errors.length > 0) || dispatching || recordsLoading || !records || records.length === 0}
+                className="bg-green-700 hover:bg-green-800 text-white font-bold uppercase tracking-wider !px-6 !py-3 flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed shadow-md transition-colors text-sm rounded-md"
+              >
+                <WhatsappLogo size={18} weight="fill" />
+                {dispatching ? 'Dispatching...' : 'Dispatch Payslips'}
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -325,13 +343,16 @@ export default function SalaryPage() {
               <div>
                 <h3 className="font-bold text-green-900 text-lg uppercase tracking-wide">Confirm Dispatch</h3>
                 <p className="text-sm text-green-700 mt-1 leading-relaxed">
-                  You are about to send {MONTHS[month - 1]} {year} payslips to all {recordCount} employees via WhatsApp.
+                  You are about to send payslips to {recordCount} employees via WhatsApp for:
                 </p>
+                <div className="mt-3 bg-white border-2 border-green-200 rounded text-center py-2 px-4 shadow-sm inline-block">
+                  <span className="text-2xl font-black text-green-800 uppercase tracking-widest">{MONTHS[month - 1]} {year}</span>
+                </div>
               </div>
             </div>
             <div className="p-5 bg-white dark:bg-slate-800">
               <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                PDF payslips will be sent directly to each employee&apos;s registered mobile number. <strong className="text-slate-900 dark:text-white font-bold">This cannot be undone.</strong>
+                PDF payslips will be sent directly to each employee&apos;s registered mobile number. <strong className="text-[#eb0a1e] font-bold">This cannot be undone.</strong> Please ensure the highlighted month above is correct.
               </p>
             </div>
             <div className="p-4 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-3">
