@@ -21,6 +21,8 @@ type flowEmpRepo struct {
 }
 
 func (r *flowEmpRepo) List(context.Context) ([]employee.Employee, error) { return nil, nil }
+func (r *flowEmpRepo) DeleteMany(context.Context, []string) (int64, error) { return 0, nil }
+func (r *flowEmpRepo) DeleteManyByFilter(context.Context, string) (int64, error) { return 0, nil }
 func (r *flowEmpRepo) ListPaginated(context.Context, int, int, string) (*employee.ListResult, error) {
 	return nil, nil
 }

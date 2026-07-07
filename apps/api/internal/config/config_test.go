@@ -12,10 +12,10 @@ func TestParseAllowedOrigins(t *testing.T) {
 		in   string
 		want []string
 	}{
-		{"http://localhost:5173", []string{"http://localhost:5173"}},
-		{"http://a.com, https://b.com ", []string{"http://a.com", "https://b.com"}},
-		{"", []string{"http://localhost:5173"}},
-		{" , ", []string{"http://localhost:5173"}},
+		{"http://localhost:5173", []string{"http://localhost:5173", "https://nippon-hrms.pages.dev", "https://*.nippon-hrms.pages.dev"}},
+		{"http://a.com, https://b.com ", []string{"http://a.com", "https://b.com", "https://nippon-hrms.pages.dev", "https://*.nippon-hrms.pages.dev"}},
+		{"", []string{"http://localhost:5173", "https://nippon-hrms.pages.dev", "https://*.nippon-hrms.pages.dev"}},
+		{" , ", []string{"http://localhost:5173", "https://nippon-hrms.pages.dev", "https://*.nippon-hrms.pages.dev"}},
 	}
 
 	for _, tt := range tests {
