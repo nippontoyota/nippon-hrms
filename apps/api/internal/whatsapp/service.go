@@ -122,17 +122,7 @@ func (s *Service) handleWebhookLocked(ctx context.Context, from, input, msgType,
 		sess = &Session{Phone: from, State: StateIdle}
 	}
 
-	if sess.State == StateIdle {
-		if approve, isAction := parseManagerLeaveTemplateAction(input); isAction {
-			handled, err := s.tryHandleManagerTemplateLeaveAction(ctx, sess, from, approve)
-			if handled {
-				if err != nil {
-					slog.Error("whatsapp manager template leave action error", "from", from, "err", err)
-				}
-				return true, err
-			}
-		}
-	}
+
 
 	if shouldSkipInboundEcho(input, msgType, sess.State) {
 		slog.Info("whatsapp inbound skipped echo", "from", from, "input", input, "type", msgType, "state", sess.State)
@@ -147,6 +137,18 @@ func (s *Service) handleWebhookLocked(ctx context.Context, from, input, msgType,
 	if shouldSuppressLeaveTurnNoise(sess, input, messageID) {
 		slog.Info("whatsapp inbound suppressed leave turn noise", "from", from, "input", input, "state", sess.State)
 		return false, nil
+	}
+
+	if sess.State == StateIdle {
+		if approve, isAction := parseManagerLeaveTemplateAction(input); isAction {
+			handled, err := s.tryHandleManagerTemplateLeaveAction(ctx, sess, from, approve)
+			if handled {
+				if err != nil {
+					slog.Error("whatsapp manager template leave action error", "from", from, "err", err)
+				}
+				return true, err
+			}
+		}
 	}
 
 	if s.sessionWindow != nil {
