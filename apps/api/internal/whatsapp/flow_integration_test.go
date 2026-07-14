@@ -296,8 +296,8 @@ func TestFlow_fullLeaveSubmit_stepByStep(t *testing.T) {
 	}{
 		{"m1", "interactive", payloadRequestLeave, StateLeaveAwaitType},
 		{"m2", "text", "Casual Leave", StateLeaveAwaitStart},
-		{"m3", "text", "10/07/2026", StateLeaveAwaitEnd},
-		{"m4", "text", "12/07/2026", StateLeaveAwaitDateConfirm},
+		{"m3", "text", "10/08/2026", StateLeaveAwaitEnd},
+		{"m4", "text", "12/08/2026", StateLeaveAwaitDateConfirm},
 		{"m5", "text", "yes", StateLeaveAwaitReason},
 		{"m6", "text", "Family function", StateLeaveAwaitConfirm},
 		{"m7", "text", "yes", StateIdle},
@@ -320,8 +320,8 @@ func TestFlow_endDateThenConfirm_advancesToReason(t *testing.T) {
 
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m1", "interactive", payloadRequestLeave))
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m2", "text", "Casual Leave"))
-	_ = svc.HandleWebhook(ctx, inbound(phone, "m3", "text", "10/07/2026"))
-	_ = svc.HandleWebhook(ctx, inbound(phone, "m4", "text", "15/07/2026"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m3", "text", "10/08/2026"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m4", "text", "15/08/2026"))
 
 	sess, ok := store.Get(phone)
 	if !ok || sess.State != StateLeaveAwaitDateConfirm {
@@ -353,8 +353,8 @@ func TestFlow_dateConfirmNo_returnsToEnd(t *testing.T) {
 
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m1", "interactive", payloadRequestLeave))
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m2", "text", "Casual Leave"))
-	_ = svc.HandleWebhook(ctx, inbound(phone, "m3", "text", "10/07/2026"))
-	_ = svc.HandleWebhook(ctx, inbound(phone, "m4", "text", "15/07/2026"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m3", "text", "10/08/2026"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m4", "text", "15/08/2026"))
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m5", "text", "no"))
 
 	sess, ok := store.Get(phone)
@@ -526,8 +526,8 @@ func TestFlow_startDateDuplicate_doesNotSkipToReason(t *testing.T) {
 
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m1", "interactive", payloadRequestLeave))
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m2", "text", "Sick Leave"))
-	_ = svc.HandleWebhook(ctx, inbound(phone, "m3", "text", "10/07/2026"))
-	_ = svc.HandleWebhook(ctx, inbound(phone, "m3", "text", "10/07/2026"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m3", "text", "10/08/2026"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m3", "text", "10/08/2026"))
 
 	sess, ok := store.Get(phone)
 	if !ok || sess.State != StateLeaveAwaitEnd {
@@ -587,8 +587,8 @@ func TestFlow_batchProcessesOnlyFirstInbound(t *testing.T) {
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m1", "interactive", payloadRequestLeave))
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m2", "text", "Casual Leave"))
 
-	svc.inbound.enqueue(phone, inboundMessage{messageID: "d1", input: "10/07/2026", msgType: "text"})
-	svc.inbound.enqueue(phone, inboundMessage{messageID: "d2", input: "10/07/2026", msgType: "text"})
+	svc.inbound.enqueue(phone, inboundMessage{messageID: "d1", input: "10/08/2026", msgType: "text"})
+	svc.inbound.enqueue(phone, inboundMessage{messageID: "d2", input: "10/08/2026", msgType: "text"})
 	svc.phoneLock.run(phone, func() {
 		msgs := svc.inbound.drain(phone)
 		for _, msg := range msgs {
@@ -614,8 +614,8 @@ func TestFlow_helloDuringLeave_sendsReminderNotMenu(t *testing.T) {
 
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m1", "interactive", payloadRequestLeave))
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m2", "text", "Casual Leave"))
-	_ = svc.HandleWebhook(ctx, inbound(phone, "m3", "text", "10/07/2026"))
-	_ = svc.HandleWebhook(ctx, inbound(phone, "m4", "text", "12/07/2026"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m3", "text", "10/08/2026"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m4", "text", "12/08/2026"))
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m5", "text", "yes"))
 
 	sess, ok := store.Get(phone)
@@ -647,8 +647,8 @@ func TestFlow_fullLeaveSubmit(t *testing.T) {
 
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m1", "interactive", payloadRequestLeave))
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m2", "text", "Casual Leave"))
-	_ = svc.HandleWebhook(ctx, inbound(phone, "m3", "text", "10/07/2026"))
-	_ = svc.HandleWebhook(ctx, inbound(phone, "m4", "text", "12/07/2026"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m3", "text", "10/08/2026"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m4", "text", "12/08/2026"))
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m5", "text", "yes"))
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m6", "text", "Family function"))
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m7", "text", "yes"))
@@ -687,8 +687,8 @@ func TestFlow_insufficientBalance_keepsSession(t *testing.T) {
 
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m1", "interactive", payloadRequestLeave))
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m2", "text", "Casual Leave"))
-	_ = svc.HandleWebhook(ctx, inbound(phone, "m3", "text", "10/07/2026"))
-	_ = svc.HandleWebhook(ctx, inbound(phone, "m4", "text", "11/07/2026"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m3", "text", "10/08/2026"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m4", "text", "11/08/2026"))
 
 	sess, ok := store.Get(phone)
 	if !ok || sess.State != StateLeaveAwaitEnd {
@@ -699,7 +699,7 @@ func TestFlow_insufficientBalance_keepsSession(t *testing.T) {
 	}
 
 	time.Sleep(minEndReplyWindow + 50*time.Millisecond)
-	_ = svc.HandleWebhook(ctx, inbound(phone, "m5", "text", "10/07/2026"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m5", "text", "10/08/2026"))
 	if !strings.Contains(rec.lastText(), "confirm your leave dates") {
 		t.Fatalf("expected date-confirm prompt after corrected end date, got %q", rec.lastText())
 	}
@@ -736,8 +736,8 @@ func TestFlow_unpaidLeave_noBalanceLimit(t *testing.T) {
 
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m1", "interactive", payloadRequestLeave))
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m2", "text", "Unpaid Leave"))
-	_ = svc.HandleWebhook(ctx, inbound(phone, "m3", "text", "10/07/2026"))
-	_ = svc.HandleWebhook(ctx, inbound(phone, "m4", "text", "14/07/2026"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m3", "text", "10/08/2026"))
+	_ = svc.HandleWebhook(ctx, inbound(phone, "m4", "text", "14/08/2026"))
 
 	if strings.Contains(rec.lastText(), "only") && strings.Contains(rec.lastText(), "leave days are available") {
 		t.Fatalf("unpaid leave should not trigger balance error, got %q", rec.lastText())

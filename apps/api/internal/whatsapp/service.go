@@ -993,6 +993,7 @@ func (s *Service) handleLeaveAwaitDateConfirm(ctx context.Context, sess *Session
 		return nil
 	}
 	if isLeaveConfirmAffirmative(normalized) {
+		sess.LastAcceptedLeaveInput = strings.TrimSpace(input)
 		sess.State = StateLeaveAwaitReason
 		s.sessions.Set(from, sess)
 		return s.sendLeaveReasonPrompt(ctx, sess, from)
@@ -1044,6 +1045,7 @@ func (s *Service) handleLeaveAwaitReason(ctx context.Context, sess *Session, fro
 	}
 
 	sess.TempLeaveReason = trimmed
+	sess.LastAcceptedLeaveInput = trimmed
 	sess.State = StateLeaveAwaitConfirm
 	s.sessions.Set(from, sess)
 	return s.sendLeaveConfirmSummary(ctx, sess, from)
