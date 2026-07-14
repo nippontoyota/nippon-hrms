@@ -41,9 +41,9 @@ func normalizeLeaveApprovalButtonText(input string) string {
 
 func parseManagerLeaveTemplateAction(input string) (approve bool, ok bool) {
 	switch normalizeLeaveApprovalButtonText(input) {
-	case "approve":
+	case "approve", "accept", "accepted", "approved":
 		return true, true
-	case "reject":
+	case "reject", "rejected":
 		return false, true
 	default:
 		return false, false
@@ -58,7 +58,7 @@ func (s *Service) tryHandleManagerTemplateLeaveAction(ctx context.Context, sess 
 
 	pending, err := s.leaveRepo.ListPendingForManager(ctx, mgr.ID)
 	if err != nil || len(pending) == 0 {
-		return false, nil
+		return true, s.sendText(ctx, from, "You have no pending leave requests to review.")
 	}
 
 	if len(pending) > 1 {

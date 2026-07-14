@@ -1207,7 +1207,7 @@ func (s *Service) handleLeaveApproval(ctx context.Context, sess *Session, from, 
 
 	sess.resetFlow()
 	s.sessions.Set(from, sess)
-	s.sendText(ctx, from, fmt.Sprintf("You have approved the leave request for %s.", req.Employee.Name))
+	s.sendText(ctx, from, fmt.Sprintf("Accepted leave request of %s.", req.Employee.Name))
 
 	if req.Employee.MobileNumber != "" {
 		empMsg := buildManagerLeaveApprovedEmployeeText(req.Employee.Name, req.FromDate, req.ToDate, mgr.Name)
