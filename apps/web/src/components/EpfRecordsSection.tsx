@@ -269,15 +269,15 @@ export default function EpfRecordsSection() {
                     />
                   </th>
                   <th className="px-5 py-3 font-semibold w-12 text-center">Sl. No.</th>
-                  <Th col="employeeId">EMP</Th>
+                  <Th col="employeeId">EMP ID</Th>
                   <Th col="name">Name</Th>
                   <Th col="department">Department</Th>
-                  <Th col="level">New Level</Th>
+                  <Th col="level">Level</Th>
                   <Th col="doj">DOJ</Th>
-                  <th className="text-center">No: of Yrs</th>
+                  <th className="text-center">Years since DOJ</th>
                   <Th col="doa">DOA</Th>
-                  <th className="text-center">No: of Yrs</th>
-                  <th>KR/KCH/19297/</th>
+                  <th className="text-center">Years since DOA</th>
+                  <th>EPF Number</th>
                   <th>UAN</th>
                   <th>ESI</th>
                   <th className="sticky right-0 z-10 bg-slate-100 dark:bg-slate-700 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.05)] border-l border-slate-300 dark:border-slate-600 text-center">Actions</th>

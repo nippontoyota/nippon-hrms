@@ -409,9 +409,10 @@ func (r *Repository) mergeEPF(ctx context.Context, jobID string, mode Mode) (*me
 		}
 		tag, err := tx.Exec(ctx, `
 			INSERT INTO epf_records (employee_id, name, department, emp_level, doj, years_since_doj, doa, years_since_doa, epf_number, uan, esi_number)
-			SELECT employee_id, name, department, emp_level, doj, years_since_doj, doa, years_since_doa, epf_number, uan, esi_number
+			SELECT s.employee_id, e.name, e.department, e.emp_level, e.doj, s.years_since_doj, s.doa, s.years_since_doa, s.epf_number, s.uan, s.esi_number
 			FROM import_staging_epf s
-			WHERE s.job_id = $1 AND NOT EXISTS (SELECT 1 FROM epf_records e WHERE e.employee_id = s.employee_id)`, jobID)
+			JOIN employees e ON s.employee_id = e.id
+			WHERE s.job_id = $1 AND NOT EXISTS (SELECT 1 FROM epf_records er WHERE er.employee_id = s.employee_id)`, jobID)
 		if err != nil {
 			return nil, err
 		}

@@ -33,15 +33,9 @@ export const EMPLOYEE_DIRECTORY_HEADERS = [
   'zone',
 ] as const;
 
-/** Column headers for EPF directory bulk upload / export (12-column template). */
+/** Column headers for EPF directory bulk upload / export (6-column template). */
 export const EPF_DIRECTORY_HEADERS = [
-  'Sl No',
   'employeeId',
-  'name',
-  'department',
-  'level',
-  'doj',
-  'yearsSinceDoj',
   'doa',
   'yearsSinceDoa',
   'epfNumber',

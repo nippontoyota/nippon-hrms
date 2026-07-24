@@ -18,8 +18,8 @@ func parseFloat(val string) float64 {
 	return v
 }
 
-// ParseExcel reads the 12-column EPF compliance template.
-// Format: Sl No | EMP | Name | Department | New Level | DOJ | No: of Yrs | DOA | No: of Yrs | KR/KCH/19297/ | UAN | ESI
+// ParseExcel reads the 6-column EPF compliance template.
+// Format: EMP ID | DOA | Years Since DOA | EPF Number | UAN | ESI Number
 func ParseExcel(r io.Reader) ([]Record, []string, error) {
 	f, err := excelize.OpenReader(r)
 	if err != nil {
@@ -41,11 +41,11 @@ func ParseExcel(r io.Reader) ([]Record, []string, error) {
 			continue
 		}
 
-		for len(row) < 12 {
+		for len(row) < 6 {
 			row = append(row, "")
 		}
 
-		id := strings.TrimSpace(row[1])
+		id := strings.TrimSpace(row[0])
 		if id == "" {
 			errs = append(errs, fmt.Sprintf("Row %d: empty EMP ID", i+1))
 			continue
@@ -53,16 +53,16 @@ func ParseExcel(r io.Reader) ([]Record, []string, error) {
 
 		records = append(records, Record{
 			EmployeeID:    id,
-			Name:          strings.TrimSpace(row[2]),
-			Department:    strings.TrimSpace(row[3]),
-			Level:         strings.TrimSpace(row[4]),
-			DOJ:           strings.TrimSpace(row[5]),
-			YearsSinceDOJ: parseFloat(row[6]),
-			DOA:           strings.TrimSpace(row[7]),
-			YearsSinceDOA: parseFloat(row[8]),
-			EPFNumber:     strings.TrimSpace(row[9]),
-			UAN:           strings.TrimSpace(row[10]),
-			ESINumber:     strings.TrimSpace(row[11]),
+			Name:          "", // Populated from employees table later
+			Department:    "", // Populated from employees table later
+			Level:         "", // Populated from employees table later
+			DOJ:           "", // Populated from employees table later
+			YearsSinceDOJ: 0,  // Populated from employees table later
+			DOA:           strings.TrimSpace(row[1]),
+			YearsSinceDOA: parseFloat(row[2]),
+			EPFNumber:     strings.TrimSpace(row[3]),
+			UAN:           strings.TrimSpace(row[4]),
+			ESINumber:     strings.TrimSpace(row[5]),
 			CreatedAt:     time.Now(),
 			UpdatedAt:     time.Now(),
 		})
