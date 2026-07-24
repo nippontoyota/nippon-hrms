@@ -93,5 +93,6 @@ export const SALARY_DIRECTORY_HEADERS = [
   'advance',
   'pf367_1',
   'pf833_1',
+  'total',
   'absents',
 ] as const;
