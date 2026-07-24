@@ -40,7 +40,7 @@ func scanRecord(row pgx.Row) (Record, error) {
 }
 
 func (r *PostgresRepository) List(ctx context.Context) ([]Record, error) {
-	rows, err := r.db.Query(ctx, listQuery+" ORDER BY created_at DESC")
+	rows, err := r.db.Query(ctx, listQuery+" ORDER BY created_at DESC, employee_id ASC")
 	if err != nil {
 		return nil, fmt.Errorf("list epf records: %w", err)
 	}
@@ -78,7 +78,7 @@ func (r *PostgresRepository) ListPaginated(ctx context.Context, page, limit int,
 		return nil, err
 	}
 
-	listQ := listQuery + baseWhere + fmt.Sprintf(` ORDER BY created_at DESC LIMIT $%d OFFSET $%d`, len(args)+1, len(args)+2)
+	listQ := listQuery + baseWhere + fmt.Sprintf(` ORDER BY created_at DESC, employee_id ASC LIMIT $%d OFFSET $%d`, len(args)+1, len(args)+2)
 	listArgs := append(args, limit, offset)
 
 	rows, err := r.db.Query(ctx, listQ, listArgs...)

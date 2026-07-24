@@ -203,7 +203,7 @@ func (r *PostgresRepository) ListPaginated(ctx context.Context, page, limit int,
 			COALESCE(e.bank_branch, ''), COALESCE(e.ifsc_code, ''),
 			e.manager_id, COALESCE(m.name, ''), e.created_at, e.updated_at
 		FROM employees e
-		LEFT JOIN employees m ON e.manager_id = m.id` + baseWhere + ` ORDER BY e.created_at DESC LIMIT $` + fmt.Sprintf("%d", len(args)+1) + ` OFFSET $` + fmt.Sprintf("%d", len(args)+2)
+		LEFT JOIN employees m ON e.manager_id = m.id` + baseWhere + ` ORDER BY e.created_at DESC, e.id ASC LIMIT $` + fmt.Sprintf("%d", len(args)+1) + ` OFFSET $` + fmt.Sprintf("%d", len(args)+2)
 	listArgs := append(args, limit, offset)
 
 	rows, err := r.db.Query(ctx, listQ, listArgs...)
