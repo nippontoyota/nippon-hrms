@@ -67,6 +67,18 @@ func isBotPromptEcho(input string) bool {
 	if strings.Contains(lower, "please type the reason for rejecting") {
 		return true
 	}
+	if strings.Contains(lower, "accepted leave request") {
+		return true
+	}
+	if strings.Contains(lower, "rejected leave request") {
+		return true
+	}
+	if strings.Contains(lower, "has been approved by") {
+		return true
+	}
+	if strings.Contains(lower, "has been rejected by") {
+		return true
+	}
 	if strings.Contains(lower, "leave application") {
 		if strings.Contains(lower, "what type of leave do you need") {
 			return true

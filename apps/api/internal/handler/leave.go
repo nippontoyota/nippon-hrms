@@ -1,10 +1,13 @@
 package handler
 
 import (
+	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/nippon-toyota/hrms/internal/doubletick"
 	"github.com/nippon-toyota/hrms/internal/employee"
 	"github.com/nippon-toyota/hrms/internal/leave"
@@ -56,11 +59,53 @@ func (h *LeaveHandler) GetBalance(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *LeaveHandler) UpdateStatus(w http.ResponseWriter, r *http.Request) {
-	respond.JSON(w, http.StatusForbidden, respond.Envelope{
-		Success: false,
-		Error: &respond.APIError{
-			Code:    "FORBIDDEN",
-			Message: "Leave approval is handled by the assigned manager via WhatsApp.",
-		},
-	})
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		respond.BadRequest(w, "missing leave id")
+		return
+	}
+
+	var req struct {
+		Status          string  `json:"status"`
+		RejectionReason *string `json:"rejectionReason"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respond.BadRequest(w, "invalid request body")
+		return
+	}
+
+	leaveReq, err := h.leaveRepo.GetByID(r.Context(), id)
+	if err != nil {
+		respond.NotFound(w, "leave request not found")
+		return
+	}
+
+	status := leave.LeaveStatus(req.Status)
+	if status != leave.StatusApproved && status != leave.StatusRejected {
+		respond.BadRequest(w, "invalid status")
+		return
+	}
+
+	if err := h.leaveRepo.UpdateStatus(r.Context(), id, status, nil, req.RejectionReason); err != nil {
+		slog.Error("failed to update leave status", "err", err, "id", id)
+		respond.InternalError(w)
+		return
+	}
+
+	emp, err := h.empRepo.GetByID(r.Context(), leaveReq.EmployeeID)
+	if err == nil && emp.MobileNumber != "" {
+		if status == leave.StatusApproved {
+			msg := fmt.Sprintf("Your leave request from *%s* to *%s* has been approved by HR Admin.", leaveReq.FromDate, leaveReq.ToDate)
+			_, _ = h.dtClient.SendText(r.Context(), emp.MobileNumber, msg)
+		} else {
+			reason := "N/A"
+			if req.RejectionReason != nil {
+				reason = *req.RejectionReason
+			}
+			msg := fmt.Sprintf("Your leave request from *%s* to *%s* has been rejected by HR Admin.\nReason: %s", leaveReq.FromDate, leaveReq.ToDate, reason)
+			_, _ = h.dtClient.SendText(r.Context(), emp.MobileNumber, msg)
+		}
+	}
+
+	respond.OK(w, map[string]string{"status": "updated"})
 }

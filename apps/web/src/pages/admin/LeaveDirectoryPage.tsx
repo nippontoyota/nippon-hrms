@@ -88,7 +88,7 @@ export default function LeaveDirectoryPage() {
           </span>
         </div>
         <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-xs text-right leading-snug">
-          Managers approve via WhatsApp. This page is view-only.
+          Managers approve via WhatsApp. HR can override approvals here.
         </p>
       </div>
 

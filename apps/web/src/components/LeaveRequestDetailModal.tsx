@@ -1,5 +1,6 @@
-import { useEffect } from 'react';
-import { CheckCircle, XCircle, Clock, X } from '@phosphor-icons/react';
+import { useState, useEffect } from 'react';
+import { CheckCircle, XCircle, Clock, X, SpinnerGap } from '@phosphor-icons/react';
+import { useUpdateLeaveStatus } from '@/api/hooks';
 import type { LeaveRequest } from '@/api/types';
 
 interface Props {
@@ -56,7 +57,7 @@ function StatusBadge({ leave }: { leave: LeaveRequest }) {
   if (leave.status === 'pending') {
     const label = leave.employee?.managerName
       ? `Awaiting approval from ${leave.employee.managerName}`
-      : 'No manager assigned — contact HR';
+      : 'No manager assigned — HR Approval Required';
     return (
       <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded shadow-sm text-[10px] uppercase tracking-widest font-bold bg-amber-100/50 text-amber-800 border border-amber-200/60 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800/50">
         <Clock size={12} weight="bold" /> {label}
@@ -78,6 +79,10 @@ function StatusBadge({ leave }: { leave: LeaveRequest }) {
 }
 
 export default function LeaveRequestDetailModal({ leave, onClose }: Props) {
+  const updateLeave = useUpdateLeaveStatus();
+  const [rejectMode, setRejectMode] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState('');
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!leave) return;
@@ -89,12 +94,26 @@ export default function LeaveRequestDetailModal({ leave, onClose }: Props) {
 
   if (!leave) return null;
 
+  const handleApprove = () => {
+    updateLeave.mutate(
+      { id: leave.id, status: 'approved' },
+      { onSuccess: onClose }
+    );
+  };
+
+  const handleReject = () => {
+    updateLeave.mutate(
+      { id: leave.id, status: 'rejected', rejectionReason },
+      { onSuccess: onClose }
+    );
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" onClick={onClose} />
 
-      <div className="relative z-10 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 shadow-2xl w-full max-w-lg mx-4 flex flex-col max-h-[90vh]">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 shrink-0">
+      <div className="relative z-10 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 shadow-2xl w-full max-w-lg mx-4 flex flex-col max-h-[90vh] rounded-lg">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 shrink-0 rounded-t-lg">
           <h2 className="text-sm font-bold uppercase tracking-wider text-slate-800 dark:text-slate-100">
             Leave Request Details
           </h2>
@@ -143,7 +162,9 @@ export default function LeaveRequestDetailModal({ leave, onClose }: Props) {
             {(leave.reviewedBy || leave.reviewedAt) && (
               <DetailRow label="Reviewed">
                 <div>
-                  {leave.reviewedBy && <span>{leave.reviewedBy}</span>}
+                  <span className="font-medium text-slate-800 dark:text-slate-200">
+                    {leave.reviewedBy ? leave.reviewedBy : 'HR Admin'}
+                  </span>
                   {leave.reviewedAt && (
                     <span className="text-slate-500 text-xs block mt-0.5">{formatDateTime(leave.reviewedAt)}</span>
                   )}
@@ -172,20 +193,78 @@ export default function LeaveRequestDetailModal({ leave, onClose }: Props) {
             </div>
           )}
 
-          {leave.status === 'pending' && (
+          {leave.status === 'pending' && !rejectMode && (
             <p className="text-xs text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-700 pt-3">
-              The assigned manager approves or rejects this request via WhatsApp.
+              This request is pending. Managers can approve via WhatsApp, or HR can override it here.
             </p>
+          )}
+
+          {leave.status === 'pending' && rejectMode && (
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-700">
+              <label className="block text-[10px] font-semibold uppercase tracking-wider text-rose-600 dark:text-rose-400 mb-2">
+                Rejection Reason (Required)
+              </label>
+              <textarea
+                autoFocus
+                className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-md p-2 text-sm focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500"
+                rows={3}
+                placeholder="Please provide a reason for rejecting this leave..."
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+              />
+            </div>
           )}
         </div>
 
-        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 shrink-0">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
-          >
-            Close
-          </button>
+        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 shrink-0 rounded-b-lg">
+          {leave.status === 'pending' && !rejectMode && (
+            <>
+              <button
+                onClick={() => setRejectMode(true)}
+                disabled={updateLeave.isPending}
+                className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 dark:bg-rose-900/30 dark:text-rose-400 dark:border-rose-800 dark:hover:bg-rose-900/50 rounded transition-colors"
+              >
+                Reject
+              </button>
+              <button
+                onClick={handleApprove}
+                disabled={updateLeave.isPending}
+                className="flex items-center gap-2 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-white bg-emerald-600 hover:bg-emerald-700 rounded transition-colors"
+              >
+                {updateLeave.isPending ? <SpinnerGap className="animate-spin" size={14} /> : <CheckCircle size={14} weight="bold" />}
+                Approve
+              </button>
+            </>
+          )}
+
+          {leave.status === 'pending' && rejectMode && (
+            <>
+              <button
+                onClick={() => setRejectMode(false)}
+                disabled={updateLeave.isPending}
+                className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 bg-transparent hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleReject}
+                disabled={updateLeave.isPending || rejectionReason.trim().length === 0}
+                className="flex items-center gap-2 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-50 rounded transition-colors"
+              >
+                {updateLeave.isPending ? <SpinnerGap className="animate-spin" size={14} /> : <XCircle size={14} weight="bold" />}
+                Confirm Rejection
+              </button>
+            </>
+          )}
+
+          {leave.status !== 'pending' && (
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
+            >
+              Close
+            </button>
+          )}
         </div>
       </div>
     </div>

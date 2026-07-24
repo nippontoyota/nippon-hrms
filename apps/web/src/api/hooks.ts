@@ -1,4 +1,4 @@
-﻿import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   dashboardApi,
   employeesApi,
@@ -146,6 +146,18 @@ export { importsApi };
 
 export function useLeaves() {
   return useQuery({ queryKey: ['leaves'], queryFn: leaveApi.list });
+}
+
+export function useUpdateLeaveStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status, rejectionReason }: { id: string; status: 'approved' | 'rejected'; rejectionReason?: string }) =>
+      leaveApi.updateStatus(id, status, rejectionReason),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['leaves'] });
+      qc.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
 }
 
 export function useHolidays(year?: number, month?: number) {

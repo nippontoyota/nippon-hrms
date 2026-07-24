@@ -42,7 +42,7 @@ func (r *PostgresRepository) ListAll(ctx context.Context) ([]LeaveRequest, error
 	query := `
 		SELECT 
 			l.id, l.employee_id, l.type, l.from_date, l.to_date, l.days, l.reason, l.status, l.rejection_reason, l.reviewed_by, l.reviewed_at, l.created_at,
-			e.name, e.department, e.mobile_number, e.manager_id, COALESCE(m.name, '')
+			e.name, COALESCE(e.department, ''), e.mobile_number, e.manager_id, COALESCE(m.name, '')
 		FROM leaves l
 		JOIN employees e ON l.employee_id = e.id
 		LEFT JOIN employees m ON e.manager_id = m.id
@@ -95,7 +95,7 @@ func (r *PostgresRepository) ListPendingForManager(ctx context.Context, managerI
 	query := `
 		SELECT 
 			l.id, l.employee_id, l.type, l.from_date, l.to_date, l.days, l.reason, l.status, l.rejection_reason, l.reviewed_by, l.reviewed_at, l.created_at,
-			e.name, e.department, e.mobile_number, e.manager_id, COALESCE(m.name, '')
+			e.name, COALESCE(e.department, ''), e.mobile_number, e.manager_id, COALESCE(m.name, '')
 		FROM leaves l
 		JOIN employees e ON l.employee_id = e.id
 		LEFT JOIN employees m ON e.manager_id = m.id
@@ -171,7 +171,7 @@ func (r *PostgresRepository) GetByID(ctx context.Context, id string) (*LeaveRequ
 	query := `
 		SELECT 
 			l.id, l.employee_id, l.type, l.from_date, l.to_date, l.days, l.reason, l.status, l.rejection_reason, l.reviewed_by, l.reviewed_at, l.created_at,
-			e.name, e.department, e.mobile_number, e.manager_id, COALESCE(m.name, '')
+			e.name, COALESCE(e.department, ''), e.mobile_number, e.manager_id, COALESCE(m.name, '')
 		FROM leaves l
 		JOIN employees e ON l.employee_id = e.id
 		LEFT JOIN employees m ON e.manager_id = m.id

@@ -687,13 +687,15 @@ func (s *Service) sendMainMenu(ctx context.Context, to, name string) error {
 			slog.Info("whatsapp menu sent", "to", to, "type", "interactive_media")
 			s.recordOutbound(to)
 
-			// Add a slight delay to ensure the heavier image message is delivered first
-			// before the lightweight text list message.
-			time.Sleep(1500 * time.Millisecond)
+			// Add a delay to ensure the heavier image message is delivered first
+			// before the lightweight text list message. WhatsApp doesn't guarantee order.
+			// Run in a goroutine to avoid blocking the webhook response.
+			// Temporarily disabled per user request
+			// go func(bgCtx context.Context, phone string) {
+			// 	time.Sleep(3500 * time.Millisecond)
+			// 	_ = s.sendMoreOptionsMenu(bgCtx, phone)
+			// }(context.WithoutCancel(ctx), to)
 
-			if err := s.sendMoreOptionsMenu(ctx, to); err != nil {
-				return err
-			}
 			return nil
 		}
 		slog.Warn("interactive media send failed, falling back to buttons", "err", err)
@@ -707,15 +709,23 @@ func (s *Service) sendMainMenu(ctx context.Context, to, name string) error {
 		if err := s.sendText(ctx, to, body+"\n\n"+msgMenuTextFallback); err != nil {
 			return err
 		}
-		return s.sendMoreOptionsMenu(ctx, to)
+		// Temporarily disabled per user request
+		// go func(bgCtx context.Context, phone string) {
+		// 	time.Sleep(3500 * time.Millisecond)
+		// 	_ = s.sendMoreOptionsMenu(bgCtx, phone)
+		// }(context.WithoutCancel(ctx), to)
+		return nil
 	}
 	slog.Info("whatsapp menu sent", "to", to, "type", "buttons")
 	s.recordOutbound(to)
 
-	// Add delay for button fallback as well just to be consistent
-	time.Sleep(500 * time.Millisecond)
+	// Temporarily disabled per user request
+	// go func(bgCtx context.Context, phone string) {
+	// 	time.Sleep(3500 * time.Millisecond)
+	// 	_ = s.sendMoreOptionsMenu(bgCtx, phone)
+	// }(context.WithoutCancel(ctx), to)
 
-	return s.sendMoreOptionsMenu(ctx, to)
+	return nil
 }
 
 func (s *Service) sendMoreOptionsMenu(ctx context.Context, to string) error {
