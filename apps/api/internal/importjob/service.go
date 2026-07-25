@@ -2,11 +2,13 @@ package importjob
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/nippon-toyota/hrms/pkg/logger"
 )
 
@@ -98,24 +100,24 @@ func (s *Service) runJob(jobID, filePath string) {
 	}
 
 	if err := s.repo.UpdateStatus(ctx, jobID, StatusLoading); err != nil {
-		s.repo.FailJob(ctx, jobID, err.Error())
+		s.repo.FailJob(ctx, jobID, formatDBError(err))
 		return
 	}
 
 	if err := s.loadStaging(ctx, job, parsed); err != nil {
-		s.repo.FailJob(ctx, jobID, err.Error())
+		s.repo.FailJob(ctx, jobID, formatDBError(err))
 		return
 	}
 
 	stats, err := s.repo.Merge(ctx, job)
 	if err != nil {
-		s.repo.FailJob(ctx, jobID, err.Error())
+		s.repo.FailJob(ctx, jobID, formatDBError(err))
 		return
 	}
 
 	total := parsed.TotalRows
 	if err := s.repo.CompleteJob(ctx, jobID, total, stats.Inserted, stats.SkippedIdentical, rejected, stats.Conflicts); err != nil {
-		s.repo.FailJob(ctx, jobID, err.Error())
+		s.repo.FailJob(ctx, jobID, formatDBError(err))
 		return
 	}
 
@@ -172,6 +174,23 @@ func (s *Service) ListErrors(ctx context.Context, jobID string, page, limit int)
 
 func (s *Service) ListConflicts(ctx context.Context, jobID string, page, limit int, search string) (*PaginatedConflicts, error) {
 	return s.repo.ListConflicts(ctx, jobID, page, limit, search)
+}
+
+func formatDBError(err error) string {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		if pgErr.Code == "23503" { // foreign_key_violation
+			if pgErr.Detail != "" {
+				return fmt.Sprintf("Missing Employee Error: %s", pgErr.Detail)
+			}
+			return fmt.Sprintf("Missing Employee Error: %s", pgErr.Message)
+		}
+		if pgErr.Detail != "" {
+			return fmt.Sprintf("Database Error: %s (%s)", pgErr.Message, pgErr.Detail)
+		}
+		return fmt.Sprintf("Database Error: %s", pgErr.Message)
+	}
+	return err.Error()
 }
 
 func (s *Service) ResolveConflicts(ctx context.Context, jobID string, conflictIDs []string, resolution Resolution) (int, error) {
