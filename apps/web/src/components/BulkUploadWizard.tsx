@@ -99,6 +99,7 @@ export default function BulkUploadWizard({
         errorCount: job.rejected,
         skippedIdentical: job.skippedIdentical,
         conflictsPending: job.conflictsPending,
+        errors: job.errorMessage ? [job.errorMessage] : undefined,
       }
     : null;
 
