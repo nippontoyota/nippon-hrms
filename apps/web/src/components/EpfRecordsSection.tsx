@@ -298,7 +298,7 @@ export default function EpfRecordsSection() {
                         onChange={() => handleSelectOne(r.employeeId)}
                       />
                     </td>
-                    <td className="text-center font-mono text-slate-500 dark:text-slate-400 text-xs px-2">{index + 1}</td>
+                    <td className="text-center font-mono text-slate-500 dark:text-slate-400 text-xs px-2">{(page - 1) * limit + index + 1}</td>
                     <td className="font-mono font-bold text-slate-900 dark:text-white">{r.employeeId}</td>
                     <td className="font-semibold text-slate-900 dark:text-white">{r.name}</td>
                     <td>{r.department || '-'}</td>

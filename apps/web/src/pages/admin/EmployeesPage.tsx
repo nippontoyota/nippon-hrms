@@ -471,7 +471,7 @@ export default function EmployeesPage() {
                           disabled={!!editingId}
                         />
                       </td>
-                      <td className="text-center font-mono text-slate-500 dark:text-slate-400 text-xs px-2">{index + 1}</td>
+                      <td className="text-center font-mono text-slate-500 dark:text-slate-400 text-xs px-2">{(page - 1) * limit + index + 1}</td>
                       <Cell {...cellProps} field="employeeId" className="font-mono font-bold text-slate-900 dark:text-white" />
                       <Cell {...cellProps} field="name" className="font-semibold text-slate-900 dark:text-white" />
                       <Cell {...cellProps} field="department" />

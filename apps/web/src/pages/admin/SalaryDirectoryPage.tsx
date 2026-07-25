@@ -432,7 +432,7 @@ export default function SalaryDirectoryPage() {
                         disabled={false}
                       />
                     </td>
-                    <td className="text-center font-mono text-slate-500 dark:text-slate-400 text-xs px-2 border-r border-slate-300 dark:border-slate-600">{idx + 1}</td>
+                    <td className="text-center font-mono text-slate-500 dark:text-slate-400 text-xs px-2 border-r border-slate-300 dark:border-slate-600">{(page - 1) * limit + idx + 1}</td>
                     <td className="text-center px-2" data-ui-only>
                         <button
                           onClick={(e) => { e.stopPropagation(); handlePreview(r.employeeId); }}
