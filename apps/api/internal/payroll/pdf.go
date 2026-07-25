@@ -88,10 +88,12 @@ func newPayslipView(emp *employee.Employee, rec *Record, epfRec *epf.Record) Pay
 	if lop < 0 {
 		lop = 0
 	}
-	paidDays := rec.Days - lop
+	paidDays := rec.Days
 	if paidDays < 0 {
 		paidDays = 0
 	}
+
+	totalDaysInMonth := daysInMonth(rec.Month, rec.Year)
 
 	v := PayslipView{
 		FormCode:    "FORM XIII [RULE 29(2)]",
@@ -106,7 +108,7 @@ func newPayslipView(emp *employee.Employee, rec *Record, epfRec *epf.Record) Pay
 		UAN:      "N/A",
 		ESICIP:   "N/A",
 
-		WorkingDays: formatDays(rec.Days),
+		WorkingDays: formatDays(totalDaysInMonth),
 		PaidDays:    formatDays(paidDays),
 		LOPDays:     formatDays(lop),
 	}

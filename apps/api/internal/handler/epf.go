@@ -150,6 +150,15 @@ func (h *EpfHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	respond.NoContent(w)
 }
 
+func (h *EpfHandler) DeleteBulk(w http.ResponseWriter, r *http.Request) {
+	if err := h.repo.DeleteAll(r.Context()); err != nil {
+		logger.Error("failed to bulk delete epf records", "err", err)
+		respond.InternalError(w)
+		return
+	}
+	respond.NoContent(w)
+}
+
 var epfTemplateHeaders = []string{
 	"Sl No", "employeeId", "name", "department", "level", "doj", "yearsSinceDoj",
 	"doa", "yearsSinceDoa", "epfNumber", "uan", "esiNumber",

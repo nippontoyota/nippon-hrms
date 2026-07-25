@@ -1,4 +1,4 @@
-﻿package router
+package router
 
 import (
 	"net/http"
@@ -130,6 +130,7 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 				r.Get("/template", epfH.DownloadTemplate)
 				r.Get("/{id}", epfH.GetByID)
 				r.Patch("/{id}", epfH.Update)
+				r.Delete("/bulk", epfH.DeleteBulk)
 				r.Delete("/{id}", epfH.Delete)
 			})
 
@@ -147,6 +148,7 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 				r.Get("/dispatch/{jobId}/items", payrollH.ListDispatchJobItems)
 				r.Post("/dispatch/{jobId}/retry-failed", payrollH.RetryFailedDispatch)
 				r.Post("/send", payrollH.SendPayslip)
+				r.Delete("/bulk", payrollH.DeleteBulk)
 				r.Delete("/{id}", payrollH.Delete)
 				r.Get("/export", payrollH.ExportExcel)
 				r.Get("/template", payrollH.DownloadTemplate)

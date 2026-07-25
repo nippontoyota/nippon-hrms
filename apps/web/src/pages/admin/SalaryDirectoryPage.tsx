@@ -2,7 +2,7 @@ import { useVaultStore } from '@/stores/vaultStore';
 import { useState, useMemo, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useQueryClient } from '@tanstack/react-query';
-import { usePayrollRecords, salaryApi, useLatestConflictsJob } from '@/api/hooks';
+import { usePayrollRecords, salaryApi, useLatestConflictsJob, useBulkDeletePayroll } from '@/api/hooks';
 import { MicrosoftExcelLogo, CaretLeft, CaretRight, Trash, X, ArrowsDownUp, DownloadSimple, FileCsv, Eye, EyeSlash, FilePdf, Spinner } from '@phosphor-icons/react';
 import { PayrollRecord } from '@/api/types';
 import { downloadApiBlob, exportCsv } from '@/lib/format';
@@ -71,6 +71,7 @@ export default function SalaryDirectoryPage() {
   const records = data?.items ?? [];
   const total = data?.total ?? 0;
   const { data: conflictsJob } = useLatestConflictsJob('payroll');
+  const bulkDelete = useBulkDeletePayroll();
 
   const isNextMonthDisabled = year === currentYear && month === currentMonth;
   const isNextYearDisabled = year === currentYear;
@@ -152,6 +153,23 @@ export default function SalaryDirectoryPage() {
     setConfirmState({ open: true, title, message, confirmLabel, onConfirm });
   };
   const closeConfirm = () => setConfirmState(prev => ({ ...prev, open: false }));
+
+  const handleClearMonth = () => {
+    if (total === 0) return;
+    openConfirm(
+      'Clear All Records',
+      `You are about to permanently delete all ${total} payroll records for ${MONTHS[month - 1]} ${year}. This action cannot be undone.`,
+      `Clear ${total} Records`,
+      () => {
+        closeConfirm();
+        toast.promise(bulkDelete.mutateAsync({ month, year }), {
+          loading: 'Deleting all records...',
+          success: 'Successfully cleared month!',
+          error: 'Failed to clear month',
+        }).then(() => setSelectedIds(new Set()));
+      }
+    );
+  };
 
   const handleBulkDelete = () => {
     if (selectedIds.size === 0) return;
@@ -322,6 +340,14 @@ export default function SalaryDirectoryPage() {
 
         {/* ── Right: Actions ─────────────────────────── */}
         <div className="flex items-center gap-3">
+          {total > 0 && (
+            <button
+              onClick={handleClearMonth}
+              className="btn-sm !px-4 !py-2 bg-white dark:bg-slate-800 text-red-600 hover:bg-red-50 border border-red-200 cursor-pointer flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-colors"
+            >
+              <Trash size={15} weight="bold" /> Clear Month ({total})
+            </button>
+          )}
           {selectedIds.size > 0 && (
             <button
               onClick={handleBulkDelete}

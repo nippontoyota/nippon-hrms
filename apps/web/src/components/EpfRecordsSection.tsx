@@ -11,7 +11,7 @@ import {
   DownloadSimple,
   FileCsv,
 } from '@phosphor-icons/react';
-import { epfApi, useDeleteEpfRecord, useEpfRecords, useLatestConflictsJob } from '@/api/hooks';
+import { epfApi, useDeleteEpfRecord, useEpfRecords, useLatestConflictsJob, useBulkDeleteEpfRecords } from '@/api/hooks';
 import type { EpfRecord } from '@/api/types';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { downloadApiBlob, exportCsv } from '@/lib/format';
@@ -56,6 +56,7 @@ export default function EpfRecordsSection() {
   const total = data?.total ?? 0;
   const { data: conflictsJob } = useLatestConflictsJob('epf');
   const deleteMutation = useDeleteEpfRecord();
+  const bulkDelete = useBulkDeleteEpfRecords();
   const qc = useQueryClient();
   const { tableRef, handleRowClick, rowHighlightClass } = useTableRowHighlight();
 
@@ -150,6 +151,23 @@ export default function EpfRecordsSection() {
     toast.success('EPF template downloaded');
   };
 
+  const handleClearDirectory = () => {
+    if (total === 0) return;
+    openConfirm(
+      'Clear EPF Directory',
+      `You are about to permanently delete all ${total} EPF records. This action cannot be undone.`,
+      `Clear ${total} Records`,
+      () => {
+        closeConfirm();
+        toast.promise(bulkDelete.mutateAsync(), {
+          loading: 'Deleting all EPF records...',
+          success: 'Successfully cleared EPF directory!',
+          error: 'Failed to clear EPF directory',
+        }).then(() => setSelectedIds(new Set()));
+      }
+    );
+  };
+
   const handleBulkDelete = () => {
     if (selectedIds.size === 0) return;
     openConfirm(
@@ -206,6 +224,14 @@ export default function EpfRecordsSection() {
           />
         </div>
         <div className="flex items-center gap-3 flex-wrap">
+          {total > 0 && (
+            <button
+              onClick={handleClearDirectory}
+              className="btn-sm !px-4 !py-2 bg-white dark:bg-slate-800 text-red-600 hover:bg-red-50 border border-red-200 cursor-pointer flex items-center gap-2 font-bold uppercase tracking-wider transition-colors"
+            >
+              <Trash size={16} weight="bold" /> Clear Directory ({total})
+            </button>
+          )}
           {selectedIds.size > 0 && (
             <button
               onClick={handleBulkDelete}

@@ -1,4 +1,4 @@
-﻿import api from '@/lib/axios';
+import api from '@/lib/axios';
 import type {
   DashboardStats,
   DispatchJob,
@@ -41,6 +41,7 @@ export const epfApi = {
   update: (id: string, record: Partial<EpfRecord>) =>
     api.patch(`/epf/${id}`, record).then((r) => r.data),
   delete: (id: string) => api.delete(`/epf/${id}`).then((r) => r.data),
+  bulkDelete: () => api.delete('/epf/bulk').then((r) => r.data),
   exportExcel: () =>
     api.get('/epf/export', { responseType: 'blob' }).then((r) => r.data),
   downloadTemplateCsv: () =>
@@ -74,6 +75,7 @@ export const salaryApi = {
   validatePayroll: (month: number, year: number) =>
     api.post<{ errors: { employeeId: string; employeeName: string; reason: string }[] }>('/payroll/validate', { month, year }).then((r) => r.data),
   delete: (id: string) => api.delete(`/payroll/${id}`).then((r) => r.data),
+  bulkDelete: (month: number, year: number) => api.delete(`/payroll/bulk?month=${month}&year=${year}`).then((r) => r.data),
   exportExcel: (month: number, year: number) => api.get(`/payroll/export?month=${month}&year=${year}`, { responseType: 'blob' }).then((r) => r.data),
   downloadTemplateCsv: (month: number, year: number) => api.get(`/payroll/template?month=${month}&year=${year}`, { responseType: 'blob' }).then((r) => r.data),
 };

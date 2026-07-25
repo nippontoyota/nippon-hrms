@@ -526,6 +526,29 @@ func (h *PayrollHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	respond.OK(w, map[string]string{"message": "payroll record deleted"})
 }
 
+// DeleteBulk handles DELETE /api/v1/payroll/bulk
+func (h *PayrollHandler) DeleteBulk(w http.ResponseWriter, r *http.Request) {
+	monthStr := r.URL.Query().Get("month")
+	yearStr := r.URL.Query().Get("year")
+
+	var month, year int
+	fmt.Sscanf(monthStr, "%d", &month)
+	fmt.Sscanf(yearStr, "%d", &year)
+
+	if month < 1 || month > 12 || year < 2000 {
+		respond.BadRequest(w, "invalid month or year")
+		return
+	}
+
+	if err := h.repo.DeleteByPeriod(r.Context(), month, year); err != nil {
+		logger.Error("failed to bulk delete payroll records", "err", err)
+		respond.InternalError(w)
+		return
+	}
+
+	respond.NoContent(w)
+}
+
 // ExportExcel generates and returns an Excel file with all payroll records for a period.
 func (h *PayrollHandler) ExportExcel(w http.ResponseWriter, r *http.Request) {
 	monthStr := r.URL.Query().Get("month")

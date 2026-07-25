@@ -86,12 +86,34 @@ export function useDeleteEpfRecord() {
   });
 }
 
+export function useBulkDeleteEpfRecords() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => epfApi.bulkDelete(),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['epf'] });
+      qc.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
 export function useDeletePayroll() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => salaryApi.delete(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['payroll'] });
+    },
+  });
+}
+
+export function useBulkDeletePayroll() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ month, year }: { month: number; year: number }) => salaryApi.bulkDelete(month, year),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['payroll'] });
+      qc.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 }
