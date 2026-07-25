@@ -56,9 +56,7 @@ type PayslipView struct {
 	PFNumber    string
 	UAN         string
 	ESICIP      string
-	TotalDays   string
 	WorkingDays string
-	LeaveDays   string
 	PaidDays    string
 	LOPDays     string
 	Location    string
@@ -86,12 +84,14 @@ func formatDays(v float64) string {
 func newPayslipView(emp *employee.Employee, rec *Record, epfRec *epf.Record) PayslipView {
 	name := rec.EmpNameSnapshot
 
-	totalDaysInMonth := float64(time.Date(rec.Year, time.Month(rec.Month+1), 0, 0, 0, 0, 0, time.UTC).Day())
-	lop := rec.Leaves - 2.0
+	lop := rec.LOP
 	if lop < 0 {
 		lop = 0
 	}
-	paidDays := totalDaysInMonth - lop
+	paidDays := rec.Days - lop
+	if paidDays < 0 {
+		paidDays = 0
+	}
 
 	v := PayslipView{
 		FormCode:    "FORM XIII [RULE 29(2)]",
@@ -106,9 +106,7 @@ func newPayslipView(emp *employee.Employee, rec *Record, epfRec *epf.Record) Pay
 		UAN:      "N/A",
 		ESICIP:   "N/A",
 
-		TotalDays:   formatDays(totalDaysInMonth),
 		WorkingDays: formatDays(rec.Days),
-		LeaveDays:   formatDays(rec.Leaves),
 		PaidDays:    formatDays(paidDays),
 		LOPDays:     formatDays(lop),
 	}
@@ -248,11 +246,10 @@ func addIdentityBlock(m core.Maroto, v PayslipView) {
 		{[2]string{"Employee ID :", v.EmployeeID}, [2]string{"PF Number :", v.PFNumber}},
 		{[2]string{"Employee Name :", v.EmployeeName}, [2]string{"UAN :", v.UAN}},
 		{[2]string{"Designation :", v.Designation}, [2]string{"ESIC IP Number :", v.ESICIP}},
-		{[2]string{"Department :", v.Department}, [2]string{"Total Days in Month :", v.TotalDays}},
-		{[2]string{"Bank Account Number :", v.AccountNumber}, [2]string{"Working Days :", v.WorkingDays}},
-		{[2]string{"Bank Name :", v.BankName}, [2]string{"Leave Days :", v.LeaveDays}},
-		{[2]string{"Bank IFSC Code :", v.IFSCCode}, [2]string{"Paid Days :", v.PaidDays}},
-		{[2]string{"Employee Location :", v.Location}, [2]string{"LOP Days :", v.LOPDays}},
+		{[2]string{"Department :", v.Department}, [2]string{"Working Days :", v.WorkingDays}},
+		{[2]string{"Bank Account Number :", v.AccountNumber}, [2]string{"Paid Days :", v.PaidDays}},
+		{[2]string{"Bank Name :", v.BankName}, [2]string{"LOP Days :", v.LOPDays}},
+		{[2]string{"Bank IFSC Code :", v.IFSCCode}, [2]string{"Employee Location", v.Location}},
 	}
 
 	labelProp := props.Text{Size: 9, Align: align.Left, Top: 1, Left: 1, Bottom: 1}
