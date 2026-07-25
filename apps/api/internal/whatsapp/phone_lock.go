@@ -111,12 +111,8 @@ func isBotPromptEcho(input string) bool {
 	if strings.Contains(lower, "please enter the month and year for your payslip") {
 		return true
 	}
-	if strings.Contains(lower, "how may we help you today") {
-		if !strings.Contains(lower, "salary slip") &&
-			!strings.Contains(lower, "request leave") &&
-			!strings.Contains(lower, "generate pay") {
-			return true
-		}
+	if strings.Contains(lower, "how may we help you today") || strings.Contains(lower, "welcome to nippon hr connect") {
+		return true
 	}
 	return false
 }
