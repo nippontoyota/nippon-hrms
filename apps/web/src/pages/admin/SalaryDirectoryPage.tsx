@@ -390,8 +390,6 @@ export default function SalaryDirectoryPage() {
                   <Th col="leaves" className="text-center">Leaves</Th>
                   <Th col="lop" className="text-center">LOP</Th>
                   <Th col="days" className="text-center">Days</Th>
-                  <Th col="basic" className="text-right">Basic</Th>
-                  <Th col="da" className="text-right">DA</Th>
                   <Th col="basicDa" className="text-right font-bold bg-slate-50 dark:bg-slate-900">Basic+DA</Th>
                   <Th col="hra" className="text-right">HRA</Th>
                   <Th col="travel" className="text-right">Travel</Th>
@@ -407,31 +405,13 @@ export default function SalaryDirectoryPage() {
                   <Th col="totalEarWithIncen" className="text-right font-black">Total Ear with incen</Th>
                   <Th col="grossSalWithoutIncentives" className="text-right font-bold">Gross Sal-With out Incentives</Th>
                   <Th col="pf" className="text-right">PF</Th>
-                  <Th col="pf367" className="text-right">3.67</Th>
-                  <Th col="pf833" className="text-right">8.33</Th>
                   <Th col="esi075" className="text-right">ESI 0.75</Th>
-                  <Th col="esi325" className="text-right">ESI 3.25</Th>
                   <Th col="tds" className="text-right">TDS</Th>
                   <Th col="salAdv" className="text-right">Sal Adv</Th>
                   <Th col="additionalDeduction" className="text-right">Additional Deduction</Th>
                   <Th col="loan" className="text-right">Loan</Th>
-                  <Th col="companyStatutoryContribution" className="text-right">Company's Statutory contribution</Th>
-                  <Th col="reimbMedical" className="text-right">Reimbursement of Medical Expences</Th>
-                  <Th col="reimbLTA" className="text-right">Reimbursement of LTA</Th>
-                  <Th col="zetaMealVoucher" className="text-right">Zeta Meal Voucher / Gift Card / Sudexo</Th>
-                  <Th col="reimbTravel" className="text-right">Reimbursement of Travel Expences</Th>
-                  <Th col="totalReimbursement" className="text-right font-bold">Total Reimbursement</Th>
-                  <Th col="netIncentive" className="text-right">Net Incentive</Th>
                   <Th col="totalDeductions" className="text-right font-bold !text-red-700 dark:!text-red-400 !bg-red-50 dark:!bg-red-950">Total Deductions</Th>
                   <Th col="actualFinalAmount" className="text-right font-black !text-green-700 dark:!text-green-400 !bg-green-50 dark:!bg-green-950 text-sm">Actual Final Amount</Th>
-                  <Th col="lopDeduction" className="text-right">LOP.1</Th>
-                  <Th col="epfER" className="text-right">EPF ER</Th>
-                  <Th col="grossForPT" className="text-right">Gross for PT</Th>
-                  <Th col="advance" className="text-right">Advance</Th>
-                  <Th col="pf367" className="text-right">3.67.1</Th>
-                  <Th col="pf833" className="text-right">8.33.1</Th>
-                  <th className="text-right font-bold text-slate-500 dark:text-slate-400 select-none">Total</th>
-                  <Th col="absents" className="text-center text-red-600 font-bold">ABSENTS</Th>
                 </tr>
               </thead>
               <tbody>
@@ -478,8 +458,6 @@ export default function SalaryDirectoryPage() {
                     <td className="text-center font-mono">{r.leaves?.toFixed(1) || '0.0'}</td>
                     <td className="text-center font-mono text-red-600">{r.lop?.toFixed(1) || '0.0'}</td>
                     <td className="text-center font-mono">{r.days?.toFixed(1) || '0.0'}</td>
-                    <td className="text-right font-mono">{m(r.basic)}</td>
-                    <td className="text-right font-mono">{m(r.da)}</td>
                     <td className="text-right font-mono font-bold bg-slate-50 dark:bg-slate-900">{m(r.basicDa)}</td>
                     <td className="text-right font-mono">{m(r.hra)}</td>
                     <td className="text-right font-mono">{m(r.travel)}</td>
@@ -495,37 +473,19 @@ export default function SalaryDirectoryPage() {
                     <td className="text-right font-mono font-black">{m(r.totalEarWithIncen)}</td>
                     <td className="text-right font-mono font-bold">{m(r.grossSalWithoutIncentives)}</td>
                     <td className="text-right font-mono">{m(r.pf)}</td>
-                    <td className="text-right font-mono">{m(r.pf367)}</td>
-                    <td className="text-right font-mono">{m(r.pf833)}</td>
                     <td className="text-right font-mono">{m(r.esi075)}</td>
-                    <td className="text-right font-mono">{m(r.esi325)}</td>
                     <td className="text-right font-mono">{m(r.tds)}</td>
                     <td className="text-right font-mono">{m(r.salAdv)}</td>
                     <td className="text-right font-mono">{m(r.additionalDeduction)}</td>
                     <td className="text-right font-mono">{m(r.loan)}</td>
-                    <td className="text-right font-mono">{m(r.companyStatutoryContribution)}</td>
-                    <td className="text-right font-mono">{m(r.reimbMedical)}</td>
-                    <td className="text-right font-mono">{m(r.reimbLTA)}</td>
-                    <td className="text-right font-mono">{m(r.zetaMealVoucher)}</td>
-                    <td className="text-right font-mono">{m(r.reimbTravel)}</td>
-                    <td className="text-right font-mono font-bold">{m(r.totalReimbursement)}</td>
-                    <td className="text-right font-mono">{m(r.netIncentive)}</td>
                     <td className="text-right font-mono font-bold !text-red-700 dark:!text-red-400 !bg-red-50 dark:!bg-red-950">{m(r.totalDeductions)}</td>
                     <td className="text-right font-mono font-black !text-green-700 dark:!text-green-400 !bg-green-50 dark:!bg-green-950 text-sm">{m(r.actualFinalAmount)}</td>
-                    <td className="text-right font-mono">{m(r.lopDeduction)}</td>
-                    <td className="text-right font-mono">{m(r.epfER)}</td>
-                    <td className="text-right font-mono">{m(r.grossForPT)}</td>
-                    <td className="text-right font-mono">{m(r.advance)}</td>
-                    <td className="text-right font-mono">{m(r.pf367)}</td>
-                    <td className="text-right font-mono">{m(r.pf833)}</td>
-                    <td className="text-right font-mono font-bold">{m((r.pf367 || 0) + (r.pf833 || 0))}</td>
-                    <td className="text-center font-mono font-bold text-red-600">{r.absents?.toFixed(1) || '0.0'}</td>
                   </tr>
                   );
                 })}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={50} className="text-center p-8 text-slate-400 font-mono text-xs uppercase tracking-widest">
+                    <td colSpan={30} className="text-center p-8 text-slate-400 font-mono text-xs uppercase tracking-widest">
                       {`No payroll records for ${MONTHS[month - 1]} ${year}`}
                     </td>
                   </tr>
