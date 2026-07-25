@@ -252,8 +252,8 @@ func addIdentityBlock(m core.Maroto, v PayslipView) {
 		{[2]string{"Bank IFSC Code :", v.IFSCCode}, [2]string{"Employee Location", v.Location}},
 	}
 
-	labelProp := props.Text{Size: 9, Align: align.Left, Top: 1, Left: 1, Bottom: 1}
-	valueProp := props.Text{Size: 9, Style: fontstyle.Bold, Align: align.Left, Top: 1, Left: 1, Bottom: 1}
+	labelProp := props.Text{Size: 10, Align: align.Left, Top: 1.5, Left: 1, Bottom: 1.5}
+	valueProp := props.Text{Size: 10, Align: align.Left, Top: 1.5, Left: 1, Bottom: 1.5}
 
 	for i, r := range rows {
 		leftBorder := border.Left
@@ -287,18 +287,18 @@ func addIdentityBlock(m core.Maroto, v PayslipView) {
 
 func addEarningsDeductions(m core.Maroto, v PayslipView) {
 	// Section header (dark gray band).
-	headLabel := props.Text{Size: 10, Style: fontstyle.Bold, Align: align.Left, Top: 1, Left: 1}
-	headAmt := props.Text{Size: 10, Style: fontstyle.Bold, Align: align.Right, Top: 1, Right: 1}
+	headLabel := props.Text{Size: 11, Style: fontstyle.Bold, Align: align.Left, Top: 1.5, Left: 1, Bottom: 1.5}
+	headAmt := props.Text{Size: 11, Style: fontstyle.Bold, Align: align.Right, Top: 1.5, Right: 1, Bottom: 1.5}
 
-	m.AddRow(7,
+	m.AddAutoRow(
 		col.New(4).Add(text.New("Earnings", headLabel)).WithStyle(styleCell(colorGray, border.Left|border.Top|border.Bottom)),
 		col.New(2).Add(text.New("Amount", headAmt)).WithStyle(styleCell(colorGray, border.Top|border.Bottom|border.Right)),
 		col.New(4).Add(text.New("Deduction", headLabel)).WithStyle(styleCell(colorGray, border.Top|border.Bottom)),
 		col.New(2).Add(text.New("Amount", headAmt)).WithStyle(styleCell(colorGray, border.Top|border.Bottom|border.Right)),
 	)
 
-	descProp := props.Text{Size: 9, Align: align.Left, Top: 0.5, Left: 1, Bottom: 0.5}
-	amtProp := props.Text{Size: 9, Align: align.Right, Top: 0.5, Right: 1, Bottom: 0.5}
+	descProp := props.Text{Size: 10, Align: align.Left, Top: 1, Left: 1, Bottom: 1}
+	amtProp := props.Text{Size: 10, Align: align.Right, Top: 1, Right: 1, Bottom: 1}
 
 	n := len(v.Earnings)
 	if len(v.Deductions) > n {
@@ -326,20 +326,20 @@ func addEarningsDeductions(m core.Maroto, v PayslipView) {
 }
 
 func addTotalsAndNet(m core.Maroto, v PayslipView) {
-	totLabel := props.Text{Size: 9, Style: fontstyle.Bold, Align: align.Left, Top: 1, Left: 1}
-	totAmt := props.Text{Size: 9, Style: fontstyle.Bold, Align: align.Right, Top: 1, Right: 1}
+	totLabel := props.Text{Size: 10, Style: fontstyle.Bold, Align: align.Left, Top: 1.5, Left: 1, Bottom: 1.5}
+	totAmt := props.Text{Size: 10, Style: fontstyle.Bold, Align: align.Right, Top: 1.5, Right: 1, Bottom: 1.5}
 
-	m.AddRow(6.5,
+	m.AddAutoRow(
 		col.New(4).Add(text.New("Total Earnings", totLabel)).WithStyle(styleCell(nil, border.Left|border.Top|border.Bottom)),
 		col.New(2).Add(text.New(v.TotalEarnings, totAmt)).WithStyle(styleCell(nil, border.Top|border.Bottom|border.Right)),
 		col.New(4).Add(text.New("Total Deductions", totLabel)).WithStyle(styleCell(nil, border.Top|border.Bottom)),
 		col.New(2).Add(text.New(v.TotalDeductions, totAmt)).WithStyle(styleCell(nil, border.Top|border.Bottom|border.Right)),
 	)
 
-	netLabel := props.Text{Size: 9, Align: align.Left, Top: 1, Left: 1}
-	netVal := props.Text{Size: 9, Style: fontstyle.Bold, Align: align.Left, Top: 1}
+	netLabel := props.Text{Size: 10, Align: align.Left, Top: 2, Left: 1, Bottom: 2}
+	netVal := props.Text{Size: 11, Style: fontstyle.Bold, Align: align.Left, Top: 2, Bottom: 2}
 
-	m.AddRow(7,
+	m.AddAutoRow(
 		col.New(7).
 			Add(text.New("Net Pay for the month (Total Earnings - Total Deductions) :", netLabel)).
 			WithStyle(styleCell(nil, border.Left|border.Bottom)),
