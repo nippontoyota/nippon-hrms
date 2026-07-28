@@ -3,12 +3,15 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/nippon-toyota/hrms/internal/employee"
+	"github.com/nippon-toyota/hrms/internal/importjob"
 	"github.com/nippon-toyota/hrms/internal/vault"
 	"github.com/nippon-toyota/hrms/pkg/downloadname"
 	"github.com/nippon-toyota/hrms/pkg/logger"
@@ -331,7 +334,7 @@ func (h *EmployeeHandler) ExportExcel(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// DownloadTemplate returns a CSV file with only column headers (no data).
+// DownloadTemplate returns an Excel file with only column headers (no data).
 func (h *EmployeeHandler) DownloadTemplate(w http.ResponseWriter, r *http.Request) {
 	headers := []string{
 		"employeeId", "name", "department", "mobileNo", "level", "doj", "birthday", "yearsExperience",
@@ -343,15 +346,114 @@ func (h *EmployeeHandler) DownloadTemplate(w http.ResponseWriter, r *http.Reques
 
 	filename := downloadname.EmployeeImportTemplate()
 
-	w.Header().Set("Content-Type", "text/csv")
+	f := excelize.NewFile()
+	sheet := "Template"
+	f.SetSheetName("Sheet1", sheet)
+
+	for i, h := range headers {
+		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
+		f.SetCellValue(sheet, cell, h)
+		col, _ := excelize.ColumnNumberToName(i + 1)
+		f.SetColWidth(sheet, col, col, 18)
+	}
+
+	w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
 
-	// Write headers only
-	for i, h := range headers {
-		if i > 0 {
-			w.Write([]byte(","))
-		}
-		w.Write([]byte(h))
+	if err := f.Write(w); err != nil {
+		logger.Error("failed to write template excel", "err", err)
 	}
-	w.Write([]byte("\n"))
 }
+
+// PreviewBulkDelete previews the employees to be deleted based on an uploaded Excel/CSV file.
+func (h *EmployeeHandler) PreviewBulkDelete(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		respond.BadRequest(w, "failed to parse multipart form")
+		return
+	}
+
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		respond.BadRequest(w, "missing 'file' field")
+		return
+	}
+	defer file.Close()
+
+	format, err := importjob.DetectFormat(header.Filename, file)
+	if err != nil {
+		respond.BadRequest(w, err.Error())
+		return
+	}
+
+	// Save to temp file
+	tmpFile, err := os.CreateTemp("", "bulk-delete-preview-*.tmp")
+	if err != nil {
+		respond.InternalError(w)
+		return
+	}
+	defer os.Remove(tmpFile.Name())
+
+	if _, err := io.Copy(tmpFile, file); err != nil {
+		tmpFile.Close()
+		respond.InternalError(w)
+		return
+	}
+	tmpFile.Close()
+
+	parsed, err := importjob.ParseFile(importjob.EntityEmployees, format, tmpFile.Name(), 0, 0, 500_000)
+	if err != nil {
+		respond.JSON(w, http.StatusUnprocessableEntity, respond.Envelope{
+			Success: false,
+			Error:   &respond.APIError{Code: "PARSE_ERROR", Message: "failed to parse file: " + err.Error()},
+		})
+		return
+	}
+
+	var extractedIDs []string
+	idSet := make(map[string]bool)
+	for _, row := range parsed.EmployeeRows {
+		if row.ID != "" && !idSet[row.ID] {
+			extractedIDs = append(extractedIDs, row.ID)
+			idSet[row.ID] = true
+		}
+	}
+
+	if len(extractedIDs) == 0 {
+		respond.JSON(w, http.StatusOK, respond.Envelope{
+			Success: true,
+			Data: map[string]interface{}{
+				"matched":   []employee.Employee{},
+				"unmatched": []string{},
+			},
+		})
+		return
+	}
+
+	matchedEmployees, err := h.repo.GetByEmployeeIDs(r.Context(), extractedIDs)
+	if err != nil {
+		logger.Error("failed to get employees by ID", "err", err)
+		respond.InternalError(w)
+		return
+	}
+
+	matchedMap := make(map[string]bool)
+	for _, emp := range matchedEmployees {
+		matchedMap[emp.EmployeeID] = true
+	}
+
+	var unmatched []string
+	for _, id := range extractedIDs {
+		if !matchedMap[id] {
+			unmatched = append(unmatched, id)
+		}
+	}
+
+	respond.JSON(w, http.StatusOK, respond.Envelope{
+		Success: true,
+		Data: map[string]interface{}{
+			"matched":   matchedEmployees,
+			"unmatched": unmatched,
+		},
+	})
+}
+

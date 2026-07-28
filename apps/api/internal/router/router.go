@@ -116,6 +116,7 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 				r.Post("/", employeeH.Create)
 				r.Post("/upload", employeeH.BulkUpload)
 				r.Post("/bulk-delete", employeeH.BulkDelete)
+				r.Post("/bulk-delete/preview", employeeH.PreviewBulkDelete)
 				r.Get("/export", employeeH.ExportExcel)
 				r.Get("/template", employeeH.DownloadTemplate)
 				r.Get("/{id}", employeeH.GetByID)

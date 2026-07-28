@@ -3,10 +3,9 @@ import { useState, useMemo, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { usePayrollRecords, salaryApi, useLatestConflictsJob, useBulkDeletePayroll } from '@/api/hooks';
-import { MicrosoftExcelLogo, CaretLeft, CaretRight, Trash, X, ArrowsDownUp, DownloadSimple, FileCsv, Eye, EyeSlash, FilePdf, Spinner } from '@phosphor-icons/react';
+import { MicrosoftExcelLogo, CaretLeft, CaretRight, Trash, X, ArrowsDownUp, FileCsv, Eye, EyeSlash, FilePdf, Spinner } from '@phosphor-icons/react';
 import { PayrollRecord } from '@/api/types';
-import { downloadApiBlob, exportCsv } from '@/lib/format';
-import { SALARY_DIRECTORY_HEADERS } from '@/lib/exportColumns';
+import { downloadApiBlob } from '@/lib/format';
 import { useTableRowHighlight } from '@/lib/useTableRowHighlight';
 import BulkUploadWizard from '@/components/BulkUploadWizard';
 import ImportConflictPanel from '@/components/ImportConflictPanel';
@@ -206,24 +205,20 @@ export default function SalaryDirectoryPage() {
     setSelectedIds(new Set());
   };
 
-  const handleExportExcel = async () => {
+
+
+  const handleDownloadTemplate = async () => {
     try {
       const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-').replace('T', '_');
       await downloadApiBlob(
-        () => salaryApi.exportExcel(month, year),
-        `SalaryDirectory_${timestamp}.xlsx`,
-        'Failed to export to Excel',
+        () => salaryApi.downloadTemplateExcel(month, year),
+        `SalaryDirectory_Template_${timestamp}.xlsx`,
+        'Failed to download template'
       );
-      toast.success('Salary directory exported to Excel');
+      toast.success('Template downloaded');
     } catch {
-      toast.error('Failed to export to Excel');
+      toast.error('Failed to download template');
     }
-  };
-
-  const handleDownloadTemplate = () => {
-    const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-').replace('T', '_');
-    exportCsv(`SalaryDirectory_Template_${timestamp}.csv`, [...SALARY_DIRECTORY_HEADERS], []);
-    toast.success('Template downloaded');
   };
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -340,14 +335,6 @@ export default function SalaryDirectoryPage() {
 
         {/* ── Right: Actions ─────────────────────────── */}
         <div className="flex items-center gap-3">
-          {total > 0 && (
-            <button
-              onClick={handleClearMonth}
-              className="btn-sm !px-4 !py-2 bg-white dark:bg-slate-800 text-red-600 hover:bg-red-50 border border-red-200 cursor-pointer flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-colors"
-            >
-              <Trash size={15} weight="bold" /> Clear Month ({total})
-            </button>
-          )}
           {selectedIds.size > 0 && (
             <button
               onClick={handleBulkDelete}
@@ -356,24 +343,26 @@ export default function SalaryDirectoryPage() {
               <Trash size={15} weight="bold" /> Delete ({selectedIds.size})
             </button>
           )}
-          <button
-            type="button"
-            onClick={() => setShowImport(true)}
-            className="btn-success btn-sm !px-4 !py-2 bg-green-700 hover:bg-green-800 text-white border border-green-800 cursor-pointer flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-colors"
-          >
-            <MicrosoftExcelLogo size={16} weight="bold" /> Import data
-          </button>
+          {total > 0 && (
+            <button
+              onClick={handleClearMonth}
+              className="btn-sm !px-4 !py-2 bg-white dark:bg-slate-800 text-red-600 hover:bg-red-50 border border-red-200 cursor-pointer flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-colors"
+            >
+              <Trash size={15} weight="bold" /> Clear Month ({total})
+            </button>
+          )}
           <button 
             onClick={handleDownloadTemplate}
             className="btn-sm !px-4 !py-2 bg-blue-700 hover:bg-blue-800 text-white border border-blue-800 cursor-pointer flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-colors"
           >
             <FileCsv size={14} weight="bold" /> Download Template
           </button>
-          <button 
-            onClick={handleExportExcel}
-            className="btn-sm !px-4 !py-2 bg-purple-700 hover:bg-purple-800 text-white border border-purple-800 cursor-pointer flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-colors"
+          <button
+            type="button"
+            onClick={() => setShowImport(true)}
+            className="btn-success btn-sm !px-4 !py-2 bg-green-700 hover:bg-green-800 text-white border border-green-800 cursor-pointer flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-colors"
           >
-            <DownloadSimple size={14} weight="bold" /> Export to Excel
+            <MicrosoftExcelLogo size={16} weight="bold" /> Import data
           </button>
         </div>
       </div>
@@ -382,7 +371,7 @@ export default function SalaryDirectoryPage() {
         <input
           type="search"
           placeholder="Search employee ID or name…"
-          className="input text-sm max-w-xs"
+          className="input text-sm max-w-xs !rounded-none"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />

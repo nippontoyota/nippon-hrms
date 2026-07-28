@@ -356,3 +356,52 @@ func (r *PostgresRepository) DeleteAll(ctx context.Context) error {
 	_, err := r.db.Exec(ctx, "DELETE FROM employees")
 	return err
 }
+
+func (r *PostgresRepository) GetByEmployeeIDs(ctx context.Context, ids []string) ([]Employee, error) {
+	if len(ids) == 0 {
+		return []Employee{}, nil
+	}
+
+	query := `
+		SELECT 
+			e.id, e.name, COALESCE(e.department, ''), e.mobile_number, COALESCE(e.emp_level, ''),
+			COALESCE(e.doj::text, ''), COALESCE(e.birthday::text, ''), COALESCE(e.years_experience, 0),
+			COALESCE(e.branch, ''), COALESCE(e.designation, ''), COALESCE(e.zone, ''),
+			e.basic, e.da, e.revised_basic_da, e.hra, e.travel, 
+			e.hostel, e.children, e.total_salary, e.mobile, e.conveyance, e.wash_allowance, 
+			e.branch_allowance, e.special_allowance, e.training, e.total_allowances, 
+			e.total_salary_with_allowances, COALESCE(e.bank_name, ''), COALESCE(e.account_number, ''),
+			COALESCE(e.bank_branch, ''), COALESCE(e.ifsc_code, ''), e.manager_id, COALESCE(m.name, ''), e.created_at, e.updated_at
+		FROM employees e
+		LEFT JOIN employees m ON e.manager_id = m.id
+		WHERE e.id = ANY($1)
+	`
+	rows, err := r.db.Query(ctx, query, ids)
+	if err != nil {
+		return nil, fmt.Errorf("list employees by ids error: %w", err)
+	}
+	defer rows.Close()
+
+	var employees []Employee
+	for rows.Next() {
+		var e Employee
+		if err := rows.Scan(
+			&e.ID, &e.Name, &e.Department, &e.MobileNumber, &e.Level, &e.DOJ, &e.Birthday, &e.YearsExperience,
+			&e.Branch, &e.Designation, &e.Zone, &e.Basic, &e.DA, &e.RevisedBasicDA, &e.HRA, &e.Travel,
+			&e.Hostel, &e.Children, &e.TotalSalary, &e.Mobile, &e.Conveyance, &e.WashAllowance,
+			&e.BranchAllowance, &e.SpecialAllowance, &e.Training, &e.TotalAllowances,
+			&e.TotalSalaryWithAllowances, &e.BankName, &e.AccountNumber, &e.BankBranch,
+			&e.IFSCCode, &e.ManagerID, &e.ManagerName, &e.CreatedAt, &e.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		e.EmployeeID = e.ID
+		e.Status = "Active"
+		employees = append(employees, e)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return employees, nil
+}

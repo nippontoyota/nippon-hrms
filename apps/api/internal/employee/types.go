@@ -1,4 +1,4 @@
-﻿package employee
+package employee
 
 import (
 	"context"
@@ -66,4 +66,5 @@ type Repository interface {
 	DeleteMany(ctx context.Context, ids []string) (int64, error)
 	DeleteManyByFilter(ctx context.Context, search string) (int64, error)
 	DeleteAll(ctx context.Context) error
+	GetByEmployeeIDs(ctx context.Context, ids []string) ([]Employee, error)
 }

@@ -20,7 +20,7 @@ func TestExportTimestampIST_format(t *testing.T) {
 
 func TestSalaryImportTemplate(t *testing.T) {
 	got := downloadname.SalaryImportTemplate(6, 2026)
-	want := "SalaryDirectory_ImportTemplate_06-2026.csv"
+	want := "SalaryDirectory_ImportTemplate_06-2026.xlsx"
 	if got != want {
 		t.Fatalf("SalaryImportTemplate() = %q, want %q", got, want)
 	}
@@ -37,7 +37,7 @@ func TestSalaryExport_containsPeriodAndExtension(t *testing.T) {
 }
 
 func TestEmployeeImportTemplate_isStatic(t *testing.T) {
-	if downloadname.EmployeeImportTemplate() != "EmployeeDirectory_ImportTemplate.csv" {
+	if downloadname.EmployeeImportTemplate() != "EmployeeDirectory_ImportTemplate.xlsx" {
 		t.Fatal("employee import template should be static")
 	}
 }

@@ -49,6 +49,7 @@ func (r *flowEmpRepo) UpdatePhone(context.Context, string, string) error { retur
 func (r *flowEmpRepo) BulkInsert(context.Context, []employee.Employee) error { return nil }
 func (r *flowEmpRepo) Delete(context.Context, string) error { return nil }
 func (r *flowEmpRepo) DeleteAll(context.Context) error { return nil }
+func (r *flowEmpRepo) GetByEmployeeIDs(context.Context, []string) ([]employee.Employee, error) { return nil, nil }
 
 type flowLeaveRepo struct {
 	created []*leave.LeaveRequest

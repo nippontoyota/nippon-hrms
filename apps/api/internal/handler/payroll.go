@@ -611,7 +611,7 @@ func (h *PayrollHandler) ExportExcel(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// DownloadTemplate returns a CSV file with only column headers (no data).
+// DownloadTemplate returns an Excel file with only column headers (no data).
 func (h *PayrollHandler) DownloadTemplate(w http.ResponseWriter, r *http.Request) {
 	monthStr := r.URL.Query().Get("month")
 	yearStr := r.URL.Query().Get("year")
@@ -629,15 +629,21 @@ func (h *PayrollHandler) DownloadTemplate(w http.ResponseWriter, r *http.Request
 
 	filename := downloadname.SalaryImportTemplate(month, year)
 
-	w.Header().Set("Content-Type", "text/csv")
+	f := excelize.NewFile()
+	sheet := "Template"
+	f.SetSheetName("Sheet1", sheet)
+
+	for i, h := range headers {
+		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
+		f.SetCellValue(sheet, cell, h)
+		col, _ := excelize.ColumnNumberToName(i + 1)
+		f.SetColWidth(sheet, col, col, 18)
+	}
+
+	w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
 
-	// Write headers only — UI columns like Preview are never included
-	for i, h := range headers {
-		if i > 0 {
-			w.Write([]byte(","))
-		}
-		w.Write([]byte(h))
+	if err := f.Write(w); err != nil {
+		logger.Error("failed to write template excel", "err", err)
 	}
-	w.Write([]byte("\n"))
 }

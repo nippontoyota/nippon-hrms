@@ -18,7 +18,7 @@ func EmployeeExport() string {
 }
 
 func EmployeeImportTemplate() string {
-	return "EmployeeDirectory_ImportTemplate.csv"
+	return "EmployeeDirectory_ImportTemplate.xlsx"
 }
 
 func EpfExport() string {
@@ -26,7 +26,7 @@ func EpfExport() string {
 }
 
 func EpfImportTemplate() string {
-	return "EPFDirectory_ImportTemplate.csv"
+	return "EPFDirectory_ImportTemplate.xlsx"
 }
 
 func SalaryExport(month, year int) string {
@@ -34,7 +34,7 @@ func SalaryExport(month, year int) string {
 }
 
 func SalaryImportTemplate(month, year int) string {
-	return formatSalaryBase("ImportTemplate", month, year) + ".csv"
+	return formatSalaryBase("ImportTemplate", month, year) + ".xlsx"
 }
 
 func formatSalaryBase(kind string, month, year int) string {

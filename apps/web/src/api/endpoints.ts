@@ -26,9 +26,14 @@ export const employeesApi = {
   delete: (id: string) => api.delete(`/employees/${id}`).then((r) => r.data),
   bulkDelete: (payload: { ids?: string[]; deleteAll?: boolean; search?: string }) =>
     api.post<{ deleted: number }>('/employees/bulk-delete', payload, { timeout: 120_000 }).then((r) => r.data),
+  previewBulkDelete: (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return api.post<{ matched: Employee[]; unmatched: string[] }>('/employees/bulk-delete/preview', form).then((r) => r.data);
+  },
   downloadTemplate: () =>
     fetch('/templates/employee_template.xlsx').then((r) => r.blob()),
-  downloadTemplateCsv: () =>
+  downloadTemplateExcel: () =>
     api.get('/employees/template', { responseType: 'blob' }).then((r) => r.data),
   exportExcel: () =>
     api.get('/employees/export', { responseType: 'blob' }).then((r) => r.data),
@@ -44,7 +49,7 @@ export const epfApi = {
   bulkDelete: () => api.delete('/epf/bulk').then((r) => r.data),
   exportExcel: () =>
     api.get('/epf/export', { responseType: 'blob' }).then((r) => r.data),
-  downloadTemplateCsv: () =>
+  downloadTemplateExcel: () =>
     api.get('/epf/template', { responseType: 'blob' }).then((r) => r.data),
 };
 
@@ -77,7 +82,7 @@ export const salaryApi = {
   delete: (id: string) => api.delete(`/payroll/${id}`).then((r) => r.data),
   bulkDelete: (month: number, year: number) => api.delete(`/payroll/bulk?month=${month}&year=${year}`).then((r) => r.data),
   exportExcel: (month: number, year: number) => api.get(`/payroll/export?month=${month}&year=${year}`, { responseType: 'blob' }).then((r) => r.data),
-  downloadTemplateCsv: (month: number, year: number) => api.get(`/payroll/template?month=${month}&year=${year}`, { responseType: 'blob' }).then((r) => r.data),
+  downloadTemplateExcel: (month: number, year: number) => api.get(`/payroll/template?month=${month}&year=${year}`, { responseType: 'blob' }).then((r) => r.data),
 };
 
 export const holidaysApi = {

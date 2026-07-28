@@ -5,13 +5,13 @@ import { Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { employeesApi, useEmployees, useDeleteEmployee, useLatestConflictsJob } from '@/api/hooks';
 import { Employee } from '@/api/types';
-import { MagnifyingGlass, MicrosoftExcelLogo, Plus, PencilSimple, Trash, ArrowUp, ArrowDown, ArrowsDownUp, WhatsappLogo, FloppyDisk, DownloadSimple, FileCsv } from '@phosphor-icons/react';
+import { MagnifyingGlass, MicrosoftExcelLogo, Plus, PencilSimple, Trash, ArrowUp, ArrowDown, ArrowsDownUp, WhatsappLogo, FloppyDisk, FileCsv } from '@phosphor-icons/react';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import SendPayslipModal from '@/components/SendPayslipModal';
-import { downloadApiBlob, exportCsv } from '@/lib/format';
-import { EMPLOYEE_DIRECTORY_HEADERS } from '@/lib/exportColumns';
+import { downloadApiBlob } from '@/lib/format';
 import { useTableRowHighlight } from '@/lib/useTableRowHighlight';
 import BulkUploadWizard from '@/components/BulkUploadWizard';
+import BulkDeleteWizard from '@/components/BulkDeleteWizard';
 import ImportConflictPanel from '@/components/ImportConflictPanel';
 import TablePagination from '@/components/TablePagination';
 import SearchableSelect from '@/components/SearchableSelect';
@@ -94,6 +94,7 @@ export default function EmployeesPage() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [showImport, setShowImport] = useState(false);
+  const [showBulkDeleteWizard, setShowBulkDeleteWizard] = useState(false);
   const limit = 50;
 
   useEffect(() => {
@@ -208,24 +209,26 @@ export default function EmployeesPage() {
     setShowImport(false);
   };
 
-  const handleExportExcel = async () => {
+  const handleBulkDeleteComplete = () => {
+    qc.invalidateQueries({ queryKey: ['employees'] });
+    qc.invalidateQueries({ queryKey: ['dashboard'] });
+    setShowBulkDeleteWizard(false);
+  };
+
+
+
+  const handleDownloadTemplate = async () => {
     try {
       const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-').replace('T', '_');
       await downloadApiBlob(
-        () => employeesApi.exportExcel(),
-        `EmployeeDirectory_${timestamp}.xlsx`,
-        'Failed to export to Excel',
+        () => employeesApi.downloadTemplateExcel(),
+        `EmployeeDirectory_Template_${timestamp}.xlsx`,
+        'Failed to download template'
       );
-      toast.success('Employee directory exported to Excel');
+      toast.success('Template downloaded');
     } catch {
-      toast.error('Failed to export to Excel');
+      toast.error('Failed to download template');
     }
-  };
-
-  const handleDownloadTemplate = () => {
-    const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-').replace('T', '_');
-    exportCsv(`EmployeeDirectory_Template_${timestamp}.csv`, [...EMPLOYEE_DIRECTORY_HEADERS], []);
-    toast.success('Template downloaded');
   };
 
   const handleBulkDelete = () => {
@@ -252,6 +255,34 @@ export default function EmployeesPage() {
             loading: 'Deleting employees...',
             success: (result) => `Deleted ${result.deleted} employee${result.deleted === 1 ? '' : 's'}.`,
             error: 'Failed to delete employees',
+          }
+        ).finally(() => setIsDeleting(false));
+      }
+    );
+  };
+
+  const handleClearDirectory = () => {
+    if (total === 0) return;
+    openConfirm(
+      'Clear Employee Directory',
+      `You are about to permanently delete all ${total} employees. This action cannot be undone and will also remove all associated payroll, EPF, and dispatch records.`,
+      `Clear ${total} Employees`,
+      () => {
+        closeConfirm();
+        setIsDeleting(true);
+        toast.promise(
+          (async () => {
+            const result = await employeesApi.bulkDelete({ deleteAll: true });
+            qc.invalidateQueries({ queryKey: ['employees'] });
+            qc.invalidateQueries({ queryKey: ['dashboard'] });
+            setSelectedIds(new Set());
+            setSelectAllMatching(false);
+            return result;
+          })(),
+          {
+            loading: 'Clearing employee directory...',
+            success: (result) => `Cleared ${result.deleted} employee${result.deleted === 1 ? '' : 's'}.`,
+            error: 'Failed to clear employee directory',
           }
         ).finally(() => setIsDeleting(false));
       }
@@ -300,6 +331,16 @@ export default function EmployeesPage() {
         employee={payslipTarget}
         onClose={() => setPayslipTarget(null)}
       />
+      
+      {showBulkDeleteWizard && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <BulkDeleteWizard 
+            onComplete={handleBulkDeleteComplete}
+            onCancel={() => setShowBulkDeleteWizard(false)}
+          />
+        </div>
+      )}
+
       {/* Top action bar */}
       <div className="flex items-center gap-3 border-b border-slate-200 dark:border-slate-700 pb-3">
         <h2 className="text-lg font-bold text-slate-900 dark:text-white uppercase tracking-wide">Employee Directory</h2>
@@ -308,13 +349,12 @@ export default function EmployeesPage() {
         </span>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3 flex-1 min-w-[300px]">
-          <div className="relative w-full max-w-[500px]">
+      <div className="flex items-center justify-between gap-4 flex-nowrap whitespace-nowrap overflow-x-auto pb-1">
+        <div className="flex items-center gap-3 w-full max-w-xs">
+          <div className="relative w-full">
             <MagnifyingGlass className="absolute left-3 top-2.5 text-slate-400" size={16} />
             <input
-              className="w-full bg-white dark:bg-slate-800 rounded-md pl-10 pr-4 py-2 text-sm border border-slate-300 dark:border-slate-600 focus:outline-none focus:border-[#eb0a1e]"
-              style={{ borderRadius: '0.375rem' }}
+              className="w-full bg-white dark:bg-slate-800 rounded-none pl-10 pr-4 py-2 text-sm border border-slate-300 dark:border-slate-600 focus:outline-none focus:border-[#eb0a1e]"
               placeholder="Search employee name..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -322,7 +362,7 @@ export default function EmployeesPage() {
             />
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-nowrap whitespace-nowrap">
           {editingId ? (
             <div className="flex items-center gap-2">
               <button 
@@ -349,12 +389,21 @@ export default function EmployeesPage() {
                   <Trash size={16} weight="bold" /> Delete Selected ({selectedCount})
                 </button>
               )}
+              {total > 0 && (
+                <button
+                  onClick={handleClearDirectory}
+                  disabled={isDeleting}
+                  className="btn-sm !px-4 !py-2 bg-white dark:bg-slate-800 text-red-600 hover:bg-red-50 border border-red-200 cursor-pointer flex items-center gap-2 font-bold uppercase tracking-wider transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Trash size={16} weight="bold" /> Clear Directory ({total})
+                </button>
+              )}
               <button
                 type="button"
-                onClick={() => setShowImport(true)}
-                className="btn-success btn-sm !px-4 !py-2 bg-green-700 hover:bg-green-800 text-white border-green-800 cursor-pointer flex items-center gap-2"
+                onClick={() => setShowBulkDeleteWizard(true)}
+                className="btn-sm !px-4 !py-2 bg-red-100 hover:bg-red-200 text-red-700 border border-red-200 cursor-pointer flex items-center gap-2 font-semibold transition-colors"
               >
-                <MicrosoftExcelLogo size={16} weight="bold" /> Import data
+                <Trash size={16} weight="bold" /> Bulk Delete (Excel)
               </button>
               <button 
                 onClick={handleDownloadTemplate}
@@ -362,11 +411,12 @@ export default function EmployeesPage() {
               >
                 <FileCsv size={16} weight="bold" /> Download Template
               </button>
-              <button 
-                onClick={handleExportExcel}
-                className="btn-sm !px-4 !py-2 bg-purple-700 hover:bg-purple-800 text-white border border-purple-800 cursor-pointer flex items-center gap-2 transition-colors"
+              <button
+                type="button"
+                onClick={() => setShowImport(true)}
+                className="btn-success btn-sm !px-4 !py-2 bg-green-700 hover:bg-green-800 text-white border-green-800 cursor-pointer flex items-center gap-2"
               >
-                <DownloadSimple size={16} weight="bold" /> Export to Excel
+                <MicrosoftExcelLogo size={16} weight="bold" /> Import data
               </button>
               <Link to="/admin/employees/new" className="btn-primary btn-sm !px-4 !py-2">
                 <Plus size={16} weight="bold" /> Add Employee

@@ -219,14 +219,21 @@ func (h *EpfHandler) ExportExcel(w http.ResponseWriter, r *http.Request) {
 func (h *EpfHandler) DownloadTemplate(w http.ResponseWriter, r *http.Request) {
 	filename := downloadname.EpfImportTemplate()
 
-	w.Header().Set("Content-Type", "text/csv")
-	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
+	f := excelize.NewFile()
+	sheet := "Template"
+	f.SetSheetName("Sheet1", sheet)
 
 	for i, hdr := range epfTemplateHeaders {
-		if i > 0 {
-			w.Write([]byte(","))
-		}
-		w.Write([]byte(hdr))
+		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
+		f.SetCellValue(sheet, cell, hdr)
+		col, _ := excelize.ColumnNumberToName(i + 1)
+		f.SetColWidth(sheet, col, col, 16)
 	}
-	w.Write([]byte("\n"))
+
+	w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
+
+	if err := f.Write(w); err != nil {
+		logger.Error("failed to write template excel", "err", err)
+	}
 }

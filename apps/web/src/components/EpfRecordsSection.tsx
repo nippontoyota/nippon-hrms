@@ -8,14 +8,12 @@ import {
   ArrowUp,
   ArrowDown,
   ArrowsDownUp,
-  DownloadSimple,
   FileCsv,
 } from '@phosphor-icons/react';
 import { epfApi, useDeleteEpfRecord, useEpfRecords, useLatestConflictsJob, useBulkDeleteEpfRecords } from '@/api/hooks';
 import type { EpfRecord } from '@/api/types';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { downloadApiBlob, exportCsv } from '@/lib/format';
-import { EPF_DIRECTORY_HEADERS } from '@/lib/exportColumns';
+import { downloadApiBlob } from '@/lib/format';
 import { useTableRowHighlight } from '@/lib/useTableRowHighlight';
 import BulkUploadWizard from '@/components/BulkUploadWizard';
 import ImportConflictPanel from '@/components/ImportConflictPanel';
@@ -131,24 +129,20 @@ export default function EpfRecordsSection() {
     setShowImport(false);
   };
 
-  const handleExportExcel = async () => {
+
+
+  const handleDownloadTemplate = async () => {
     try {
       const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-').replace('T', '_');
       await downloadApiBlob(
-        () => epfApi.exportExcel(),
-        `EPFDirectory_${timestamp}.xlsx`,
-        'Failed to export EPF to Excel',
+        () => epfApi.downloadTemplateExcel(),
+        `EPFDirectory_Template_${timestamp}.xlsx`,
+        'Failed to download EPF template'
       );
-      toast.success('EPF directory exported to Excel');
+      toast.success('EPF template downloaded');
     } catch {
-      toast.error('Failed to export EPF to Excel');
+      toast.error('Failed to download EPF template');
     }
-  };
-
-  const handleDownloadTemplate = () => {
-    const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-').replace('T', '_');
-    exportCsv(`EPFDirectory_Template_${timestamp}.csv`, [...EPF_DIRECTORY_HEADERS], []);
-    toast.success('EPF template downloaded');
   };
 
   const handleClearDirectory = () => {
@@ -213,25 +207,19 @@ export default function EpfRecordsSection() {
         </span>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="relative w-full max-w-[500px]">
-          <MagnifyingGlass className="absolute left-3 top-2.5 text-slate-400" size={16} />
-          <input
-            className="w-full bg-white dark:bg-slate-800 rounded-md pl-10 pr-4 py-2 text-sm border border-slate-300 dark:border-slate-600 focus:outline-none focus:border-[#eb0a1e]"
-            placeholder="Search name, EMP ID, UAN, EPF..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+      <div className="flex items-center justify-between gap-4 flex-nowrap whitespace-nowrap overflow-x-auto pb-1">
+        <div className="flex items-center gap-3 w-full max-w-xs">
+          <div className="relative w-full">
+            <MagnifyingGlass className="absolute left-3 top-2.5 text-slate-400" size={16} />
+            <input
+              className="w-full bg-white dark:bg-slate-800 rounded-none pl-10 pr-4 py-2 text-sm border border-slate-300 dark:border-slate-600 focus:outline-none focus:border-[#eb0a1e]"
+              placeholder="Search name, EMP ID, UAN, EPF..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
         </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          {total > 0 && (
-            <button
-              onClick={handleClearDirectory}
-              className="btn-sm !px-4 !py-2 bg-white dark:bg-slate-800 text-red-600 hover:bg-red-50 border border-red-200 cursor-pointer flex items-center gap-2 font-bold uppercase tracking-wider transition-colors"
-            >
-              <Trash size={16} weight="bold" /> Clear Directory ({total})
-            </button>
-          )}
+        <div className="flex items-center gap-3 flex-nowrap whitespace-nowrap">
           {selectedIds.size > 0 && (
             <button
               onClick={handleBulkDelete}
@@ -240,13 +228,14 @@ export default function EpfRecordsSection() {
               <Trash size={16} weight="bold" /> Delete Selected ({selectedIds.size})
             </button>
           )}
-          <button
-            type="button"
-            onClick={() => setShowImport(true)}
-            className="btn-success btn-sm !px-4 !py-2 bg-green-700 hover:bg-green-800 text-white border-green-800 cursor-pointer flex items-center gap-2"
-          >
-            <MicrosoftExcelLogo size={16} weight="bold" /> Import data
-          </button>
+          {total > 0 && (
+            <button
+              onClick={handleClearDirectory}
+              className="btn-sm !px-4 !py-2 bg-white dark:bg-slate-800 text-red-600 hover:bg-red-50 border border-red-200 cursor-pointer flex items-center gap-2 font-bold uppercase tracking-wider transition-colors"
+            >
+              <Trash size={16} weight="bold" /> Clear Directory ({total})
+            </button>
+          )}
           <button
             onClick={handleDownloadTemplate}
             className="btn-sm !px-4 !py-2 bg-blue-700 hover:bg-blue-800 text-white border border-blue-800 cursor-pointer flex items-center gap-2 transition-colors"
@@ -254,10 +243,11 @@ export default function EpfRecordsSection() {
             <FileCsv size={16} weight="bold" /> Download Template
           </button>
           <button
-            onClick={handleExportExcel}
-            className="btn-sm !px-4 !py-2 bg-purple-700 hover:bg-purple-800 text-white border border-purple-800 cursor-pointer flex items-center gap-2 transition-colors"
+            type="button"
+            onClick={() => setShowImport(true)}
+            className="btn-success btn-sm !px-4 !py-2 bg-green-700 hover:bg-green-800 text-white border-green-800 cursor-pointer flex items-center gap-2"
           >
-            <DownloadSimple size={16} weight="bold" /> Export to Excel
+            <MicrosoftExcelLogo size={16} weight="bold" /> Import data
           </button>
         </div>
       </div>
