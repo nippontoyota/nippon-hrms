@@ -1,5 +1,6 @@
 package payroll
 
+/*
 import (
 	"fmt"
 	"io"
@@ -10,7 +11,9 @@ import (
 
 	"github.com/xuri/excelize/v2"
 )
+*/
 
+/*
 var numericRegex = regexp.MustCompile(`[^0-9\.\-]`)
 
 func parseFloat(val string) float64 {
@@ -31,6 +34,7 @@ func parseFloat(val string) float64 {
 
 // ParseExcel reads an uploaded Excel file and extracts Payroll data.
 // Expects the exact 48 columns defined by the business schema.
+// Deprecated: Replaced by the dynamic parser in apps/api/internal/importjob/rows.go
 func ParseExcel(r io.Reader, month, year int) ([]Record, []string, error) {
 	f, err := excelize.OpenReader(r)
 	if err != nil {
@@ -118,3 +122,4 @@ func ParseExcel(r io.Reader, month, year int) ([]Record, []string, error) {
 
 	return records, errors, nil
 }
+*/

@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Navigate, Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { SquaresFour, Users, IdentificationCard, Money, SignOut, ListDashes, List, Sun, Moon, CalendarCheck, Gear, X, Handshake, AirplaneTilt } from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -108,7 +108,7 @@ export default function AdminShell() {
           </button>
         </div>
 
-        <nav className="flex-1 py-4 space-y-2">
+        <nav className="flex-1 overflow-y-auto py-4 space-y-2">
           {sideNav.map((item) => (
             <NavLink
               key={item.to}

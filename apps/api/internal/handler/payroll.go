@@ -323,6 +323,7 @@ func (h *PayrollHandler) SendPayslip(w http.ResponseWriter, r *http.Request) {
 	respond.OK(w, map[string]string{"message": "payslip sent via WhatsApp"})
 }
 
+/*
 func (h *PayrollHandler) BulkUpload(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseMultipartForm(10 << 20); err != nil {
 		respond.BadRequest(w, "failed to parse multipart form")
@@ -430,6 +431,7 @@ func (h *PayrollHandler) BulkPreview(w http.ResponseWriter, r *http.Request) {
 		},
 	})
 }
+*/
 
 // List handles GET /api/v1/payroll/list?month=X&year=Y
 func (h *PayrollHandler) List(w http.ResponseWriter, r *http.Request) {
