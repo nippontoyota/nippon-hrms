@@ -206,7 +206,7 @@ func (r *PostgresRepository) ListByPeriodPaginated(ctx context.Context, month, y
 			company_statutory_contribution, reimb_medical, reimb_lta, zeta_meal_voucher,
 			reimb_travel, total_reimbursement, epf_er, net_incentive, total_deductions,
 			actual_final_amount, created_at, dispatched_at
-		FROM payroll_records` + baseWhere + fmt.Sprintf(` ORDER BY created_at DESC LIMIT $%d OFFSET $%d`, len(args)+1, len(args)+2)
+		FROM payroll_records` + baseWhere + fmt.Sprintf(` ORDER BY created_at DESC, id ASC LIMIT $%d OFFSET $%d`, len(args)+1, len(args)+2)
 	listArgs := append(args, limit, offset)
 
 	rows, err := r.db.Query(ctx, listQ, listArgs...)
