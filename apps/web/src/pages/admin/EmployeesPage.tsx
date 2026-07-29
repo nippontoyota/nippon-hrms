@@ -231,6 +231,20 @@ export default function EmployeesPage() {
     }
   };
 
+  const handleExportExcel = async () => {
+    try {
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-').replace('T', '_');
+      await downloadApiBlob(
+        () => employeesApi.exportExcel(),
+        `EmployeeDirectory_Export_${timestamp}.xlsx`,
+        'Failed to export directory'
+      );
+      toast.success('Directory exported successfully');
+    } catch {
+      toast.error('Failed to export directory');
+    }
+  };
+
   const handleBulkDelete = () => {
     if (selectedCount === 0) return;
     openConfirm(
@@ -411,6 +425,12 @@ export default function EmployeesPage() {
               >
                 <FileCsv size={16} weight="bold" /> Download Template
               </button>
+              <button 
+                onClick={handleExportExcel}
+                className="btn-sm !px-4 !py-2 bg-slate-700 hover:bg-slate-800 text-white border border-slate-800 cursor-pointer flex items-center gap-2 transition-colors"
+              >
+                <MicrosoftExcelLogo size={16} weight="bold" /> Export Table
+              </button>
               <button
                 type="button"
                 onClick={() => setShowImport(true)}
@@ -418,8 +438,8 @@ export default function EmployeesPage() {
               >
                 <MicrosoftExcelLogo size={16} weight="bold" /> Import data
               </button>
-              <Link to="/admin/employees/new" className="btn-primary btn-sm !px-4 !py-2">
-                <Plus size={16} weight="bold" /> Add Employee
+              <Link to="/admin/employees/new" className="btn-primary btn-sm !px-4 !py-2" title="Add Employee">
+                <Plus size={16} weight="bold" />
               </Link>
             </>
           )}
