@@ -4,6 +4,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/nippon-toyota/hrms/internal/employee"
 )
@@ -262,15 +263,23 @@ func parsePayrollRow(rowNum int, row []string, month, year int, headerMap map[st
 	if empID == "" {
 		return nil, "empty Employee ID"
 	}
+
+	paidDays := parseFloat(getValue(row, headerMap, "paiddays", "days", "workingdays"))
+	totalDays := float64(time.Date(year, time.Month(month+1), 0, 0, 0, 0, 0, time.UTC).Day())
+	lop := totalDays - paidDays
+	if lop < 0 {
+		lop = 0
+	}
+
 	r := &StagingPayroll{
 		RowNum:                       rowNum,
 		EmployeeID:                   empID,
 		Month:                        month,
 		Year:                         year,
 		EmpNameSnapshot:              getValue(row, headerMap, "empnamesnapshot", "name", "employeename"),
-		Leaves:                       parseFloat(getValue(row, headerMap, "leaves", "takenleaves")),
-		LOP:                          parseFloat(getValue(row, headerMap, "lop", "lossofpay")),
-		Days:                         parseFloat(getValue(row, headerMap, "days", "workingdays")),
+		Leaves:                       0,
+		LOP:                          lop,
+		Days:                         paidDays,
 		Basic:                        parseFloat(getValue(row, headerMap, "basic")),
 		DA:                           parseFloat(getValue(row, headerMap, "da")),
 		BasicDA:                      parseFloat(getValue(row, headerMap, "basicda")),
@@ -286,7 +295,7 @@ func parsePayrollRow(rowNum int, row []string, month, year int, headerMap map[st
 		Training:                     parseFloat(getValue(row, headerMap, "training")),
 		Incentive:                    parseFloat(getValue(row, headerMap, "incentive")),
 		TotalEarWithIncen:            parseFloat(getValue(row, headerMap, "totalearwithincen", "totalearnings")),
-		GrossSalWithoutIncentives:    parseFloat(getValue(row, headerMap, "grosssalwithoutincentives")),
+		GrossSalWithoutIncentives:    0,
 		PF:                           parseFloat(getValue(row, headerMap, "pf", "providentfund")),
 		PF367:                        parseFloat(getValue(row, headerMap, "pf367")),
 		PF833:                        parseFloat(getValue(row, headerMap, "pf833")),

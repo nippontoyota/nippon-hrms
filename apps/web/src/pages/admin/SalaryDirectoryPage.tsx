@@ -402,9 +402,8 @@ export default function SalaryDirectoryPage() {
                   <th className="w-16 text-center" data-ui-only>Preview</th>
                   <Th col="employeeId">EMP ID</Th>
                   <Th col="empNameSnapshot">Name</Th>
-                  <Th col="leaves" className="text-center">Leaves</Th>
                   <Th col="lop" className="text-center">LOP</Th>
-                  <Th col="days" className="text-center">Days</Th>
+                  <Th col="days" className="text-center">Paid Days</Th>
                   <Th col="basicDa" className="text-right font-bold bg-slate-50 dark:bg-slate-900">Basic+DA</Th>
                   <Th col="hra" className="text-right">HRA</Th>
                   <Th col="travel" className="text-right">Travel</Th>
@@ -418,7 +417,6 @@ export default function SalaryDirectoryPage() {
                   <Th col="training" className="text-right">Training</Th>
                   <Th col="incentive" className="text-right text-[#eb0a1e] font-bold">Incentive</Th>
                   <Th col="totalEarWithIncen" className="text-right font-black">Total Ear with incen</Th>
-                  <Th col="grossSalWithoutIncentives" className="text-right font-bold">Gross Sal-With out Incentives</Th>
                   <Th col="pf" className="text-right">PF</Th>
                   <Th col="esi075" className="text-right">ESI 0.75</Th>
                   <Th col="tds" className="text-right">TDS</Th>
@@ -470,7 +468,6 @@ export default function SalaryDirectoryPage() {
                     </td>
                     <td className="font-mono font-bold text-slate-900 dark:text-white">{r.employeeId}</td>
                     <td className="font-semibold text-slate-900 dark:text-white">{r.empNameSnapshot}</td>
-                    <td className="text-center font-mono">{r.leaves?.toFixed(1) || '0.0'}</td>
                     <td className="text-center font-mono text-red-600">{r.lop?.toFixed(1) || '0.0'}</td>
                     <td className="text-center font-mono">{r.days?.toFixed(1) || '0.0'}</td>
                     <td className="text-right font-mono font-bold bg-slate-50 dark:bg-slate-900">{m(r.basicDa)}</td>
@@ -486,7 +483,6 @@ export default function SalaryDirectoryPage() {
                     <td className="text-right font-mono">{m(r.training)}</td>
                     <td className="text-right font-mono text-[#eb0a1e] font-bold">{m(r.incentive)}</td>
                     <td className="text-right font-mono font-black">{m(r.totalEarWithIncen)}</td>
-                    <td className="text-right font-mono font-bold">{m(r.grossSalWithoutIncentives)}</td>
                     <td className="text-right font-mono">{m(r.pf)}</td>
                     <td className="text-right font-mono">{m(r.esi075)}</td>
                     <td className="text-right font-mono">{m(r.tds)}</td>

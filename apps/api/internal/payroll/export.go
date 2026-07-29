@@ -8,10 +8,10 @@ import (
 // ExportHeaders lists the only columns included in salary directory Excel/CSV exports.
 // UI-only table columns (Preview, Sl. No., checkboxes, computed totals) must never be added here.
 var ExportHeaders = []string{
-	"employeeId", "empNameSnapshot", "leaves", "lop", "days", "basicDa",
+	"employeeId", "empNameSnapshot", "paidDays", "basicDa",
 	"hra", "travel", "childrenHostel", "childrenEducation", "mobile", "conveyance",
 	"branchAllowance", "washAllowance", "specialAllowance", "training", "incentive",
-	"totalEarWithIncen", "grossSalWithoutIncentives", "pf", "esi075", "tds",
+	"totalEarWithIncen", "pf", "esi075", "tds",
 	"salAdv", "additionalDeduction", "loan", "totalDeductions", "actualFinalAmount",
 }
 
@@ -20,8 +20,6 @@ func RecordToExportValues(rec Record) []any {
 	return []any{
 		rec.EmployeeID,
 		rec.EmpNameSnapshot,
-		rec.Leaves,
-		rec.LOP,
 		rec.Days,
 		rec.BasicDA,
 		rec.HRA,
@@ -36,7 +34,6 @@ func RecordToExportValues(rec Record) []any {
 		rec.Training,
 		rec.Incentive,
 		rec.TotalEarWithIncen,
-		rec.GrossSalWithoutIncentives,
 		rec.PF,
 		rec.ESI075,
 		rec.TDS,
