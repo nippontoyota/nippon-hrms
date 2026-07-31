@@ -18,7 +18,7 @@ export default function MonthYearSelect({
   onYearChange,
   className = '',
 }: MonthYearSelectProps) {
-  const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i);
+  const years = Array.from({ length: 15 }, (_, i) => new Date().getFullYear() - 10 + i);
 
   return (
     <div className={`flex gap-3 ${className}`}>
