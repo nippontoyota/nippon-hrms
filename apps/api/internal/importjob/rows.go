@@ -1,6 +1,7 @@
 package importjob
 
 import (
+	"math"
 	"regexp"
 	"strconv"
 	"strings"
@@ -22,12 +23,18 @@ func parseFloat(val string) float64 {
 	if err != nil {
 		return 0
 	}
+	if math.IsNaN(v) || math.IsInf(v, 0) {
+		return 0
+	}
 	return v
 }
 
 func parseFloatStrict(val string) float64 {
 	v, err := strconv.ParseFloat(strings.TrimSpace(val), 64)
 	if err != nil {
+		return 0
+	}
+	if math.IsNaN(v) || math.IsInf(v, 0) {
 		return 0
 	}
 	return v

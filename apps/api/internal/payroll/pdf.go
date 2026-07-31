@@ -74,7 +74,17 @@ func money(v float64) string {
 	return fmt.Sprintf("%.0f", v)
 }
 
+func moneyBlankZero(v float64) string {
+	if v == 0 {
+		return ""
+	}
+	return fmt.Sprintf("%.0f", v)
+}
+
 func formatDays(v float64) string {
+	if v == 0 {
+		return ""
+	}
 	if v == float64(int64(v)) {
 		return fmt.Sprintf("%.0f", v)
 	}
@@ -157,8 +167,8 @@ func newPayslipView(emp *employee.Employee, rec *Record, epfRec *epf.Record) Pay
 	}
 
 	v.TotalEarnings = money(rec.TotalEarWithIncen)
-	v.TotalDeductions = money(rec.TotalDeductions)
-	v.NetPay = money(rec.ActualFinalAmount)
+	v.TotalDeductions = moneyBlankZero(rec.TotalDeductions)
+	v.NetPay = moneyBlankZero(rec.ActualFinalAmount)
 
 	return v
 }
