@@ -236,6 +236,13 @@ func (r *PostgresRepository) ListPaginated(ctx context.Context, page, limit int,
 }
 
 func (r *PostgresRepository) Create(ctx context.Context, e *Employee) error {
+	if e.MobileNumber != "" {
+		existing, _ := r.FindByPhone(ctx, e.MobileNumber)
+		if existing != nil {
+			return fmt.Errorf("duplicate mobile number: %s is already used by %s (%s)", e.MobileNumber, existing.Name, existing.ID)
+		}
+	}
+
 	_, err := r.db.Exec(ctx, `
 		INSERT INTO employees (
 			id, name, department, mobile_number, emp_level, doj, birthday, years_experience,
@@ -257,6 +264,13 @@ func (r *PostgresRepository) Create(ctx context.Context, e *Employee) error {
 }
 
 func (r *PostgresRepository) Update(ctx context.Context, id string, e *Employee) error {
+	if e.MobileNumber != "" {
+		existing, _ := r.FindByPhone(ctx, e.MobileNumber)
+		if existing != nil && existing.ID != id {
+			return fmt.Errorf("duplicate mobile number: %s is already used by %s (%s)", e.MobileNumber, existing.Name, existing.ID)
+		}
+	}
+
 	_, err := r.db.Exec(ctx, `
 		UPDATE employees SET
 			name=$2, department=$3, mobile_number=$4, emp_level=$5, doj=$6, birthday=$7, years_experience=$8,

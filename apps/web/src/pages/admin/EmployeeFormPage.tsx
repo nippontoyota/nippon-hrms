@@ -67,8 +67,8 @@ export default function EmployeeFormPage() {
         toast.success('Employee created');
       }
       navigate('/admin/employees');
-    } catch {
-      toast.error('Save failed');
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || err.response?.data?.error?.message || err.message || 'Save failed');
     }
   };
 

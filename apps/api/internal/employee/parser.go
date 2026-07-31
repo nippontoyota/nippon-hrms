@@ -34,6 +34,7 @@ func ParseExcel(r io.Reader) ([]Employee, []string, error) {
 
 	var employees []Employee
 	var errors []string
+	seenMobile := make(map[string]string)
 
 	for i, row := range rows {
 		if i == 0 {
@@ -51,11 +52,20 @@ func ParseExcel(r io.Reader) ([]Employee, []string, error) {
 			continue
 		}
 
+		mobile := strings.TrimSpace(row[3])
+		if mobile != "" {
+			if ownerID, exists := seenMobile[mobile]; exists {
+				errors = append(errors, fmt.Sprintf("Row %d: Mobile number %s is a duplicate of employee %s in this sheet.", i+1, mobile, ownerID))
+				continue
+			}
+			seenMobile[mobile] = id
+		}
+
 		employees = append(employees, Employee{
 			ID:                        id,
 			Name:                      strings.TrimSpace(row[1]),
 			Department:                strings.TrimSpace(row[2]),
-			MobileNumber:              strings.TrimSpace(row[3]),
+			MobileNumber:              mobile,
 			Level:                     strings.TrimSpace(row[4]),
 			DOJ:                       strings.TrimSpace(row[5]),
 			Birthday:                  strings.TrimSpace(row[6]),

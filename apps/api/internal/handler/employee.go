@@ -164,6 +164,10 @@ func (h *EmployeeHandler) Create(w http.ResponseWriter, r *http.Request) {
 	emp.ID = emp.EmployeeID // Frontend sends employeeId
 	normalizeManagerID(&emp)
 	if err := h.repo.Create(r.Context(), &emp); err != nil {
+		if strings.Contains(err.Error(), "duplicate mobile number") {
+			respond.BadRequest(w, err.Error())
+			return
+		}
 		logger.Error("failed to create employee", "err", err)
 		respond.InternalError(w)
 		return
@@ -191,6 +195,10 @@ func (h *EmployeeHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	normalizeManagerID(&emp)
 	if err := h.repo.Update(r.Context(), id, &emp); err != nil {
+		if strings.Contains(err.Error(), "duplicate mobile number") {
+			respond.BadRequest(w, err.Error())
+			return
+		}
 		logger.Error("failed to update employee", "err", err)
 		respond.InternalError(w)
 		return
