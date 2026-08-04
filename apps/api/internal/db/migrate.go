@@ -27,6 +27,14 @@ func EnsureSchema(ctx context.Context, pool *pgxpool.Pool) error {
 
 		ALTER TABLE import_staging_employees
 		ADD COLUMN IF NOT EXISTS manager_id VARCHAR(50);
+
+		CREATE TABLE IF NOT EXISTS greetings_log (
+			employee_id VARCHAR(50) NOT NULL,
+			greeting_type VARCHAR(50) NOT NULL,
+			year INT NOT NULL,
+			sent_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+			PRIMARY KEY (employee_id, greeting_type, year)
+		);
 	`)
 	if err != nil {
 		return err

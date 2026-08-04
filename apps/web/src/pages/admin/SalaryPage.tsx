@@ -107,9 +107,7 @@ export default function SalaryPage() {
 
   const isJobActive = latestJob?.status === 'PENDING' || latestJob?.status === 'RUNNING';
   const hasPartialFailure = latestJob?.status === 'COMPLETED' && (latestJob.failed ?? 0) > 0;
-  const isFullyDispatched = latestJob
-    ? latestJob.status === 'COMPLETED' && (latestJob.failed ?? 0) === 0 && (latestJob.sent ?? 0) > 0
-    : (records.some(r => r.dispatchedAt) ?? false);
+  const isFullyDispatched = !!records && records.length > 0 && records.every(r => r.dispatchedAt);
   const recordCount = payrollData?.total ?? records.length;
   const validationOk = validationState === 'ok' && errors !== null && errors.length === 0;
 
