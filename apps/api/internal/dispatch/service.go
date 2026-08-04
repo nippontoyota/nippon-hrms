@@ -66,14 +66,6 @@ func (s *Service) StartDispatch(ctx context.Context, month, year int) (*Job, err
 		return nil, fmt.Errorf("a dispatch job is already running for %02d/%d", month, year)
 	}
 
-	latestJob, err := s.repo.GetLatestJobForPeriod(ctx, month, year)
-	if err != nil {
-		return nil, err
-	}
-	if latestJob != nil && latestJob.Status == JobCompleted && latestJob.Failed == 0 && latestJob.Sent > 0 {
-		return nil, fmt.Errorf("payslips for %02d/%d have already been dispatched", month, year)
-	}
-
 	validationErrs, err := s.dispatcher.ValidatePayroll(ctx, month, year)
 	if err != nil {
 		return nil, fmt.Errorf("validate payroll: %w", err)
@@ -90,8 +82,19 @@ func (s *Service) StartDispatch(ctx context.Context, month, year int) (*Job, err
 		return nil, fmt.Errorf("no payroll records for %02d/%d", month, year)
 	}
 
-	items := make([]Item, len(records))
-	for i, rec := range records {
+	var undispatched []payroll.Record
+	for _, rec := range records {
+		if rec.DispatchedAt == nil {
+			undispatched = append(undispatched, rec)
+		}
+	}
+
+	if len(undispatched) == 0 {
+		return nil, fmt.Errorf("all payroll records for %02d/%d have already been dispatched", month, year)
+	}
+
+	items := make([]Item, len(undispatched))
+	for i, rec := range undispatched {
 		items[i] = Item{
 			EmployeeID:   rec.EmployeeID,
 			EmployeeName: rec.EmpNameSnapshot,
@@ -104,7 +107,7 @@ func (s *Service) StartDispatch(ctx context.Context, month, year int) (*Job, err
 		return nil, err
 	}
 
-	s.runJobAsync(job.ID, month, year, records)
+	s.runJobAsync(job.ID, month, year, undispatched)
 	return job, nil
 }
 
