@@ -96,6 +96,7 @@ export default function App() {
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/refer" element={<ReferFriendPage />} />
+            <Route path="/refer/" element={<ReferFriendPage />} />
             <Route path="/referrals/:code" element={<ReferralApplicationPage />} />
             <Route path="/admin" element={<AdminShell />}>
               <Route index element={<DashboardPage />} />

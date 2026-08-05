@@ -87,7 +87,7 @@ func (d *dedupStore) isDuplicate(messageID, phone, input, msgType string, state 
 		actionWindow = d.greetingWindow
 	} else if looksLikePeriodAttempt(input) {
 		actionWindow = d.periodWindow
-	} else if cInp := canonicalInput(input); cInp == payloadRequestHolidays || cInp == payloadRequestReferral || cInp == payloadReferPerson {
+	} else if cInp := canonicalInput(input); cInp == payloadRequestHolidays || cInp == payloadRequestReferral {
 		actionWindow = 5 * time.Minute
 	}
 	if seenAt, ok := d.byAction[actionKey]; ok && now.Sub(seenAt) < actionWindow {
@@ -212,7 +212,7 @@ func (d *dedupStore) evict(now time.Time) {
 
 func canonicalInput(input string) string {
 	switch normalizeMenuSelection(input) {
-	case payloadGeneratePay, payloadRequestSalary, payloadRequestLeave, payloadRequestHolidays, payloadRequestReferral, payloadReferPerson:
+	case payloadGeneratePay, payloadRequestSalary, payloadRequestLeave, payloadRequestHolidays, payloadRequestReferral:
 		return normalizeMenuSelection(input)
 	default:
 		if sel := normalizeLeaveTypeSelection(input); sel != "" {
@@ -250,9 +250,7 @@ func normalizeMenuSelection(input string) string {
 		return payloadRequestLeave
 	case trimmed == payloadRequestHolidays, lower == "holiday calendar":
 		return payloadRequestHolidays
-	case trimmed == payloadReferPerson, lower == "refer person":
-		return payloadReferPerson
-	case trimmed == payloadRequestReferral, trimmed == payloadReferCandidate, lower == "referral link", lower == "refer a candidate":
+	case trimmed == payloadRequestReferral, trimmed == payloadReferCandidate, lower == "referral link", lower == "refer a candidate", lower == "refer":
 		return payloadRequestReferral
 	}
 	// WhatsApp often echoes the full interactive body plus the chosen button label.
@@ -266,9 +264,7 @@ func normalizeMenuSelection(input string) string {
 			return payloadGeneratePay
 		case strings.Contains(lower, "holiday calendar"):
 			return payloadRequestHolidays
-		case strings.Contains(lower, "refer person"):
-			return payloadReferPerson
-		case strings.Contains(lower, "referral link"), strings.Contains(lower, "refer a candidate"):
+		case strings.Contains(lower, "referral link"), strings.Contains(lower, "refer a candidate"), strings.Contains(lower, "refer"):
 			return payloadRequestReferral
 		}
 	}

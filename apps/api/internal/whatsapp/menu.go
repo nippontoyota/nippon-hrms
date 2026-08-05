@@ -32,7 +32,7 @@ const msgMainMenuBody = `How may we help you today?`
 
 const msgMoreOptionsButton = `More Options`
 
-const msgMenuTextFallback = `Please reply *Salary Slip*, *Request Leave*, *Refer Person*, or tap *More Options* for *Holiday Calendar* and *Referral Link*.`
+const msgMenuTextFallback = `Please reply *Salary Slip*, *Request Leave*, *Holiday Calendar*, or tap *More Options* for *Referral Link*.`
 
 const msgPayslipNotFound = `No payslip was found for the month you entered.
 
@@ -64,7 +64,7 @@ func mainMenuButtons() []doubletick.InteractiveButton {
 	return []doubletick.InteractiveButton{
 		{ID: payloadRequestSalary, Title: "Salary Slip"},
 		{ID: payloadRequestLeave, Title: "Request Leave"},
-		{ID: payloadReferPerson, Title: "Refer Person"},
+		{ID: payloadRequestHolidays, Title: "Holiday Calendar"},
 	}
 }
 
@@ -73,7 +73,6 @@ func moreOptionsListSections() []doubletick.InteractiveListSection {
 		{
 			Title: "More Options",
 			Rows: []doubletick.InteractiveListRow{
-				{ID: payloadRequestHolidays, Title: "Holiday Calendar", Description: "Download the company holiday calendar"},
 				{ID: payloadRequestReferral, Title: "Referral Link", Description: "Generate your unique employee referral link"},
 			},
 		},

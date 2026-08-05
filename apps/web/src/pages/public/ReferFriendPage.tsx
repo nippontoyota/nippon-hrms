@@ -36,7 +36,7 @@ export default function ReferFriendPage() {
       return;
     }
     if (!model) {
-      setError('Please select a model');
+      setError('Please select Glanza or Hyryder');
       return;
     }
 
@@ -70,7 +70,7 @@ export default function ReferFriendPage() {
           </div>
           <h1 className="text-3xl font-bold text-[#1b1c1c] md:text-5xl">Thank you</h1>
           <p className="mt-3 text-base text-[#5e5a59]">
-            Your referral was submitted. Nippon Toyota will follow up with your friend.
+            Your referral was submitted. Nippon Toyota will follow up shortly.
           </p>
           <button
             type="button"
@@ -81,7 +81,7 @@ export default function ReferFriendPage() {
               setFormKey((k) => k + 1);
             }}
           >
-            Refer another
+            Submit another
           </button>
         </div>
       </main>
@@ -94,7 +94,7 @@ export default function ReferFriendPage() {
         <p className="text-xs font-bold uppercase tracking-wide text-[#eb0a1e]">Nippon Toyota</p>
         <h1 className="mt-3 text-3xl font-bold text-[#1b1c1c] md:text-5xl">Refer a friend</h1>
         <p className="mt-3 text-base text-[#5e5a59]">
-          Share your details and tell us who is interested in a Glanza or Hyryder.
+          Fill in your details and the person you are referring for a Glanza or Hyryder.
         </p>
 
         <form key={formKey} onSubmit={onSubmit} className="mt-8 flex flex-col gap-5">
@@ -103,17 +103,17 @@ export default function ReferFriendPage() {
             <input id="website" name="website" type="text" tabIndex={-1} autoComplete="off" />
           </div>
 
-          <Field label="Your name" name="customerName" required minLength={2} maxLength={100} autoComplete="name" />
+          <Field label="Employee name" name="customerName" required minLength={2} maxLength={100} autoComplete="name" />
           <Field
-            label="Your mobile"
+            label="Employee number"
             name="customerPhone"
             required
             inputMode="tel"
             autoComplete="tel"
-            placeholder="10-digit Indian mobile"
+            placeholder="10-digit mobile number"
           />
           <Field
-            label="Person you are referring"
+            label="Referred person name"
             name="referredName"
             required
             minLength={2}
@@ -121,17 +121,17 @@ export default function ReferFriendPage() {
             autoComplete="name"
           />
           <Field
-            label="Their mobile"
+            label="Referred person number"
             name="referredPhone"
             required
             inputMode="tel"
             autoComplete="tel"
-            placeholder="10-digit Indian mobile"
+            placeholder="10-digit mobile number"
           />
 
           <fieldset>
             <legend className="mb-2 text-xs font-bold uppercase tracking-wide text-[#5e5a59]">
-              Interested model
+              Glanza or Hyryder
             </legend>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               {(['glanza', 'hyryder'] as const).map((value) => {
@@ -173,7 +173,7 @@ export default function ReferFriendPage() {
             disabled={pending || !model}
             className="inline-flex min-h-11 w-full items-center justify-center rounded-full bg-[#eb0a1e] px-6 text-sm font-bold text-white hover:bg-[#c4081a] disabled:opacity-60"
           >
-            {pending ? 'Submitting…' : 'Submit referral'}
+            {pending ? 'Submitting…' : 'Submit'}
           </button>
         </form>
       </div>
