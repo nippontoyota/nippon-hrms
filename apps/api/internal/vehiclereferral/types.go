@@ -5,7 +5,7 @@ import "time"
 type Referral struct {
 	ID            string    `json:"id"`
 	CustomerName  string    `json:"customerName"`
-	CustomerPhone string    `json:"customerPhone"`
+	EmployeeID    string    `json:"employeeId"`
 	ReferredName  string    `json:"referredName"`
 	ReferredPhone string    `json:"referredPhone"`
 	Model         string    `json:"model"`

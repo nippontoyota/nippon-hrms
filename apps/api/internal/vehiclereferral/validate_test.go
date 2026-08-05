@@ -5,7 +5,7 @@ import "testing"
 func TestNormalizeInput(t *testing.T) {
 	ref, err := NormalizeInput(Input{
 		CustomerName:  "Anita",
-		CustomerPhone: "9876543210",
+		EmployeeID:    "9001",
 		ReferredName:  "Ravi",
 		ReferredPhone: "+91 8765432109",
 		Model:         "glanza",
@@ -13,12 +13,12 @@ func TestNormalizeInput(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if ref.CustomerPhone != "+919876543210" || ref.ReferredPhone != "+918765432109" || ref.Model != "glanza" {
+	if ref.EmployeeID != "9001" || ref.ReferredPhone != "+918765432109" || ref.Model != "glanza" {
 		t.Fatalf("unexpected ref: %+v", ref)
 	}
 
 	if _, err := NormalizeInput(Input{
-		CustomerName: "A", CustomerPhone: "123", ReferredName: "B", ReferredPhone: "456", Model: "camry",
+		CustomerName: "Anita", EmployeeID: "", ReferredName: "Ravi", ReferredPhone: "8765432109", Model: "glanza",
 	}); err != ErrInvalidInput {
 		t.Fatalf("want ErrInvalidInput, got %v", err)
 	}

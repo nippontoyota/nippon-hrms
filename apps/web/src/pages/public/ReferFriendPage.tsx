@@ -44,7 +44,7 @@ export default function ReferFriendPage() {
     try {
       await vehicleReferralApi.submit({
         customerName: String(form.get('customerName') ?? ''),
-        customerPhone: String(form.get('customerPhone') ?? ''),
+        employeeId: String(form.get('employeeId') ?? ''),
         referredName: String(form.get('referredName') ?? ''),
         referredPhone: String(form.get('referredPhone') ?? ''),
         model,
@@ -104,14 +104,7 @@ export default function ReferFriendPage() {
           </div>
 
           <Field label="Employee name" name="customerName" required minLength={2} maxLength={100} autoComplete="name" />
-          <Field
-            label="Employee number"
-            name="customerPhone"
-            required
-            inputMode="tel"
-            autoComplete="tel"
-            placeholder="10-digit mobile number"
-          />
+          <Field label="Employee ID" name="employeeId" required maxLength={50} placeholder="e.g. 9001" />
           <Field
             label="Referred person name"
             name="referredName"

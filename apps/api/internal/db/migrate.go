@@ -39,12 +39,17 @@ func EnsureSchema(ctx context.Context, pool *pgxpool.Pool) error {
 		CREATE TABLE IF NOT EXISTS vehicle_referrals (
 			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 			customer_name VARCHAR(100) NOT NULL,
-			customer_phone VARCHAR(15) NOT NULL,
+			employee_id VARCHAR(50) NOT NULL,
 			referred_name VARCHAR(100) NOT NULL,
 			referred_phone VARCHAR(15) NOT NULL,
 			model VARCHAR(20) NOT NULL CHECK (model IN ('glanza', 'hyryder')),
 			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 		);
+		DO $$ BEGIN
+			ALTER TABLE vehicle_referrals RENAME COLUMN customer_phone TO employee_id;
+		EXCEPTION WHEN undefined_column THEN NULL;
+		END $$;
+		ALTER TABLE vehicle_referrals ALTER COLUMN employee_id TYPE VARCHAR(50);
 		CREATE INDEX IF NOT EXISTS idx_vehicle_referrals_referred_phone ON vehicle_referrals(referred_phone);
 		CREATE INDEX IF NOT EXISTS idx_vehicle_referrals_created_at ON vehicle_referrals(created_at DESC);
 	`)

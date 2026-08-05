@@ -20,7 +20,7 @@ func NewVehicleReferralHandler(repo *vehiclereferral.PostgresRepository) *Vehicl
 func (h *VehicleReferralHandler) Submit(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		CustomerName  string `json:"customerName"`
-		CustomerPhone string `json:"customerPhone"`
+		EmployeeID    string `json:"employeeId"`
 		ReferredName  string `json:"referredName"`
 		ReferredPhone string `json:"referredPhone"`
 		Model         string `json:"model"`
@@ -38,7 +38,7 @@ func (h *VehicleReferralHandler) Submit(w http.ResponseWriter, r *http.Request) 
 
 	ref, err := vehiclereferral.NormalizeInput(vehiclereferral.Input{
 		CustomerName:  req.CustomerName,
-		CustomerPhone: req.CustomerPhone,
+		EmployeeID:    req.EmployeeID,
 		ReferredName:  req.ReferredName,
 		ReferredPhone: req.ReferredPhone,
 		Model:         req.Model,

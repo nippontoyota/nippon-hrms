@@ -17,11 +17,11 @@ func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 
 func (r *PostgresRepository) Create(ctx context.Context, ref *Referral) error {
 	query := `
-		INSERT INTO vehicle_referrals (customer_name, customer_phone, referred_name, referred_phone, model)
+		INSERT INTO vehicle_referrals (customer_name, employee_id, referred_name, referred_phone, model)
 		VALUES ($1, $2, $3, $4, $5)
 		RETURNING id, created_at`
 	err := r.pool.QueryRow(ctx, query,
-		ref.CustomerName, ref.CustomerPhone, ref.ReferredName, ref.ReferredPhone, ref.Model,
+		ref.CustomerName, ref.EmployeeID, ref.ReferredName, ref.ReferredPhone, ref.Model,
 	).Scan(&ref.ID, &ref.CreatedAt)
 	if err != nil {
 		return fmt.Errorf("create vehicle referral: %w", err)
@@ -31,7 +31,7 @@ func (r *PostgresRepository) Create(ctx context.Context, ref *Referral) error {
 
 func (r *PostgresRepository) List(ctx context.Context) ([]Referral, error) {
 	rows, err := r.pool.Query(ctx, `
-		SELECT id, customer_name, customer_phone, referred_name, referred_phone, model, created_at
+		SELECT id, customer_name, employee_id, referred_name, referred_phone, model, created_at
 		FROM vehicle_referrals
 		ORDER BY created_at DESC`)
 	if err != nil {
@@ -43,7 +43,7 @@ func (r *PostgresRepository) List(ctx context.Context) ([]Referral, error) {
 	for rows.Next() {
 		var ref Referral
 		if err := rows.Scan(
-			&ref.ID, &ref.CustomerName, &ref.CustomerPhone,
+			&ref.ID, &ref.CustomerName, &ref.EmployeeID,
 			&ref.ReferredName, &ref.ReferredPhone, &ref.Model, &ref.CreatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan vehicle referral: %w", err)

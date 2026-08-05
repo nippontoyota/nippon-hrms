@@ -8,7 +8,7 @@ const publicApi = axios.create({
 
 export interface VehicleReferralInput {
   customerName: string;
-  customerPhone: string;
+  employeeId: string;
   referredName: string;
   referredPhone: string;
   model: 'glanza' | 'hyryder';
