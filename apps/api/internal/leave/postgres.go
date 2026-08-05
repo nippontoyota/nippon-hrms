@@ -229,8 +229,7 @@ func (r *PostgresRepository) GetMonthlyBalance(ctx context.Context, employeeID s
 		EmployeeID:  employeeID,
 		Month:       month,
 		Year:        year,
-		TotalCasual: 1, // Standard company policy
-		TotalSick:   1, // Standard company policy
+		TotalCasual: 2, // Standard company policy
 	}
 
 	for rows.Next() {
@@ -241,8 +240,6 @@ func (r *PostgresRepository) GetMonthlyBalance(ctx context.Context, employeeID s
 		}
 		if lType == string(TypeCasual) {
 			bal.UsedCasual = days
-		} else if lType == string(TypeSick) {
-			bal.UsedSick = days
 		}
 	}
 

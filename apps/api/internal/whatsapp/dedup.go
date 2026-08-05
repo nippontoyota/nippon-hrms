@@ -294,17 +294,16 @@ func normalizeLeaveTypeButtonLabel(lower string) string {
 	switch {
 	case lower == payloadLeaveCasual, lower == "casual leave", lower == "casual":
 		return payloadLeaveCasual
-	case lower == payloadLeaveSick, lower == "sick leave", lower == "sick":
-		return payloadLeaveSick
-	case lower == payloadLeaveUnpaid, lower == "unpaid leave", lower == "unpaid":
-		return payloadLeaveUnpaid
+	case lower == payloadLeaveDuty, lower == "duty leave", lower == "duty":
+		return payloadLeaveDuty
 	}
-	if strings.HasPrefix(lower, "casual leave (") && strings.HasSuffix(lower, " left)") {
+	if strings.Contains(lower, "casual") {
 		return payloadLeaveCasual
 	}
-	if strings.HasPrefix(lower, "sick leave (") && strings.HasSuffix(lower, " left)") {
-		return payloadLeaveSick
+	if strings.Contains(lower, "duty") {
+		return payloadLeaveDuty
 	}
+
 	return ""
 }
 

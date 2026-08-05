@@ -32,7 +32,7 @@ const msgMainMenuBody = `How may we help you today?`
 
 const msgMoreOptionsButton = `More Options`
 
-const msgMenuTextFallback = `Please reply *Salary Slip*, *Holiday Calendar*, or tap *More Options* for *Referral Link*.`
+const msgMenuTextFallback = `Please reply *Salary Slip*, *Request Leave*, *Holiday Calendar*, or tap *More Options* for *Referral Link*.`
 
 const msgPayslipNotFound = `No payslip was found for the month you entered.
 
@@ -63,7 +63,7 @@ func msgPayslipAlreadySent(month, year int) string {
 func mainMenuButtons() []doubletick.InteractiveButton {
 	return []doubletick.InteractiveButton{
 		{ID: payloadRequestSalary, Title: "Salary Slip"},
-		// {ID: payloadRequestLeave, Title: "Request Leave"}, // Disabled temporarily as per requirement
+		{ID: payloadRequestLeave, Title: "Request Leave"},
 		{ID: payloadRequestHolidays, Title: "Holiday Calendar"},
 	}
 }
@@ -83,15 +83,14 @@ const msgLeaveAwaitType = `Leave Application
 
 What type of leave do you need?`
 
-const msgLeaveTypeTextFallback = `Please tap *Casual Leave*, *Sick Leave*, or *Unpaid Leave* using the buttons above.`
+const msgLeaveTypeTextFallback = `Please tap *Casual Leave* or *Duty Leave* using the buttons above.`
 
 const msgLeaveInvalidType = `Please select a leave type using the buttons below.`
 
 func leaveTypeButtons() []doubletick.InteractiveButton {
 	return []doubletick.InteractiveButton{
 		{ID: payloadLeaveCasual, Title: "Casual Leave"},
-		{ID: payloadLeaveSick, Title: "Sick Leave"},
-		{ID: payloadLeaveUnpaid, Title: "Unpaid Leave"},
+		{ID: payloadLeaveDuty, Title: "Duty Leave"},
 	}
 }
 
@@ -107,10 +106,9 @@ func msgLeaveAwaitTypeWithBalance(bal *leave.LeaveBalance) string {
 		return msgLeaveAwaitType
 	}
 	return fmt.Sprintf(
-		"%s\n\nCasual Leave: %s\nSick Leave: %s",
+		"%s\n\nCasual Leave: %s",
 		msgLeaveAwaitType,
 		formatDaysLeft(bal.RemainingCasual()),
-		formatDaysLeft(bal.RemainingSick()),
 	)
 }
 

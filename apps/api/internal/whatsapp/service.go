@@ -844,10 +844,8 @@ func (s *Service) sendText(ctx context.Context, to, text string) error {
 
 func leaveTypeFromSelection(sel string) leave.LeaveType {
 	switch sel {
-	case payloadLeaveSick:
-		return leave.TypeSick
-	case payloadLeaveUnpaid:
-		return leave.TypeUnpaid
+	case payloadLeaveDuty:
+		return leave.TypeDuty
 	default:
 		return leave.TypeCasual
 	}
@@ -855,19 +853,14 @@ func leaveTypeFromSelection(sel string) leave.LeaveType {
 
 func leaveTypeDisplayName(t leave.LeaveType) string {
 	switch t {
-	case leave.TypeSick:
-		return "Sick Leave"
-	case leave.TypeUnpaid:
-		return "Unpaid Leave"
+	case leave.TypeDuty:
+		return "Duty Leave"
 	default:
 		return "Casual Leave"
 	}
 }
 
 func remainingForLeaveType(bal *leave.LeaveBalance, t leave.LeaveType) (remaining int, label string) {
-	if t == leave.TypeSick {
-		return bal.RemainingSick(), "sick"
-	}
 	return bal.RemainingCasual(), "casual"
 }
 
@@ -946,7 +939,7 @@ func (s *Service) applyLeaveEndDate(ctx context.Context, sess *Session, from str
 	}
 
 	days := int(endDate.Sub(startDate).Hours()/24) + 1
-	if sess.TempLeaveType != leave.TypeUnpaid {
+	if sess.TempLeaveType != leave.TypeDuty {
 		bal, err := s.leaveRepo.GetMonthlyBalance(ctx, sess.EmployeeID, int(startDate.Month()), startDate.Year())
 		if err == nil && bal != nil {
 			leaveType := sess.TempLeaveType

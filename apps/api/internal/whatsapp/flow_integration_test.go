@@ -73,7 +73,7 @@ func (r *flowLeaveRepo) GetMonthlyBalance(context.Context, string, int, int) (*l
 		b := *r.balance
 		return &b, nil
 	}
-	return &leave.LeaveBalance{TotalCasual: 10, UsedCasual: 0, TotalSick: 5, UsedSick: 0}, nil
+	return &leave.LeaveBalance{TotalCasual: 10, UsedCasual: 0}, nil
 }
 func (r *flowLeaveRepo) GetByID(context.Context, string) (*leave.LeaveRequest, error) { return nil, nil }
 
@@ -684,7 +684,7 @@ func TestFlow_insufficientBalance_keepsSession(t *testing.T) {
 	svc, rec, store, phone := newFlowTestService(t)
 	ctx := context.Background()
 	leaveRepo := svc.leaveRepo.(*flowLeaveRepo)
-	leaveRepo.balance = &leave.LeaveBalance{TotalCasual: 1, UsedCasual: 0, TotalSick: 0, UsedSick: 0}
+	leaveRepo.balance = &leave.LeaveBalance{TotalCasual: 1, UsedCasual: 0}
 
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m1", "interactive", payloadRequestLeave))
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m2", "text", "Casual Leave"))
@@ -714,7 +714,7 @@ func TestFlow_leaveTypePrompt_showsBalance(t *testing.T) {
 	svc, rec, store, phone := newFlowTestService(t)
 	ctx := context.Background()
 	leaveRepo := svc.leaveRepo.(*flowLeaveRepo)
-	leaveRepo.balance = &leave.LeaveBalance{TotalCasual: 1, UsedCasual: 0, TotalSick: 1, UsedSick: 1}
+	leaveRepo.balance = &leave.LeaveBalance{TotalCasual: 1, UsedCasual: 0}
 
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m1", "interactive", payloadRequestLeave))
 
@@ -733,7 +733,7 @@ func TestFlow_unpaidLeave_noBalanceLimit(t *testing.T) {
 	svc, rec, store, phone := newFlowTestService(t)
 	ctx := context.Background()
 	leaveRepo := svc.leaveRepo.(*flowLeaveRepo)
-	leaveRepo.balance = &leave.LeaveBalance{TotalCasual: 0, UsedCasual: 1, TotalSick: 0, UsedSick: 1}
+	leaveRepo.balance = &leave.LeaveBalance{TotalCasual: 0, UsedCasual: 1}
 
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m1", "interactive", payloadRequestLeave))
 	_ = svc.HandleWebhook(ctx, inbound(phone, "m2", "text", "Unpaid Leave"))
@@ -754,7 +754,7 @@ func TestFlow_unpaidLeave_noBalanceLimit(t *testing.T) {
 	if sess, ok := store.Get(phone); !ok || sess.State != StateIdle {
 		t.Fatalf("expected idle after unpaid submit, got %v", sess.State)
 	}
-	if len(leaveRepo.created) != 1 || leaveRepo.created[0].Type != leave.TypeUnpaid {
+	if len(leaveRepo.created) != 1 || leaveRepo.created[0].Type != leave.TypeDuty {
 		t.Fatalf("expected unpaid leave request, got %+v", leaveRepo.created)
 	}
 	if leaveRepo.created[0].Days != 5 {

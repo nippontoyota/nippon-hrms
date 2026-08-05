@@ -19,11 +19,7 @@ type LeaveType string
 
 const (
 	TypeCasual    LeaveType = "casual"
-	TypeSick      LeaveType = "sick"
-	TypeAnnual    LeaveType = "annual"
-	TypeMaternity LeaveType = "maternity"
-	TypePaternity LeaveType = "paternity"
-	TypeUnpaid    LeaveType = "unpaid"
+	TypeDuty      LeaveType = "duty"
 )
 
 type LeaveRequest struct {
@@ -48,8 +44,6 @@ type LeaveBalance struct {
 	Year        int    `json:"year"`
 	TotalCasual int    `json:"totalCasual"`
 	UsedCasual  int    `json:"usedCasual"`
-	TotalSick   int    `json:"totalSick"`
-	UsedSick    int    `json:"usedSick"`
 }
 
 func (b *LeaveBalance) RemainingCasual() int {
@@ -60,13 +54,6 @@ func (b *LeaveBalance) RemainingCasual() int {
 	return rem
 }
 
-func (b *LeaveBalance) RemainingSick() int {
-	rem := b.TotalSick - b.UsedSick
-	if rem < 0 {
-		return 0
-	}
-	return rem
-}
 
 type Repository interface {
 	Create(ctx context.Context, req *LeaveRequest) error

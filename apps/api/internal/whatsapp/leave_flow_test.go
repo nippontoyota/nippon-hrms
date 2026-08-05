@@ -12,10 +12,10 @@ func TestLeaveTypeDisplayName(t *testing.T) {
 	if got := leaveTypeDisplayName(leave.TypeCasual); got != "Casual Leave" {
 		t.Fatalf("casual = %q", got)
 	}
-	if got := leaveTypeDisplayName(leave.TypeSick); got != "Sick Leave" {
+	if got := leaveTypeDisplayName(leave.TypeDuty); got != "Sick Leave" {
 		t.Fatalf("sick = %q", got)
 	}
-	if got := leaveTypeDisplayName(leave.TypeUnpaid); got != "Unpaid Leave" {
+	if got := leaveTypeDisplayName(leave.TypeDuty); got != "Unpaid Leave" {
 		t.Fatalf("unpaid = %q", got)
 	}
 }
@@ -68,7 +68,7 @@ func TestFormatDaysLeft(t *testing.T) {
 }
 
 func TestMsgLeaveAwaitTypeWithBalance(t *testing.T) {
-	bal := &leave.LeaveBalance{TotalCasual: 1, UsedCasual: 0, TotalSick: 1, UsedSick: 1}
+	bal := &leave.LeaveBalance{TotalCasual: 1, UsedCasual: 0}
 	msg := msgLeaveAwaitTypeWithBalance(bal)
 	if !strings.Contains(msg, "Casual Leave: 1 day left") {
 		t.Fatalf("expected casual balance in body, got %q", msg)
@@ -82,7 +82,7 @@ func TestMsgLeaveAwaitTypeWithBalance(t *testing.T) {
 }
 
 func TestLeaveTypeButtonsWithBalance(t *testing.T) {
-	bal := &leave.LeaveBalance{TotalCasual: 1, UsedCasual: 0, TotalSick: 1, UsedSick: 1}
+	bal := &leave.LeaveBalance{TotalCasual: 1, UsedCasual: 0}
 	buttons := leaveTypeButtonsWithBalance(bal)
 	if len(buttons) != 3 {
 		t.Fatalf("expected 3 buttons, got %d", len(buttons))

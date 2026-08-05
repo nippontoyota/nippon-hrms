@@ -127,6 +127,9 @@ func isInteractiveMenuEcho(input string) bool {
 	if lower == "request salary slip" || lower == "salary slip" || input == payloadRequestSalary {
 		return true
 	}
+	if lower == "duty leave" || input == payloadLeaveDuty {
+		return true
+	}
 	if lower == "request leave" || input == payloadRequestLeave {
 		return true
 	}
@@ -136,15 +139,7 @@ func isInteractiveMenuEcho(input string) bool {
 	if strings.HasPrefix(lower, "casual leave (") && strings.HasSuffix(lower, " left)") {
 		return true
 	}
-	if lower == "sick leave" || input == payloadLeaveSick {
-		return true
-	}
-	if strings.HasPrefix(lower, "sick leave (") && strings.HasSuffix(lower, " left)") {
-		return true
-	}
-	if lower == "unpaid leave" || input == payloadLeaveUnpaid {
-		return true
-	}
+
 	if lower == "holiday calendar" || input == payloadRequestHolidays {
 		return true
 	}
