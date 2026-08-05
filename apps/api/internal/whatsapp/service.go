@@ -357,6 +357,8 @@ func (s *Service) handleIdle(ctx context.Context, sess *Session, from, input str
 		return s.handleReferralLinkRequest(ctx, sess, from)
 	case payloadRequestHolidays:
 		return s.beginHolidayFlow(ctx, sess, from)
+	case payloadReferPerson:
+		return s.handleReferPerson(ctx, sess, from)
 	case payloadReferCandidate:
 		return s.handleReferralLinkRequest(ctx, sess, from)
 	}
@@ -461,6 +463,21 @@ func (s *Service) beginPayslipFlow(ctx context.Context, sess *Session, from stri
 	sess.State = StateAwaitPeriod
 	s.sessions.Set(from, sess)
 	return s.sendPeriodPrompt(ctx, sess, from)
+}
+
+func (s *Service) handleReferPerson(ctx context.Context, sess *Session, from string) error {
+	portalBaseURL := os.Getenv("PORTAL_BASE_URL")
+	if portalBaseURL == "" {
+		portalBaseURL = "https://nippon-hrms.vercel.app"
+	}
+	url := strings.TrimRight(portalBaseURL, "/") + "/refer"
+	msg := fmt.Sprintf("Refer a friend for Glanza or Hyryder:\n%s", url)
+	if err := s.sendText(ctx, from, msg); err != nil {
+		return err
+	}
+	sess.resetFlow()
+	s.sessions.Set(from, sess)
+	return nil
 }
 
 func (s *Service) handleReferralLinkRequest(ctx context.Context, sess *Session, from string) error {
@@ -687,14 +704,10 @@ func (s *Service) sendMainMenu(ctx context.Context, to, name string) error {
 			slog.Info("whatsapp menu sent", "to", to, "type", "interactive_media")
 			s.recordOutbound(to)
 
-			// Add a delay to ensure the heavier image message is delivered first
-			// before the lightweight text list message. WhatsApp doesn't guarantee order.
-			// Run in a goroutine to avoid blocking the webhook response.
-			// Temporarily disabled per user request
-			// go func(bgCtx context.Context, phone string) {
-			// 	time.Sleep(3500 * time.Millisecond)
-			// 	_ = s.sendMoreOptionsMenu(bgCtx, phone)
-			// }(context.WithoutCancel(ctx), to)
+			go func(bgCtx context.Context, phone string) {
+				time.Sleep(3500 * time.Millisecond)
+				_ = s.sendMoreOptionsMenu(bgCtx, phone)
+			}(context.WithoutCancel(ctx), to)
 
 			return nil
 		}
@@ -709,21 +722,19 @@ func (s *Service) sendMainMenu(ctx context.Context, to, name string) error {
 		if err := s.sendText(ctx, to, body+"\n\n"+msgMenuTextFallback); err != nil {
 			return err
 		}
-		// Temporarily disabled per user request
-		// go func(bgCtx context.Context, phone string) {
-		// 	time.Sleep(3500 * time.Millisecond)
-		// 	_ = s.sendMoreOptionsMenu(bgCtx, phone)
-		// }(context.WithoutCancel(ctx), to)
+		go func(bgCtx context.Context, phone string) {
+			time.Sleep(3500 * time.Millisecond)
+			_ = s.sendMoreOptionsMenu(bgCtx, phone)
+		}(context.WithoutCancel(ctx), to)
 		return nil
 	}
 	slog.Info("whatsapp menu sent", "to", to, "type", "buttons")
 	s.recordOutbound(to)
 
-	// Temporarily disabled per user request
-	// go func(bgCtx context.Context, phone string) {
-	// 	time.Sleep(3500 * time.Millisecond)
-	// 	_ = s.sendMoreOptionsMenu(bgCtx, phone)
-	// }(context.WithoutCancel(ctx), to)
+	go func(bgCtx context.Context, phone string) {
+		time.Sleep(3500 * time.Millisecond)
+		_ = s.sendMoreOptionsMenu(bgCtx, phone)
+	}(context.WithoutCancel(ctx), to)
 
 	return nil
 }
@@ -734,7 +745,7 @@ func (s *Service) sendMoreOptionsMenu(ctx context.Context, to string) error {
 	_, err := s.dt.SendInteractiveList(ctx, to, "", "\u200b", "", msgMoreOptionsButton, sections)
 	if err != nil {
 		slog.Warn("interactive list send failed, falling back to text", "err", err)
-		return s.sendText(ctx, to, "Tap *More Options* for *Referral Link*, or reply *Referral Link*.")
+		return s.sendText(ctx, to, "Tap *More Options* for *Holiday Calendar* or *Referral Link*, or reply *Refer Person*.")
 	}
 	slog.Info("whatsapp more options menu sent", "to", to, "type", "list")
 	s.recordOutbound(to)

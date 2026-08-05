@@ -12,6 +12,7 @@ const (
 	payloadRequestLeave  = "request_leave"
 	payloadRequestHolidays = "request_holidays"
 	payloadReferCandidate  = "refer_candidate"
+	payloadReferPerson     = "refer_person"
 
 	payloadLeaveCasual   = "leave_casual"
 	payloadLeaveDuty     = "leave_duty"

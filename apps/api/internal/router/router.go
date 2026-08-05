@@ -22,6 +22,7 @@ import (
 	appMiddleware "github.com/nippon-toyota/hrms/internal/middleware"
 	"github.com/nippon-toyota/hrms/internal/payroll"
 	"github.com/nippon-toyota/hrms/internal/referral"
+	"github.com/nippon-toyota/hrms/internal/vehiclereferral"
 	"github.com/nippon-toyota/hrms/internal/whatsapp"
 )
 
@@ -70,6 +71,8 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 	referralRepo := referral.NewPostgresRepository(pgPool)
 	referralSvc := referral.NewService(referralRepo, empRepo, dtClient)
 	referralH := handler.NewReferralHandler(referralSvc)
+	vehicleReferralRepo := vehiclereferral.NewPostgresRepository(pgPool)
+	vehicleReferralH := handler.NewVehicleReferralHandler(vehicleReferralRepo)
 
 	waSvc := whatsapp.NewService(dtClient, sessionStore, sessionWindow, empRepo, epfRepo, payrollRepo, leaveRepo, holidayRepo, referralSvc)
 	waHandler := whatsapp.NewHandler(waSvc, cfg.DoubleTickWebhookSecret)
@@ -94,6 +97,7 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 
 		r.Get("/referrals/{code}", referralH.GetLinkDetails)
 		r.Post("/candidates", referralH.SubmitCandidate)
+		r.Post("/vehicle-referrals", vehicleReferralH.Submit)
 
 		r.Group(func(r chi.Router) {
 			r.Use(appMiddleware.RequireAuth(cfg.SupabaseURL, cfg.SupabaseAnonKey))
@@ -180,6 +184,7 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 
 			r.Get("/candidates", referralH.ListCandidates)
 			r.Patch("/candidates/{id}/status", referralH.UpdateCandidateStatus)
+			r.Get("/vehicle-referrals", vehicleReferralH.List)
 		})
 	})
 
