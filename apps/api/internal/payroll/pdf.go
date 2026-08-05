@@ -12,6 +12,7 @@ import (
 	"github.com/johnfercher/maroto/v2/pkg/config"
 	"github.com/johnfercher/maroto/v2/pkg/consts/align"
 	"github.com/johnfercher/maroto/v2/pkg/consts/border"
+	"github.com/johnfercher/maroto/v2/pkg/consts/breakline"
 	"github.com/johnfercher/maroto/v2/pkg/consts/extension"
 	"github.com/johnfercher/maroto/v2/pkg/consts/fontstyle"
 	"github.com/johnfercher/maroto/v2/pkg/consts/pagesize"
@@ -265,7 +266,7 @@ func addIdentityBlock(m core.Maroto, v PayslipView) {
 	}
 
 	labelProp := props.Text{Size: 10, Align: align.Left, Top: 1.5, Left: 1, Bottom: 1.5}
-	valueProp := props.Text{Size: 10, Align: align.Left, Top: 1.5, Left: 1, Bottom: 1.5}
+	valueProp := props.Text{Size: 10, Align: align.Left, Top: 1.5, Left: 1, Bottom: 1.5, BreakLineStrategy: breakline.DashStrategy}
 
 	for i, r := range rows {
 		leftBorder := border.Left
