@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -33,22 +33,55 @@ type FormValues = {
 
 const easeOut = [0.23, 1, 0.32, 1] as const;
 
+/** Scale spacing from viewport height so the stacked form fits short phones. */
+function useReferFormDensity() {
+  const shellRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const shell = shellRef.current;
+    if (!shell) return;
+
+    const apply = () => {
+      const h = window.visualViewport?.height ?? window.innerHeight;
+      // 0.82 on ~560px phones → 1.0 around 720px+ 
+      const t = Math.min(1, Math.max(0.82, (h - 480) / 240));
+
+      shell.style.setProperty('--rf-pad', `${12 + t * 20}px`);
+      shell.style.setProperty('--rf-header-gap', `${8 + t * 16}px`);
+      shell.style.setProperty('--rf-section-gap', `${10 + t * 14}px`);
+      shell.style.setProperty('--rf-field-gap', `${6 + t * 6}px`);
+      shell.style.setProperty('--rf-input-h', `${38 + t * 6}px`);
+      shell.style.setProperty('--rf-btn-h', `${40 + t * 8}px`);
+      shell.style.setProperty('--rf-logo-h', `${28 + t * 12}px`);
+      shell.style.setProperty('--rf-title', `${1.125 + t * 0.375}rem`);
+    };
+
+    apply();
+    window.visualViewport?.addEventListener('resize', apply);
+    window.addEventListener('resize', apply);
+    return () => {
+      window.visualViewport?.removeEventListener('resize', apply);
+      window.removeEventListener('resize', apply);
+    };
+  }, []);
+
+  return shellRef;
+}
+
 function Field({
   label,
   error,
-  className,
   ...props
 }: React.InputHTMLAttributes<HTMLInputElement> & {
   label: string;
   error?: string;
-  className?: string;
 }) {
   const id = props.id ?? props.name;
   const invalid = Boolean(error);
 
   return (
-    <div className={['flex min-w-0 flex-col gap-0.5', className].filter(Boolean).join(' ')}>
-      <label htmlFor={id} className="text-xs font-semibold text-[#1b1c1c]">
+    <div className="flex flex-col gap-[var(--rf-field-gap)]">
+      <label htmlFor={id} className="text-sm font-semibold text-[#1b1c1c]">
         {label}
       </label>
       <input
@@ -57,7 +90,7 @@ function Field({
         aria-invalid={invalid}
         aria-describedby={error ? `${id}-error` : undefined}
         className={[
-          'h-10 w-full rounded-lg border bg-white px-3 text-base text-[#1b1c1c]',
+          'h-[var(--rf-input-h)] w-full rounded-xl border bg-white px-4 text-base text-[#1b1c1c]',
           'placeholder:text-[#7a7674]',
           'transition-[border-color,box-shadow] duration-[160ms] ease-out',
           'focus:outline-none focus:border-[#eb0a1e] focus:ring-2 focus:ring-[#eb0a1e]/15',
@@ -65,11 +98,17 @@ function Field({
         ].join(' ')}
       />
       {error ? (
-        <p id={`${id}-error`} className="text-[11px] font-medium leading-tight text-[#ba1a1a]" role="alert">
+        <p id={`${id}-error`} className="text-xs font-medium text-[#ba1a1a]" role="alert">
           {error}
         </p>
       ) : null}
     </div>
+  );
+}
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#5e5a59]">{children}</h2>
   );
 }
 
@@ -85,13 +124,13 @@ function VehicleOption({
   return (
     <label
       className={[
-        'flex h-10 cursor-pointer select-none items-center justify-center',
-        'rounded-full border px-3 text-sm font-bold capitalize',
+        'flex h-[var(--rf-input-h)] cursor-pointer select-none items-center justify-center',
+        'rounded-full border px-4 text-sm font-bold capitalize',
         'transition-[border-color,background-color,transform] duration-[160ms] ease-out',
         'active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100',
         selected
           ? 'border-[#eb0a1e] bg-[#eb0a1e]/[0.06] text-[#eb0a1e]'
-          : 'border-[#e4e2e1] bg-white text-[#1b1c1c]',
+          : 'border-[#e4e2e1] bg-white text-[#1b1c1c] hover:border-[#cfcbc9]',
       ].join(' ')}
     >
       <input type="radio" checked={selected} onChange={onSelect} className="sr-only" />
@@ -108,20 +147,23 @@ function SuccessView({ onReset }: { onReset: () => void }) {
       initial={reduceMotion ? false : { opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.22, ease: easeOut }}
-      className="flex flex-col items-center py-4 text-center sm:py-6"
+      className="flex flex-col items-center text-center"
     >
-      <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-[#eb0a1e]/10" aria-hidden>
+      <div
+        className="mb-[var(--rf-header-gap)] flex h-12 w-12 items-center justify-center rounded-full bg-[#eb0a1e]/10"
+        aria-hidden
+      >
         <CheckCircle size={28} weight="fill" className="text-[#eb0a1e]" />
       </div>
-      <h1 className="text-xl font-bold tracking-tight text-[#1b1c1c] sm:text-2xl">Thank you</h1>
-      <p className="mt-1.5 max-w-[32ch] text-sm text-[#5e5a59]">
+      <h1 className="text-2xl font-bold tracking-tight text-[#1b1c1c]">Thank you</h1>
+      <p className="mt-2 max-w-[36ch] text-sm leading-relaxed text-[#5e5a59] sm:text-base">
         Your referral was submitted. Nippon Toyota will follow up shortly.
       </p>
       <button
         type="button"
         onClick={onReset}
         className={[
-          'mt-5 inline-flex h-10 w-full items-center justify-center rounded-full',
+          'mt-[var(--rf-section-gap)] inline-flex h-[var(--rf-btn-h)] w-full items-center justify-center rounded-full',
           'bg-[#eb0a1e] px-6 text-sm font-bold text-white',
           'transition-[background-color,transform] duration-[160ms] ease-out',
           'hover:bg-[#c4081a] active:scale-[0.97]',
@@ -136,6 +178,7 @@ function SuccessView({ onReset }: { onReset: () => void }) {
 
 export default function ReferFriendPage() {
   const reduceMotion = useReducedMotion();
+  const shellRef = useReferFormDensity();
   const [success, setSuccess] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
@@ -186,29 +229,42 @@ export default function ReferFriendPage() {
   }
 
   return (
-    <main className="flex min-h-dvh items-start justify-center bg-[#fbf9f8] px-3 py-2 sm:items-center sm:px-4 sm:py-8">
-      <div className="w-full max-w-[480px]">
+    <main className="flex h-dvh max-h-dvh items-center justify-center overflow-y-auto bg-[#fbf9f8] px-3 py-2 sm:px-4 sm:py-6">
+      <div className="my-auto w-full max-w-[480px]">
         <motion.div
+          ref={shellRef}
           layout={!reduceMotion}
-          className="rounded-2xl border border-[#e4e2e1] bg-white p-4 shadow-[0_16px_40px_-24px_rgba(27,28,28,0.2)] sm:rounded-3xl sm:p-8"
+          className="refer-form-shell rounded-2xl border border-[#e4e2e1] bg-white p-[var(--rf-pad)] shadow-[0_24px_48px_-24px_rgba(27,28,28,0.18)] sm:rounded-3xl"
+          style={{
+            ['--rf-pad' as string]: '16px',
+            ['--rf-header-gap' as string]: '12px',
+            ['--rf-section-gap' as string]: '12px',
+            ['--rf-field-gap' as string]: '6px',
+            ['--rf-input-h' as string]: '40px',
+            ['--rf-btn-h' as string]: '44px',
+            ['--rf-logo-h' as string]: '32px',
+            ['--rf-title' as string]: '1.25rem',
+          }}
           transition={{ duration: 0.25, ease: easeOut }}
         >
-          <header className="mb-3 flex items-center gap-3 sm:mb-6 sm:flex-col sm:text-center">
+          <header className="mb-[var(--rf-header-gap)] flex flex-col items-center text-center">
             <img
               src="/nippon-logo.png"
               alt="Nippon Toyota"
-              className="h-7 w-auto shrink-0 object-contain sm:h-9"
+              className="w-auto object-contain"
+              style={{ height: 'var(--rf-logo-h)' }}
               width={120}
               height={40}
             />
-            <div className="min-w-0 sm:w-full">
-              <h1 className="text-lg font-bold leading-tight tracking-tight text-[#1b1c1c] sm:text-2xl">
-                Refer a friend
-              </h1>
-              <p className="mt-0.5 hidden text-sm text-[#5e5a59] sm:block">
-                Glanza or Hyryder referral. Our team will follow up with your contact.
-              </p>
-            </div>
+            <h1
+              className="mt-2 font-bold leading-tight tracking-tight text-[#1b1c1c]"
+              style={{ fontSize: 'var(--rf-title)' }}
+            >
+              Refer a friend
+            </h1>
+            <p className="mt-1 max-w-[38ch] text-xs leading-snug text-[#5e5a59] sm:text-sm">
+              Glanza or Hyryder referral. Our team will follow up with your contact.
+            </p>
           </header>
 
           <AnimatePresence mode="wait">
@@ -222,7 +278,7 @@ export default function ReferFriendPage() {
                 animate={{ opacity: 1 }}
                 exit={reduceMotion ? undefined : { opacity: 0 }}
                 transition={{ duration: 0.18, ease: easeOut }}
-                className="flex flex-col gap-2.5 sm:gap-4"
+                className="flex flex-col gap-[var(--rf-section-gap)]"
                 noValidate
               >
                 <div className="absolute left-[-10000px] h-px w-px overflow-hidden" aria-hidden>
@@ -230,9 +286,10 @@ export default function ReferFriendPage() {
                   <input id="website" name="website" type="text" tabIndex={-1} autoComplete="off" />
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                <section className="flex flex-col gap-[var(--rf-field-gap)]" aria-label="Your details">
+                  <SectionTitle>Your details</SectionTitle>
                   <Field
-                    label="Your name"
+                    label="Employee name"
                     autoComplete="name"
                     autoFocus
                     error={errors.customerName?.message}
@@ -240,22 +297,29 @@ export default function ReferFriendPage() {
                   />
                   <Field
                     label="Employee ID"
-                    placeholder="9001"
+                    placeholder="e.g. 9001"
                     autoComplete="off"
                     error={errors.employeeId?.message}
                     {...register('employeeId')}
                   />
+                </section>
+
+                <section
+                  className="flex flex-col gap-[var(--rf-field-gap)] border-t border-[#f0eeed] pt-[var(--rf-section-gap)]"
+                  aria-label="Person you are referring"
+                >
+                  <SectionTitle>Person you are referring</SectionTitle>
                   <Field
-                    label="Referral name"
+                    label="Full name"
                     autoComplete="name"
                     error={errors.referredName?.message}
                     {...register('referredName')}
                   />
                   <Field
-                    label="Referral mobile"
+                    label="Mobile number"
                     inputMode="numeric"
                     autoComplete="tel"
-                    placeholder="10-digit"
+                    placeholder="10-digit number"
                     maxLength={10}
                     error={errors.referredPhone?.message}
                     {...register('referredPhone', {
@@ -264,38 +328,40 @@ export default function ReferFriendPage() {
                       },
                     })}
                   />
-                </div>
+                </section>
 
-                <fieldset className="pt-0.5">
-                  <legend className="mb-1.5 text-xs font-semibold text-[#1b1c1c]">Vehicle</legend>
-                  <Controller
-                    name="model"
-                    control={control}
-                    render={({ field }) => (
-                      <div className="grid grid-cols-2 gap-2">
-                        <VehicleOption
-                          label="Glanza"
-                          selected={field.value === 'glanza'}
-                          onSelect={() => field.onChange('glanza')}
-                        />
-                        <VehicleOption
-                          label="Hyryder"
-                          selected={field.value === 'hyryder'}
-                          onSelect={() => field.onChange('hyryder')}
-                        />
-                      </div>
-                    )}
-                  />
-                  {errors.model ? (
-                    <p className="mt-1 text-[11px] font-medium text-[#ba1a1a]" role="alert">
-                      {errors.model.message}
-                    </p>
-                  ) : null}
-                </fieldset>
+                <section className="border-t border-[#f0eeed] pt-[var(--rf-section-gap)]">
+                  <fieldset>
+                    <legend className="mb-2 text-sm font-semibold text-[#1b1c1c]">Vehicle</legend>
+                    <Controller
+                      name="model"
+                      control={control}
+                      render={({ field }) => (
+                        <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                          <VehicleOption
+                            label="Glanza"
+                            selected={field.value === 'glanza'}
+                            onSelect={() => field.onChange('glanza')}
+                          />
+                          <VehicleOption
+                            label="Hyryder"
+                            selected={field.value === 'hyryder'}
+                            onSelect={() => field.onChange('hyryder')}
+                          />
+                        </div>
+                      )}
+                    />
+                    {errors.model ? (
+                      <p className="mt-1.5 text-xs font-medium text-[#ba1a1a]" role="alert">
+                        {errors.model.message}
+                      </p>
+                    ) : null}
+                  </fieldset>
+                </section>
 
                 {submitError ? (
                   <p
-                    className="rounded-lg border border-[#ba1a1a]/20 bg-[#ba1a1a]/[0.06] px-3 py-2 text-xs text-[#ba1a1a]"
+                    className="rounded-xl border border-[#ba1a1a]/20 bg-[#ba1a1a]/[0.06] px-3 py-2 text-sm text-[#ba1a1a]"
                     role="alert"
                   >
                     {submitError}
@@ -306,7 +372,7 @@ export default function ReferFriendPage() {
                   type="submit"
                   disabled={isSubmitting}
                   className={[
-                    'inline-flex h-10 w-full items-center justify-center gap-2 rounded-full',
+                    'inline-flex h-[var(--rf-btn-h)] w-full items-center justify-center gap-2 rounded-full',
                     'bg-[#eb0a1e] px-6 text-sm font-bold text-white',
                     'transition-[background-color,transform,opacity] duration-[160ms] ease-out',
                     'hover:bg-[#c4081a] active:scale-[0.97]',
@@ -316,7 +382,7 @@ export default function ReferFriendPage() {
                 >
                   {isSubmitting ? (
                     <>
-                      <SpinnerGap size={16} className="animate-spin" aria-hidden />
+                      <SpinnerGap size={18} className="animate-spin" aria-hidden />
                       Submitting…
                     </>
                   ) : (
