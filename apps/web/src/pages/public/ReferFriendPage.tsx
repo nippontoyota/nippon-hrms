@@ -60,7 +60,7 @@ function Field({
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="text-sm font-medium text-[#1b1c1c]">
+      <label htmlFor={id} className="text-sm font-medium text-[#141414]">
         {label}
       </label>
       <input
@@ -69,15 +69,15 @@ function Field({
         aria-invalid={invalid}
         aria-describedby={error ? `${id}-error` : undefined}
         className={[
-          'min-h-11 w-full rounded-xl border bg-[#fbf9f8] px-4 text-base text-[#1b1c1c]',
-          'placeholder:text-[#7a7674]',
-          'transition-[border-color,box-shadow] duration-[160ms] ease-out',
-          'focus:outline-none focus:border-[#eb0a1e] focus:ring-2 focus:ring-[#eb0a1e]/15',
-          invalid ? 'border-[#ba1a1a]' : 'border-[#e4e2e1]',
+          'min-h-12 w-full rounded-xl border bg-white px-4 text-base text-[#141414]',
+          'placeholder:text-[#5c5857]',
+          'transition-[border-color,box-shadow,background-color] duration-[160ms] ease-out',
+          'focus:outline-none focus:border-[#eb0a1e]/50 focus:ring-[3px] focus:ring-[#eb0a1e]/12',
+          invalid ? 'border-[#b42318]' : 'border-[#d8d4d2]',
         ].join(' ')}
       />
       {error ? (
-        <p id={`${id}-error`} className="text-xs font-medium text-[#ba1a1a]" role="alert">
+        <p id={`${id}-error`} className="text-xs font-medium text-[#b42318]" role="alert">
           {error}
         </p>
       ) : null}
@@ -85,7 +85,7 @@ function Field({
   );
 }
 
-function ModelSeg({
+function ModelChoice({
   value,
   onChange,
   error,
@@ -96,20 +96,20 @@ function ModelSeg({
 }) {
   return (
     <fieldset className="flex flex-col gap-2">
-      <legend className="text-sm font-medium text-[#1b1c1c]">Model they’re interested in</legend>
-      <div className="grid grid-cols-2 gap-1 rounded-full border border-[#e4e2e1] bg-[#fbf9f8] p-1">
+      <legend className="text-sm font-medium text-[#141414]">Interested model</legend>
+      <div className="flex flex-col gap-2">
         {(['glanza', 'hyryder'] as const).map((option) => {
           const selected = value === option;
           return (
             <label
               key={option}
               className={[
-                'flex min-h-10 cursor-pointer items-center justify-center rounded-full px-3 text-sm font-semibold capitalize',
-                'transition-[background-color,color,box-shadow,transform] duration-[160ms] ease-out',
-                'active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100',
+                'flex min-h-11 cursor-pointer items-center justify-center rounded-full border px-4 text-sm font-semibold',
+                'transition-[border-color,background-color,color,transform] duration-[160ms] ease-out',
+                'active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100',
                 selected
-                  ? 'bg-white text-[#eb0a1e] shadow-sm'
-                  : 'text-[#5e5a59] hover:text-[#1b1c1c]',
+                  ? 'border-[#eb0a1e] bg-[#eb0a1e]/[0.12] text-[#eb0a1e]'
+                  : 'border-[#d8d4d2] bg-white text-[#141414]',
               ].join(' ')}
             >
               <input
@@ -124,7 +124,7 @@ function ModelSeg({
         })}
       </div>
       {error ? (
-        <p className="text-xs font-medium text-[#ba1a1a]" role="alert">
+        <p className="text-xs font-medium text-[#b42318]" role="alert">
           {error}
         </p>
       ) : null}
@@ -144,10 +144,10 @@ function SuccessView({
 
   return (
     <motion.div
-      initial={reduceMotion ? false : { opacity: 0, scale: 0.98 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.22, ease: easeOut }}
-      className="flex flex-col p-6 sm:p-8"
+      initial={reduceMotion ? false : { opacity: 0, y: 8, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.26, ease: easeOut }}
+      className="flex flex-col p-6 md:p-10"
     >
       <img
         src="/nippon-logo.png"
@@ -157,13 +157,13 @@ function SuccessView({
         height={32}
       />
       <div
-        className="mt-8 mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-[#eb0a1e]/10"
+        className="mt-8 mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-[#c9a227] text-2xl font-semibold text-white"
         aria-hidden
       >
-        <CheckCircle size={28} weight="fill" className="text-[#eb0a1e]" />
+        <CheckCircle size={28} weight="fill" className="text-white" />
       </div>
-      <h1 className="text-3xl font-bold tracking-tight text-[#1b1c1c] sm:text-4xl">Thank you</h1>
-      <p className="mt-3 max-w-[38ch] text-sm leading-relaxed text-[#5e5a59] sm:text-base">
+      <h1 className="text-4xl font-semibold tracking-tight text-[#141414] md:text-5xl">Thank you</h1>
+      <p className="mt-3 max-w-[38ch] text-base leading-relaxed text-[#3f3c3b]">
         {count === 1
           ? 'Your referral is with us. Our team will follow up with your friend soon.'
           : `${count} referrals are with us. Our team will follow up with your ${friendWord} soon.`}
@@ -173,7 +173,7 @@ function SuccessView({
         onClick={onReset}
         className={[
           'mt-8 inline-flex min-h-12 w-full items-center justify-center rounded-full',
-          'bg-[#eb0a1e] px-6 text-[15px] font-bold text-white',
+          'bg-[#eb0a1e] px-6 text-[15px] font-semibold text-white',
           'transition-[background-color,transform] duration-[160ms] ease-out',
           'hover:bg-[#c4081a] active:scale-[0.97]',
           'motion-reduce:transition-none motion-reduce:active:scale-100',
@@ -267,11 +267,18 @@ export default function ReferFriendPage() {
   }
 
   return (
-    <main className="flex min-h-dvh items-start justify-center overflow-y-auto bg-[#fbf9f8] px-3 py-4 sm:items-center sm:px-4 sm:py-8">
+    <main
+      className="relative flex min-h-dvh items-start justify-center overflow-y-auto px-4 py-8 md:items-center md:py-14"
+      style={{
+        background:
+          'radial-gradient(900px 480px at 0% 0%, rgb(235 10 30 / 7%), transparent 55%), radial-gradient(700px 420px at 100% 8%, rgb(201 162 39 / 8%), transparent 50%), #f0eeed',
+        backgroundAttachment: 'fixed',
+      }}
+    >
       <div className="my-auto w-full max-w-[540px]">
         <motion.div
           layout={!reduceMotion}
-          className="overflow-hidden rounded-2xl border border-[#e4e2e1] bg-white shadow-[0_24px_48px_-24px_rgba(27,28,28,0.18)] sm:rounded-3xl"
+          className="overflow-hidden rounded-3xl border border-[#d8d4d2] bg-white shadow-[0_1px_0_rgb(20_20_20/0.03),0_18px_40px_-20px_rgb(20_20_20/0.16)]"
           transition={{ duration: 0.25, ease: easeOut }}
         >
           <AnimatePresence mode="wait">
@@ -285,8 +292,8 @@ export default function ReferFriendPage() {
                 exit={reduceMotion ? undefined : { opacity: 0 }}
                 transition={{ duration: 0.18, ease: easeOut }}
               >
-                <div className="p-6 pb-0 sm:p-8 sm:pb-0">
-                  <header className="mb-7">
+                <div className="p-6 pb-0 md:p-10 md:pb-0">
+                  <header className="mb-8">
                     <img
                       src="/nippon-logo.png"
                       alt="Nippon Toyota"
@@ -294,10 +301,10 @@ export default function ReferFriendPage() {
                       width={120}
                       height={32}
                     />
-                    <h1 className="mt-5 text-3xl font-bold tracking-tight text-[#1b1c1c] sm:text-[2.5rem] sm:leading-[1.08]">
+                    <h1 className="mt-5 text-4xl font-semibold tracking-tight text-[#141414] md:text-[2.75rem] md:leading-[1.08]">
                       Refer a friend
                     </h1>
-                    <p className="mt-2 max-w-[40ch] text-sm leading-relaxed text-[#5e5a59] sm:text-base">
+                    <p className="mt-3 max-w-[40ch] text-base leading-relaxed text-[#3f3c3b]">
                       Share your details, then add each person and the model they want.
                     </p>
                   </header>
@@ -305,7 +312,7 @@ export default function ReferFriendPage() {
                   <form
                     id="referral-form"
                     onSubmit={handleSubmit(onSubmit)}
-                    className="flex flex-col gap-7"
+                    className="flex flex-col gap-8"
                     noValidate
                   >
                     <div className="absolute left-[-10000px] h-px w-px overflow-hidden" aria-hidden>
@@ -314,10 +321,10 @@ export default function ReferFriendPage() {
                     </div>
 
                     <section className="flex flex-col gap-4" aria-labelledby="you-heading">
-                      <h2 id="you-heading" className="text-base font-semibold text-[#1b1c1c]">
+                      <h2 id="you-heading" className="text-base font-semibold text-[#141414]">
                         Your details
                       </h2>
-                      <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="flex flex-col gap-4">
                         <Field
                           label="Employee name"
                           autoComplete="name"
@@ -335,12 +342,12 @@ export default function ReferFriendPage() {
                       </div>
                     </section>
 
-                    <section className="flex flex-col" aria-labelledby="friends-heading">
-                      <div className="mb-2 flex items-end justify-between gap-3">
-                        <h2 id="friends-heading" className="text-base font-semibold text-[#1b1c1c]">
+                    <section className="flex flex-col gap-4" aria-labelledby="friends-heading">
+                      <div className="flex items-end justify-between gap-3">
+                        <h2 id="friends-heading" className="text-base font-semibold text-[#141414]">
                           Who you’re referring
                         </h2>
-                        <span className="text-xs font-medium text-[#7a7674]">
+                        <span className="text-xs font-medium text-[#5c5857]">
                           {fields.length} of {MAX_FRIENDS}
                         </span>
                       </div>
@@ -348,65 +355,64 @@ export default function ReferFriendPage() {
                       {fields.map((field, index) => {
                         const n = index + 1;
                         return (
-                          <div
+                          <motion.div
                             key={field.id}
                             ref={(el) => {
                               if (el) friendRefs.current.set(index, el);
                               else friendRefs.current.delete(index);
                             }}
-                            className="border-t border-[#e4e2e1] py-6"
+                            initial={reduceMotion ? false : { opacity: 0, y: 6, scale: 0.98 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            transition={{ duration: 0.2, ease: easeOut }}
+                            className="flex flex-col gap-4 rounded-xl border border-[#d8d4d2] bg-[#f7f5f4] p-4 md:p-5"
                           >
-                            <div className="mb-4 flex items-center justify-between gap-3">
-                              <p className="text-sm font-semibold text-[#1b1c1c]">Friend {n}</p>
+                            <div className="flex items-center justify-between gap-3">
+                              <p className="text-sm font-semibold text-[#141414]">Friend {n}</p>
                               {fields.length > 1 ? (
                                 <button
                                   type="button"
                                   onClick={() => remove(index)}
-                                  className="text-sm font-semibold text-[#ba1a1a] transition-opacity hover:opacity-80"
+                                  className="text-sm font-semibold text-[#b42318] transition-opacity hover:opacity-80"
                                 >
                                   Remove
                                 </button>
                               ) : null}
                             </div>
 
-                            <div className="grid gap-4 sm:grid-cols-2">
-                              <Field
-                                label="Their name"
-                                id={`friends.${index}.referredName`}
-                                autoComplete="off"
-                                error={errors.friends?.[index]?.referredName?.message}
-                                {...register(`friends.${index}.referredName`)}
-                              />
-                              <Field
-                                label="Their mobile"
-                                id={`friends.${index}.referredPhone`}
-                                inputMode="numeric"
-                                autoComplete="off"
-                                placeholder="10-digit mobile"
-                                maxLength={10}
-                                error={errors.friends?.[index]?.referredPhone?.message}
-                                {...register(`friends.${index}.referredPhone`, {
-                                  onChange: (e) => {
-                                    e.target.value = e.target.value.replace(/\D/g, '').slice(0, 10);
-                                  },
-                                })}
-                              />
-                            </div>
+                            <Field
+                              label="Their name"
+                              id={`friends.${index}.referredName`}
+                              autoComplete="off"
+                              error={errors.friends?.[index]?.referredName?.message}
+                              {...register(`friends.${index}.referredName`)}
+                            />
+                            <Field
+                              label="Their mobile"
+                              id={`friends.${index}.referredPhone`}
+                              inputMode="numeric"
+                              autoComplete="off"
+                              placeholder="10-digit mobile"
+                              maxLength={10}
+                              error={errors.friends?.[index]?.referredPhone?.message}
+                              {...register(`friends.${index}.referredPhone`, {
+                                onChange: (e) => {
+                                  e.target.value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                                },
+                              })}
+                            />
 
-                            <div className="mt-4">
-                              <Controller
-                                name={`friends.${index}.model`}
-                                control={control}
-                                render={({ field: modelField }) => (
-                                  <ModelSeg
-                                    value={modelField.value}
-                                    onChange={modelField.onChange}
-                                    error={errors.friends?.[index]?.model?.message}
-                                  />
-                                )}
-                              />
-                            </div>
-                          </div>
+                            <Controller
+                              name={`friends.${index}.model`}
+                              control={control}
+                              render={({ field: modelField }) => (
+                                <ModelChoice
+                                  value={modelField.value}
+                                  onChange={modelField.onChange}
+                                  error={errors.friends?.[index]?.model?.message}
+                                />
+                              )}
+                            />
+                          </motion.div>
                         );
                       })}
 
@@ -415,10 +421,10 @@ export default function ReferFriendPage() {
                           type="button"
                           onClick={handleAddFriend}
                           className={[
-                            'mb-2 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full',
-                            'border border-dashed border-[#e4e2e1] bg-transparent px-5 text-sm font-semibold text-[#1b1c1c]',
+                            'inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl',
+                            'border border-dashed border-[#d8d4d2] bg-[#f7f5f4]/40 px-5 text-sm font-semibold text-[#141414]',
                             'transition-[border-color,background-color,transform] duration-[160ms] ease-out',
-                            'hover:border-[#cfcbc9] hover:bg-[#fbf9f8] active:scale-[0.98]',
+                            'hover:border-[#3f3c3b] hover:bg-[#f7f5f4] active:scale-[0.97]',
                             'motion-reduce:transition-none motion-reduce:active:scale-100',
                           ].join(' ')}
                         >
@@ -426,7 +432,7 @@ export default function ReferFriendPage() {
                           Add another friend
                         </button>
                       ) : (
-                        <p className="mb-2 text-sm text-[#7a7674]">
+                        <p className="text-sm text-[#5c5857]">
                           Maximum of {MAX_FRIENDS} friends per submission.
                         </p>
                       )}
@@ -434,7 +440,7 @@ export default function ReferFriendPage() {
 
                     {submitError ? (
                       <p
-                        className="rounded-xl border border-[#ba1a1a]/20 bg-[#ba1a1a]/[0.06] px-4 py-3 text-sm font-medium text-[#ba1a1a]"
+                        className="rounded-xl border border-[#b42318]/25 bg-[#b42318]/[0.08] px-4 py-3 text-sm font-medium text-[#b42318]"
                         role="alert"
                       >
                         {submitError}
@@ -443,7 +449,7 @@ export default function ReferFriendPage() {
                   </form>
                 </div>
 
-                <div className="sticky bottom-0 rounded-b-2xl border-t border-[#e4e2e1] bg-white/92 p-4 backdrop-blur-md sm:rounded-b-3xl sm:p-6">
+                <div className="sticky bottom-0 rounded-b-3xl border-t border-[#d8d4d2] bg-white/92 p-4 backdrop-blur-md md:p-6">
                   <button
                     type="submit"
                     form="referral-form"
@@ -451,10 +457,10 @@ export default function ReferFriendPage() {
                     aria-busy={isSubmitting}
                     className={[
                       'inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full',
-                      'bg-[#eb0a1e] px-6 text-[15px] font-bold text-white',
+                      'bg-[#eb0a1e] px-6 text-[15px] font-semibold text-white',
                       'transition-[background-color,transform,opacity] duration-[160ms] ease-out',
                       'hover:bg-[#c4081a] active:scale-[0.97]',
-                      'disabled:cursor-not-allowed disabled:opacity-60',
+                      'disabled:pointer-events-none disabled:opacity-55',
                       'motion-reduce:transition-none motion-reduce:active:scale-100',
                     ].join(' ')}
                   >
