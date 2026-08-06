@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { publicSupabase } from '@/lib/supabase';
 
 export interface VehicleReferralInput {
   customerName: string;
@@ -33,7 +33,7 @@ export const vehicleReferralApi = {
       throw new Error('invalid');
     }
 
-    const { error } = await supabase.from('vehicle_referrals').insert({
+    const { error } = await publicSupabase.from('vehicle_referrals').insert({
       customer_name: customerName,
       employee_id: employeeId,
       referred_name: referredName,
