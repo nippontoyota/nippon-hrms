@@ -152,9 +152,9 @@ function SuccessView({
       <img
         src="/nippon-logo.png"
         alt="Nippon Toyota"
-        className="h-8 w-auto object-contain self-start"
-        width={120}
-        height={32}
+        className="h-16 w-auto object-contain self-start sm:h-20"
+        width={160}
+        height={80}
       />
       <div
         className="mt-8 mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-[#c9a227] text-2xl font-semibold text-white"
@@ -297,9 +297,9 @@ export default function ReferFriendPage() {
                     <img
                       src="/nippon-logo.png"
                       alt="Nippon Toyota"
-                      className="h-8 w-auto object-contain"
-                      width={120}
-                      height={32}
+                      className="h-16 w-auto object-contain sm:h-20"
+                      width={160}
+                      height={80}
                     />
                     <h1 className="mt-5 text-4xl font-semibold tracking-tight text-[#141414] md:text-[2.75rem] md:leading-[1.08]">
                       Refer a friend
