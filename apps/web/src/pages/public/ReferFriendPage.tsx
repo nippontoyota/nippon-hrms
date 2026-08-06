@@ -1,20 +1,26 @@
 import { useLayoutEffect, useRef, useState } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { CheckCircle, SpinnerGap } from '@phosphor-icons/react';
+import { CheckCircle, Plus, SpinnerGap } from '@phosphor-icons/react';
 import { vehicleReferralApi, VehicleReferralError } from '@/api/vehicleReferral';
 
-const formSchema = z.object({
-  customerName: z.string().trim().min(2, 'Enter your full name'),
-  employeeId: z.string().trim().min(1, 'Enter your employee ID'),
+const MAX_FRIENDS = 5;
+
+const friendSchema = z.object({
   referredName: z.string().trim().min(2, "Enter the referred person's name"),
   referredPhone: z
     .string()
     .trim()
     .min(10, 'Enter a 10-digit mobile number')
     .regex(/^[6-9]\d{9}$/, 'Enter a valid 10-digit Indian mobile number'),
+});
+
+const formSchema = z.object({
+  customerName: z.string().trim().min(2, 'Enter your full name'),
+  employeeId: z.string().trim().min(1, 'Enter your employee ID'),
+  friends: z.array(friendSchema).min(1).max(MAX_FRIENDS),
   model: z
     .enum(['glanza', 'hyryder'])
     .optional()
@@ -26,8 +32,7 @@ const formSchema = z.object({
 type FormValues = {
   customerName: string;
   employeeId: string;
-  referredName: string;
-  referredPhone: string;
+  friends: { referredName: string; referredPhone: string }[];
   model?: 'glanza' | 'hyryder';
 };
 
@@ -43,7 +48,7 @@ function useReferFormDensity() {
 
     const apply = () => {
       const h = window.visualViewport?.height ?? window.innerHeight;
-      // 0.82 on ~560px phones → 1.0 around 720px+ 
+      // 0.82 on ~560px phones → 1.0 around 720px+
       const t = Math.min(1, Math.max(0.82, (h - 480) / 240));
 
       shell.style.setProperty('--rf-pad', `${12 + t * 20}px`);
@@ -193,11 +198,12 @@ export default function ReferFriendPage() {
     defaultValues: {
       customerName: '',
       employeeId: '',
-      referredName: '',
-      referredPhone: '',
+      friends: [{ referredName: '', referredPhone: '' }],
       model: undefined,
     },
   });
+
+  const { fields, append, remove } = useFieldArray({ control, name: 'friends' });
 
   async function onSubmit(values: FormValues, e?: React.BaseSyntheticEvent) {
     setSubmitError('');
@@ -212,8 +218,7 @@ export default function ReferFriendPage() {
       await vehicleReferralApi.submit({
         customerName: values.customerName,
         employeeId: values.employeeId,
-        referredName: values.referredName,
-        referredPhone: values.referredPhone,
+        friends: values.friends,
         model: values.model!,
       });
       setSuccess(true);
@@ -227,7 +232,12 @@ export default function ReferFriendPage() {
   }
 
   function handleReset() {
-    reset();
+    reset({
+      customerName: '',
+      employeeId: '',
+      friends: [{ referredName: '', referredPhone: '' }],
+      model: undefined,
+    });
     setSuccess(false);
     setSubmitError('');
   }
@@ -310,28 +320,77 @@ export default function ReferFriendPage() {
 
                 <section
                   className="flex flex-col gap-[var(--rf-field-gap)] border-t border-[#f0eeed] pt-[var(--rf-section-gap)]"
-                  aria-label="Person you are referring"
+                  aria-label="People you are referring"
                 >
-                  <SectionTitle>Person you are referring</SectionTitle>
-                  <Field
-                    label="Full name"
-                    autoComplete="name"
-                    error={errors.referredName?.message}
-                    {...register('referredName')}
-                  />
-                  <Field
-                    label="Mobile number"
-                    inputMode="numeric"
-                    autoComplete="tel"
-                    placeholder="10-digit number"
-                    maxLength={10}
-                    error={errors.referredPhone?.message}
-                    {...register('referredPhone', {
-                      onChange: (e) => {
-                        e.target.value = e.target.value.replace(/\D/g, '').slice(0, 10);
-                      },
-                    })}
-                  />
+                  <div className="flex items-end justify-between gap-3">
+                    <SectionTitle>Who you’re referring</SectionTitle>
+                    <span className="text-[11px] font-medium text-[#7a7674]">
+                      {fields.length}/{MAX_FRIENDS}
+                    </span>
+                  </div>
+
+                  {fields.map((field, index) => {
+                    const n = index + 1;
+                    return (
+                      <div
+                        key={field.id}
+                        className="flex flex-col gap-[var(--rf-field-gap)] rounded-xl border border-[#e4e2e1] bg-[#fbf9f8] p-3"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-sm font-semibold text-[#1b1c1c]">
+                            {n}. Person you are referring
+                          </p>
+                          {fields.length > 1 ? (
+                            <button
+                              type="button"
+                              onClick={() => remove(index)}
+                              className="text-sm font-semibold text-[#ba1a1a] transition-opacity hover:opacity-80"
+                            >
+                              Remove
+                            </button>
+                          ) : null}
+                        </div>
+                        <Field
+                          label="Full name"
+                          id={`friends.${index}.referredName`}
+                          autoComplete="off"
+                          error={errors.friends?.[index]?.referredName?.message}
+                          {...register(`friends.${index}.referredName`)}
+                        />
+                        <Field
+                          label="Their mobile"
+                          id={`friends.${index}.referredPhone`}
+                          inputMode="numeric"
+                          autoComplete="off"
+                          placeholder="10-digit number"
+                          maxLength={10}
+                          error={errors.friends?.[index]?.referredPhone?.message}
+                          {...register(`friends.${index}.referredPhone`, {
+                            onChange: (e) => {
+                              e.target.value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                            },
+                          })}
+                        />
+                      </div>
+                    );
+                  })}
+
+                  {fields.length < MAX_FRIENDS ? (
+                    <button
+                      type="button"
+                      onClick={() => append({ referredName: '', referredPhone: '' })}
+                      className={[
+                        'inline-flex h-[var(--rf-btn-h)] w-full items-center justify-center gap-2 rounded-full',
+                        'border border-[#e4e2e1] bg-white px-5 text-sm font-bold text-[#1b1c1c]',
+                        'transition-[border-color,background-color,transform] duration-[160ms] ease-out',
+                        'hover:border-[#cfcbc9] hover:bg-[#fbf9f8] active:scale-[0.98]',
+                        'motion-reduce:transition-none motion-reduce:active:scale-100',
+                      ].join(' ')}
+                    >
+                      <Plus size={16} weight="bold" aria-hidden />
+                      Add
+                    </button>
+                  ) : null}
                 </section>
 
                 <section className="border-t border-[#f0eeed] pt-[var(--rf-section-gap)]">
