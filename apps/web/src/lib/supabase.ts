@@ -18,5 +18,6 @@ export const publicSupabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: false,
     autoRefreshToken: false,
     detectSessionInUrl: false,
+    storageKey: 'nippon-public-auth',
   },
 });
