@@ -1,4 +1,5 @@
 import { publicSupabase } from '@/lib/supabase';
+import { normalizePhone } from '@/lib/phone';
 
 export interface VehicleReferralInput {
   customerName: string;
@@ -9,15 +10,21 @@ export interface VehicleReferralInput {
   website?: string;
 }
 
-function normalizePhone(raw: string): string | null {
-  const digits = raw.replace(/\D/g, '');
-  const local =
-    digits.length === 12 && digits.startsWith('91')
-      ? digits.slice(2)
-      : digits.length === 11 && digits.startsWith('0')
-        ? digits.slice(1)
-        : digits;
-  return /^[6-9]\d{9}$/.test(local) ? `+91${local}` : null;
+export class VehicleReferralError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'VehicleReferralError';
+  }
+}
+
+function mapInsertError(error: { code?: string; message?: string }): never {
+  const code = error.code ?? '';
+  const message = error.message ?? '';
+
+  if (code === '23505' || /duplicate|unique/i.test(message)) {
+    throw new VehicleReferralError('This person has already been referred');
+  }
+  throw new VehicleReferralError('Could not submit. Please try again.');
 }
 
 export const vehicleReferralApi = {
@@ -30,7 +37,7 @@ export const vehicleReferralApi = {
     const referredPhone = normalizePhone(data.referredPhone);
 
     if (customerName.length < 2 || employeeId.length < 1 || referredName.length < 2 || !referredPhone) {
-      throw new Error('invalid');
+      throw new VehicleReferralError('Please check the submitted details');
     }
 
     const { error } = await publicSupabase.from('vehicle_referrals').insert({
@@ -41,6 +48,6 @@ export const vehicleReferralApi = {
       model: data.model,
     });
 
-    if (error) throw error;
+    if (error) mapInsertError(error);
   },
 };

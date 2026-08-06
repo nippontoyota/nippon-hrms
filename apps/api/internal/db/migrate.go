@@ -50,8 +50,12 @@ func EnsureSchema(ctx context.Context, pool *pgxpool.Pool) error {
 		EXCEPTION WHEN undefined_column THEN NULL;
 		END $$;
 		ALTER TABLE vehicle_referrals ALTER COLUMN employee_id TYPE VARCHAR(50);
-		CREATE INDEX IF NOT EXISTS idx_vehicle_referrals_referred_phone ON vehicle_referrals(referred_phone);
+		DROP INDEX IF EXISTS idx_vehicle_referrals_referred_phone;
+		CREATE UNIQUE INDEX IF NOT EXISTS vehicle_referrals_referred_phone_key
+			ON vehicle_referrals (referred_phone);
 		CREATE INDEX IF NOT EXISTS idx_vehicle_referrals_created_at ON vehicle_referrals(created_at DESC);
+		DROP TRIGGER IF EXISTS trg_prevent_vehicle_referral_self ON vehicle_referrals;
+		DROP FUNCTION IF EXISTS prevent_vehicle_referral_self();
 	`)
 	if err != nil {
 		return err

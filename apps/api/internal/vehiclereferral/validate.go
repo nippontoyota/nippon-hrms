@@ -7,7 +7,10 @@ import (
 	"github.com/nippon-toyota/hrms/pkg/phone"
 )
 
-var ErrInvalidInput = errors.New("invalid referral details")
+var (
+	ErrInvalidInput      = errors.New("invalid referral details")
+	ErrDuplicateReferral = errors.New("duplicate_referral")
+)
 
 type Input struct {
 	CustomerName  string

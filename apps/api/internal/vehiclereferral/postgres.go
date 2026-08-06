@@ -2,8 +2,10 @@ package vehiclereferral
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -24,6 +26,10 @@ func (r *PostgresRepository) Create(ctx context.Context, ref *Referral) error {
 		ref.CustomerName, ref.EmployeeID, ref.ReferredName, ref.ReferredPhone, ref.Model,
 	).Scan(&ref.ID, &ref.CreatedAt)
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return ErrDuplicateReferral
+		}
 		return fmt.Errorf("create vehicle referral: %w", err)
 	}
 	return nil

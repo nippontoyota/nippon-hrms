@@ -53,6 +53,10 @@ func (h *VehicleReferralHandler) Submit(w http.ResponseWriter, r *http.Request) 
 	}
 
 	if err := h.repo.Create(r.Context(), &ref); err != nil {
+		if errors.Is(err, vehiclereferral.ErrDuplicateReferral) {
+			http.Error(w, "This person has already been referred", http.StatusConflict)
+			return
+		}
 		http.Error(w, "Could not submit. Please try again.", http.StatusInternalServerError)
 		return
 	}

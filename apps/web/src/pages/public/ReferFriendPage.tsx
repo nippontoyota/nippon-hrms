@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { CheckCircle, SpinnerGap } from '@phosphor-icons/react';
-import { vehicleReferralApi } from '@/api/vehicleReferral';
+import { vehicleReferralApi, VehicleReferralError } from '@/api/vehicleReferral';
 
 const formSchema = z.object({
   customerName: z.string().trim().min(2, 'Enter your full name'),
@@ -217,8 +217,12 @@ export default function ReferFriendPage() {
         model: values.model!,
       });
       setSuccess(true);
-    } catch {
-      setSubmitError('Could not submit. Please check your details and try again.');
+    } catch (err) {
+      setSubmitError(
+        err instanceof VehicleReferralError
+          ? err.message
+          : 'Could not submit. Please check your details and try again.',
+      );
     }
   }
 
