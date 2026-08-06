@@ -4,12 +4,12 @@ import { normalizePhone } from '@/lib/phone';
 export interface VehicleReferralFriend {
   referredName: string;
   referredPhone: string;
+  model: 'glanza' | 'hyryder';
 }
 
 export interface VehicleReferralInput {
   customerName: string;
   employeeId: string;
-  model: 'glanza' | 'hyryder';
   friends: VehicleReferralFriend[];
   website?: string;
 }
@@ -56,6 +56,9 @@ export const vehicleReferralApi = {
       if (referredName.length < 2 || !referredPhone) {
         throw new VehicleReferralError('Please check the submitted details');
       }
+      if (friend.model !== 'glanza' && friend.model !== 'hyryder') {
+        throw new VehicleReferralError('Please check the submitted details');
+      }
       if (seen.has(referredPhone)) {
         throw new VehicleReferralError('Each referred person must have a different mobile number');
       }
@@ -65,7 +68,7 @@ export const vehicleReferralApi = {
         employee_id: employeeId,
         referred_name: referredName,
         referred_phone: referredPhone,
-        model: data.model,
+        model: friend.model,
       });
     }
 
