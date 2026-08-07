@@ -32,7 +32,7 @@ const msgMainMenuBody = `How may we help you today?`
 
 const msgMoreOptionsButton = `More Options`
 
-const msgMenuTextFallback = `Please reply *Salary Slip*, *Request Leave*, *Holiday Calendar*, or tap *More Options* for *Referral Link*.`
+const msgMenuTextFallback = `Please reply *Salary Slip* or *Holiday Calendar*.`
 
 const msgPayslipNotFound = `No payslip was found for the month you entered.
 
@@ -63,7 +63,6 @@ func msgPayslipAlreadySent(month, year int) string {
 func mainMenuButtons() []doubletick.InteractiveButton {
 	return []doubletick.InteractiveButton{
 		{ID: payloadRequestSalary, Title: "Salary Slip"},
-		{ID: payloadRequestLeave, Title: "Request Leave"},
 		{ID: payloadRequestHolidays, Title: "Holiday Calendar"},
 	}
 }
