@@ -67,11 +67,12 @@ const Cell = ({
       <td className={`${className} p-1`}>
         <input
           type={type}
-          className="w-full bg-yellow-50 border border-dashed border-slate-400 px-2 py-1 text-xs text-black focus:outline-none focus:border-[#eb0a1e] focus:bg-white dark:bg-slate-800 transition-colors"
-          value={editForm[field] as string | number || ''}
+          className={type === 'checkbox' ? 'w-4 h-4 cursor-pointer accent-green-600' : 'w-full bg-yellow-50 border border-dashed border-slate-400 px-2 py-1 text-xs text-black focus:outline-none focus:border-[#eb0a1e] focus:bg-white dark:bg-slate-800 transition-colors'}
+          value={type !== 'checkbox' ? (editForm[field] as string | number || '') : undefined}
+          checked={type === 'checkbox' ? !!editForm[field] : undefined}
           onChange={(e) => setEditForm(prev => ({ 
             ...prev, 
-            [field]: type === 'number' ? (parseFloat(e.target.value) || 0) : e.target.value 
+            [field]: type === 'checkbox' ? e.target.checked : (type === 'number' ? (parseFloat(e.target.value) || 0) : e.target.value) 
           }))}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && onSave) {
@@ -514,6 +515,7 @@ export default function EmployeesPage() {
                   <th>Bank Branch</th>
                   <th>IFSC Code</th>
                   <th>Zone</th>
+                  <th className="text-center">Health Card Eligible</th>
                   <th className="sticky right-0 z-10 bg-slate-100 dark:bg-slate-700 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.05)] border-l border-slate-300 dark:border-slate-600">Actions</th>
                 </tr>
               </thead>
@@ -574,6 +576,13 @@ export default function EmployeesPage() {
                       <Cell {...cellProps} field="bankBranch" />
                       <Cell {...cellProps} field="ifscCode" className="font-mono" />
                       <Cell {...cellProps} field="zone" />
+                      <Cell 
+                        {...cellProps} 
+                        field="isHealthCardEligible" 
+                        type="checkbox"
+                        className="text-center font-bold"
+                        formatFn={v => v ? <span className="text-green-600">Yes</span> : <span className="text-slate-400">No</span>}
+                      />
                       
                       <td className={`sticky right-0 z-10 ${isEditing ? 'bg-yellow-50' : 'bg-white dark:bg-slate-800 group-hover:bg-slate-50 dark:hover:bg-slate-700 dark:bg-slate-900'} border-l border-slate-300 dark:border-slate-600 text-center space-x-2 px-2 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.05)]`}>
                         {isEditing ? (

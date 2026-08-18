@@ -14,6 +14,7 @@ import (
 	"github.com/nippon-toyota/hrms/internal/doubletick"
 	"github.com/nippon-toyota/hrms/internal/employee"
 	"github.com/nippon-toyota/hrms/internal/epf"
+	"github.com/nippon-toyota/hrms/internal/healthcard"
 	"github.com/nippon-toyota/hrms/internal/holiday"
 	"github.com/nippon-toyota/hrms/internal/leave"
 	"github.com/nippon-toyota/hrms/internal/payroll"
@@ -357,6 +358,8 @@ func (s *Service) handleIdle(ctx context.Context, sess *Session, from, input str
 		return s.handleReferralLinkRequest(ctx, sess, from)
 	case payloadRequestHolidays:
 		return s.beginHolidayFlow(ctx, sess, from)
+	case payloadRequestHealthCard:
+		return s.handleHealthCardRequest(ctx, sess, from)
 	case payloadReferCandidate:
 		return s.handleReferralLinkRequest(ctx, sess, from)
 	}
@@ -1309,5 +1312,36 @@ func (s *Service) handleLeaveAwaitRejectionReason(ctx context.Context, sess *Ses
 	sess.resetFlow()
 	s.sessions.Set(from, sess)
 	return nil
+}
+
+func (s *Service) handleHealthCardRequest(ctx context.Context, sess *Session, from string) error {
+	emp, err := s.empRepo.FindByPhone(ctx, from)
+	if err != nil {
+		slog.Error("employee not found for health card", "phone", from, "err", err)
+		return s.sendUserText(ctx, sess, from, "Unable to find your employee profile.")
+	}
+
+	if !emp.IsHealthCardEligible {
+		return s.sendUserText(ctx, sess, from, "Sorry, you are currently not eligible for the ICICI Lombard Health Care benefit. Please contact HR for more details.")
+	}
+
+	pdfBytes, err := healthcard.GenerateHealthCardPDF(emp)
+	if err != nil {
+		slog.Error("failed to generate health card", "empId", emp.EmployeeID, "err", err)
+		return s.sendUserText(ctx, sess, from, "An error occurred while generating your health card. Please try again later.")
+	}
+
+	filename := fmt.Sprintf("HealthCard_%s.pdf", emp.EmployeeID)
+	mediaURL, _, err := s.dt.UploadMedia(ctx, pdfBytes, filename, "application/pdf")
+	if err != nil {
+		slog.Error("failed to upload health card pdf", "err", err)
+		return s.sendUserText(ctx, sess, from, "An error occurred while preparing your health card. Please try again later.")
+	}
+
+	_, err = s.dt.SendDocument(ctx, from, mediaURL, filename, "Here is your ICICI Lombard Health Care Card.")
+
+	sess.resetFlow()
+	s.sessions.Set(from, sess)
+	return err
 }
 

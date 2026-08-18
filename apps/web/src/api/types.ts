@@ -1,4 +1,4 @@
-﻿export type UserRole = 'SUPER_ADMIN' | 'HR_ADMIN' | 'super_admin' | 'hr_admin';
+export type UserRole = 'SUPER_ADMIN' | 'HR_ADMIN' | 'super_admin' | 'hr_admin';
 
 export interface User {
   id: string;
@@ -60,6 +60,7 @@ export interface Employee {
   ctcStructure?: Record<string, number | string | null>;
   bankDetails?: BankDetails;
   status: EmployeeStatus;
+  isHealthCardEligible?: boolean;
   createdAt: string;
 }
 
@@ -91,6 +92,7 @@ export interface EmployeeInput {
   designation: string;
   status: EmployeeStatus;
   managerId?: string;
+  isHealthCardEligible?: boolean;
 }
 
 export type PeriodStatus = 'DRAFT' | 'READY' | 'SENT';

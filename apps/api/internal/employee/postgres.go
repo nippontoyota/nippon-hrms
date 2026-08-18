@@ -32,7 +32,7 @@ func (r *PostgresRepository) FindByPhone(ctx context.Context, rawPhone string) (
 			e.hostel, e.children, e.total_salary, e.mobile, e.conveyance, e.wash_allowance, 
 			e.branch_allowance, e.special_allowance, e.training, e.total_allowances, 
 			e.total_salary_with_allowances, COALESCE(e.bank_name, ''), COALESCE(e.account_number, ''),
-			COALESCE(e.bank_branch, ''), COALESCE(e.ifsc_code, ''), e.manager_id, COALESCE(m.name, ''), e.created_at, e.updated_at
+			COALESCE(e.bank_branch, ''), COALESCE(e.ifsc_code, ''), e.manager_id, COALESCE(m.name, ''), e.is_health_card_eligible, e.created_at, e.updated_at
 		FROM employees e
 		LEFT JOIN employees m ON e.manager_id = m.id
 		WHERE RIGHT(REGEXP_REPLACE(e.mobile_number, '[^0-9]', '', 'g'), 10) = $1
@@ -45,7 +45,7 @@ func (r *PostgresRepository) FindByPhone(ctx context.Context, rawPhone string) (
 		&e.Hostel, &e.Children, &e.TotalSalary, &e.Mobile, &e.Conveyance, &e.WashAllowance,
 		&e.BranchAllowance, &e.SpecialAllowance, &e.Training, &e.TotalAllowances,
 		&e.TotalSalaryWithAllowances, &e.BankName, &e.AccountNumber, &e.BankBranch,
-		&e.IFSCCode, &e.ManagerID, &e.ManagerName, &e.CreatedAt, &e.UpdatedAt,
+		&e.IFSCCode, &e.ManagerID, &e.ManagerName, &e.IsHealthCardEligible, &e.CreatedAt, &e.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -69,7 +69,7 @@ func (r *PostgresRepository) GetByID(ctx context.Context, id string) (*Employee,
 			e.branch_allowance, e.special_allowance, e.training, e.total_allowances, 
 			e.total_salary_with_allowances, COALESCE(e.bank_name, ''), COALESCE(e.account_number, ''),
 			COALESCE(e.bank_branch, ''), COALESCE(e.ifsc_code, ''), 
-			e.manager_id, COALESCE(m.name, ''), e.created_at, e.updated_at
+			e.manager_id, COALESCE(m.name, ''), e.is_health_card_eligible, e.created_at, e.updated_at
 		FROM employees e
 		LEFT JOIN employees m ON e.manager_id = m.id
 		WHERE e.id = $1 LIMIT 1
@@ -81,7 +81,7 @@ func (r *PostgresRepository) GetByID(ctx context.Context, id string) (*Employee,
 		&e.Hostel, &e.Children, &e.TotalSalary, &e.Mobile, &e.Conveyance, &e.WashAllowance,
 		&e.BranchAllowance, &e.SpecialAllowance, &e.Training, &e.TotalAllowances,
 		&e.TotalSalaryWithAllowances, &e.BankName, &e.AccountNumber, &e.BankBranch,
-		&e.IFSCCode, &e.ManagerID, &e.ManagerName, &e.CreatedAt, &e.UpdatedAt,
+		&e.IFSCCode, &e.ManagerID, &e.ManagerName, &e.IsHealthCardEligible, &e.CreatedAt, &e.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -112,7 +112,7 @@ func (r *PostgresRepository) BulkInsert(ctx context.Context, employees []Employe
 			"branch", "designation", "zone", "basic", "da", "revised_basic_da", "hra", "travel",
 			"hostel", "children", "total_salary", "mobile", "conveyance", "wash_allowance",
 			"branch_allowance", "special_allowance", "training", "total_allowances",
-			"total_salary_with_allowances", "bank_name", "account_number", "bank_branch", "ifsc_code", "manager_id",
+			"total_salary_with_allowances", "bank_name", "account_number", "bank_branch", "ifsc_code", "manager_id", "is_health_card_eligible",
 		},
 		pgx.CopyFromSlice(len(employees), func(i int) ([]interface{}, error) {
 			e := employees[i]
@@ -121,7 +121,7 @@ func (r *PostgresRepository) BulkInsert(ctx context.Context, employees []Employe
 				e.Branch, e.Designation, e.Zone, e.Basic, e.DA, e.RevisedBasicDA, e.HRA, e.Travel,
 				e.Hostel, e.Children, e.TotalSalary, e.Mobile, e.Conveyance, e.WashAllowance,
 				e.BranchAllowance, e.SpecialAllowance, e.Training, e.TotalAllowances,
-				e.TotalSalaryWithAllowances, e.BankName, e.AccountNumber, e.BankBranch, e.IFSCCode, e.ManagerID,
+				e.TotalSalaryWithAllowances, e.BankName, e.AccountNumber, e.BankBranch, e.IFSCCode, e.ManagerID, e.IsHealthCardEligible,
 			}, nil
 		}),
 	)
@@ -139,7 +139,7 @@ func (r *PostgresRepository) List(ctx context.Context) ([]Employee, error) {
 			e.branch_allowance, e.special_allowance, e.training, e.total_allowances, 
 			e.total_salary_with_allowances, COALESCE(e.bank_name, ''), COALESCE(e.account_number, ''),
 			COALESCE(e.bank_branch, ''), COALESCE(e.ifsc_code, ''),
-			e.manager_id, COALESCE(m.name, ''), e.created_at, e.updated_at
+			e.manager_id, COALESCE(m.name, ''), e.is_health_card_eligible, e.created_at, e.updated_at
 		FROM employees e
 		LEFT JOIN employees m ON e.manager_id = m.id
 		ORDER BY e.created_at DESC
@@ -159,7 +159,7 @@ func (r *PostgresRepository) List(ctx context.Context) ([]Employee, error) {
 			&e.Hostel, &e.Children, &e.TotalSalary, &e.Mobile, &e.Conveyance, &e.WashAllowance,
 			&e.BranchAllowance, &e.SpecialAllowance, &e.Training, &e.TotalAllowances,
 			&e.TotalSalaryWithAllowances, &e.BankName, &e.AccountNumber, &e.BankBranch,
-			&e.IFSCCode, &e.ManagerID, &e.ManagerName, &e.CreatedAt, &e.UpdatedAt,
+			&e.IFSCCode, &e.ManagerID, &e.ManagerName, &e.IsHealthCardEligible, &e.CreatedAt, &e.UpdatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan error: %w", err)
 		}
@@ -201,7 +201,7 @@ func (r *PostgresRepository) ListPaginated(ctx context.Context, page, limit int,
 			e.branch_allowance, e.special_allowance, e.training, e.total_allowances, 
 			e.total_salary_with_allowances, COALESCE(e.bank_name, ''), COALESCE(e.account_number, ''),
 			COALESCE(e.bank_branch, ''), COALESCE(e.ifsc_code, ''),
-			e.manager_id, COALESCE(m.name, ''), e.created_at, e.updated_at
+			e.manager_id, COALESCE(m.name, ''), e.is_health_card_eligible, e.created_at, e.updated_at
 		FROM employees e
 		LEFT JOIN employees m ON e.manager_id = m.id` + baseWhere + ` ORDER BY e.created_at DESC, e.id ASC LIMIT $` + fmt.Sprintf("%d", len(args)+1) + ` OFFSET $` + fmt.Sprintf("%d", len(args)+2)
 	listArgs := append(args, limit, offset)
@@ -221,7 +221,7 @@ func (r *PostgresRepository) ListPaginated(ctx context.Context, page, limit int,
 			&e.Hostel, &e.Children, &e.TotalSalary, &e.Mobile, &e.Conveyance, &e.WashAllowance,
 			&e.BranchAllowance, &e.SpecialAllowance, &e.Training, &e.TotalAllowances,
 			&e.TotalSalaryWithAllowances, &e.BankName, &e.AccountNumber, &e.BankBranch,
-			&e.IFSCCode, &e.ManagerID, &e.ManagerName, &e.CreatedAt, &e.UpdatedAt,
+			&e.IFSCCode, &e.ManagerID, &e.ManagerName, &e.IsHealthCardEligible, &e.CreatedAt, &e.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -249,16 +249,16 @@ func (r *PostgresRepository) Create(ctx context.Context, e *Employee) error {
 			branch, designation, zone, basic, da, revised_basic_da, hra, travel,
 			hostel, children, total_salary, mobile, conveyance, wash_allowance,
 			branch_allowance, special_allowance, training, total_allowances,
-			total_salary_with_allowances, bank_name, account_number, bank_branch, ifsc_code, manager_id
+			total_salary_with_allowances, bank_name, account_number, bank_branch, ifsc_code, manager_id, is_health_card_eligible
 		) VALUES (
 			$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,
-			$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32
+			$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33
 		)`,
 		e.ID, e.Name, e.Department, e.MobileNumber, e.Level, ParseDOJ(e.DOJ), ParseDOJ(e.Birthday), e.YearsExperience,
 		e.Branch, e.Designation, e.Zone, e.Basic, e.DA, e.RevisedBasicDA, e.HRA, e.Travel,
 		e.Hostel, e.Children, e.TotalSalary, e.Mobile, e.Conveyance, e.WashAllowance,
 		e.BranchAllowance, e.SpecialAllowance, e.Training, e.TotalAllowances,
-		e.TotalSalaryWithAllowances, e.BankName, e.AccountNumber, e.BankBranch, e.IFSCCode, e.ManagerID,
+		e.TotalSalaryWithAllowances, e.BankName, e.AccountNumber, e.BankBranch, e.IFSCCode, e.ManagerID, e.IsHealthCardEligible,
 	)
 	return err
 }
@@ -278,13 +278,13 @@ func (r *PostgresRepository) Update(ctx context.Context, id string, e *Employee)
 			hostel=$17, children=$18, total_salary=$19, mobile=$20, conveyance=$21, wash_allowance=$22,
 			branch_allowance=$23, special_allowance=$24, training=$25, total_allowances=$26,
 			total_salary_with_allowances=$27, bank_name=$28, account_number=$29, bank_branch=$30, ifsc_code=$31,
-			manager_id=$32, updated_at=NOW()
+			manager_id=$32, is_health_card_eligible=$33, updated_at=NOW()
 		WHERE id=$1`,
 		id, e.Name, e.Department, e.MobileNumber, e.Level, ParseDOJ(e.DOJ), ParseDOJ(e.Birthday), e.YearsExperience,
 		e.Branch, e.Designation, e.Zone, e.Basic, e.DA, e.RevisedBasicDA, e.HRA, e.Travel,
 		e.Hostel, e.Children, e.TotalSalary, e.Mobile, e.Conveyance, e.WashAllowance,
 		e.BranchAllowance, e.SpecialAllowance, e.Training, e.TotalAllowances,
-		e.TotalSalaryWithAllowances, e.BankName, e.AccountNumber, e.BankBranch, e.IFSCCode, e.ManagerID,
+		e.TotalSalaryWithAllowances, e.BankName, e.AccountNumber, e.BankBranch, e.IFSCCode, e.ManagerID, e.IsHealthCardEligible,
 	)
 	return err
 }
@@ -385,7 +385,7 @@ func (r *PostgresRepository) GetByEmployeeIDs(ctx context.Context, ids []string)
 			e.hostel, e.children, e.total_salary, e.mobile, e.conveyance, e.wash_allowance, 
 			e.branch_allowance, e.special_allowance, e.training, e.total_allowances, 
 			e.total_salary_with_allowances, COALESCE(e.bank_name, ''), COALESCE(e.account_number, ''),
-			COALESCE(e.bank_branch, ''), COALESCE(e.ifsc_code, ''), e.manager_id, COALESCE(m.name, ''), e.created_at, e.updated_at
+			COALESCE(e.bank_branch, ''), COALESCE(e.ifsc_code, ''), e.manager_id, COALESCE(m.name, ''), e.is_health_card_eligible, e.created_at, e.updated_at
 		FROM employees e
 		LEFT JOIN employees m ON e.manager_id = m.id
 		WHERE e.id = ANY($1)
@@ -405,7 +405,7 @@ func (r *PostgresRepository) GetByEmployeeIDs(ctx context.Context, ids []string)
 			&e.Hostel, &e.Children, &e.TotalSalary, &e.Mobile, &e.Conveyance, &e.WashAllowance,
 			&e.BranchAllowance, &e.SpecialAllowance, &e.Training, &e.TotalAllowances,
 			&e.TotalSalaryWithAllowances, &e.BankName, &e.AccountNumber, &e.BankBranch,
-			&e.IFSCCode, &e.ManagerID, &e.ManagerName, &e.CreatedAt, &e.UpdatedAt,
+			&e.IFSCCode, &e.ManagerID, &e.ManagerName, &e.IsHealthCardEligible, &e.CreatedAt, &e.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}

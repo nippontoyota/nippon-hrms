@@ -127,6 +127,9 @@ func isInteractiveMenuEcho(input string) bool {
 	if lower == "request salary slip" || lower == "salary slip" || input == payloadRequestSalary {
 		return true
 	}
+	if lower == "health card" || lower == "request health card" || input == payloadRequestHealthCard {
+		return true
+	}
 	if lower == "duty leave" || input == payloadLeaveDuty {
 		return true
 	}
