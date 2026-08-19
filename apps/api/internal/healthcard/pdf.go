@@ -63,24 +63,24 @@ func GenerateHealthCardPDF(emp *employee.Employee) ([]byte, error) {
 	pdf.ImageOptions("front", c1X, c1Y, cardW, cardH, false, opt, 0, "")
 
 	// "ICICILOMBARD" Subheader
-	pdf.SetFont("Arial", "B", 9)
+	pdf.SetFont("Arial", "B", 7.5)
 	pdf.SetTextColor(0, 0, 0)
-	pdf.SetXY(c1X+6, c1Y+19.5)
+	pdf.SetXY(c1X+6, c1Y+18.0)
 	pdf.CellFormat(cardW, 6, "ICICILOMBARD", "", 0, "L", false, 0, "")
 
 	// Fields
-	fieldsY := c1Y + 26
-	lineHeight := 5.2
+	fieldsY := c1Y + 23.0
+	lineHeight := 4.2
 
 	drawField := func(label, val string, y float64) {
-		pdf.SetFont("Arial", "B", 9)
+		pdf.SetFont("Arial", "B", 7.5)
 		pdf.SetXY(c1X+6, y)
 		pdf.CellFormat(30, lineHeight, label, "", 0, "L", false, 0, "")
 		
 		pdf.SetXY(c1X+36, y)
 		pdf.CellFormat(3, lineHeight, ":", "", 0, "L", false, 0, "")
 		
-		pdf.SetFont("Arial", "", 9)
+		pdf.SetFont("Arial", "", 7.5)
 		pdf.SetXY(c1X+40, y)
 		pdf.CellFormat(60, lineHeight, val, "", 0, "L", false, 0, "")
 	}
@@ -105,15 +105,15 @@ func GenerateHealthCardPDF(emp *employee.Employee) ([]byte, error) {
 
 	// Text Content
 	pdf.SetTextColor(0, 0, 0)
-	pdf.SetFont("Arial", "", 5) // scaled up font for fine print
+	pdf.SetFont("Arial", "", 4.5) // reduced font slightly to fit perfectly
 	txtY := c2Y + 6.0
-	lh := 3.3
+	lh := 2.8
 
 	drawTextLine := func(txt string, bold bool, isRed bool) {
 		if bold {
-			pdf.SetFont("Arial", "B", 5)
+			pdf.SetFont("Arial", "B", 4.5)
 		} else {
-			pdf.SetFont("Arial", "", 5)
+			pdf.SetFont("Arial", "", 4.5)
 		}
 		if isRed {
 			pdf.SetTextColor(180, 20, 20)
@@ -149,7 +149,7 @@ func GenerateHealthCardPDF(emp *employee.Employee) ([]byte, error) {
 
 	// Bottom contacts
 	txtY = c2Y + cardH - 18.0
-	pdf.SetFont("Arial", "B", 5)
+	pdf.SetFont("Arial", "B", 4.5)
 	pdf.SetTextColor(0, 0, 0)
 	
 	pdf.SetXY(c2X+4.5, txtY)
@@ -162,7 +162,7 @@ func GenerateHealthCardPDF(emp *employee.Employee) ([]byte, error) {
 	pdf.SetXY(c2X+cardW-45, txtY+lh)
 	pdf.CellFormat(45, lh, "Visit us at: www.icicilombard.com", "", 0, "L", false, 0, "")
 
-	txtY += lh + 3.0
+	txtY += lh + 2.5
 	pdf.SetXY(c2X+4.5, txtY)
 	pdf.CellFormat(120, lh, "Insurance is the subject matter of the solicitation. IRDA Reg No.: 115. CIN: L67200MH2000PLC129408", "", 0, "L", false, 0, "")
 	pdf.SetXY(c2X+4.5, txtY+lh)
