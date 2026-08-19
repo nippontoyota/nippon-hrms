@@ -87,7 +87,7 @@ func (d *dedupStore) isDuplicate(messageID, phone, input, msgType string, state 
 		actionWindow = d.greetingWindow
 	} else if looksLikePeriodAttempt(input) {
 		actionWindow = d.periodWindow
-	} else if cInp := canonicalInput(input); cInp == payloadRequestHolidays || cInp == payloadRequestReferral {
+	} else if cInp := canonicalInput(input); cInp == payloadRequestHolidays || cInp == payloadRequestReferral || cInp == payloadRequestHealthCard {
 		actionWindow = 5 * time.Minute
 	}
 	if seenAt, ok := d.byAction[actionKey]; ok && now.Sub(seenAt) < actionWindow {
@@ -266,6 +266,8 @@ func normalizeMenuSelection(input string) string {
 			return payloadGeneratePay
 		case strings.Contains(lower, "holiday calendar"):
 			return payloadRequestHolidays
+		case strings.Contains(lower, "health card"), strings.Contains(lower, "request health card"):
+			return payloadRequestHealthCard
 		case strings.Contains(lower, "referral link"), strings.Contains(lower, "refer a candidate"), strings.Contains(lower, "refer"):
 			return payloadRequestReferral
 		}
