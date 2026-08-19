@@ -18,6 +18,7 @@ const defaultValues: EmployeeInput = {
   designation: '',
   status: 'Active',
   managerId: '',
+  isHealthCardEligible: false,
 };
 
 export default function EmployeeFormPage() {
@@ -53,6 +54,7 @@ export default function EmployeeFormPage() {
         designation: employee.designation,
         status: employee.status,
         managerId: employee.managerId ?? '',
+        isHealthCardEligible: employee.isHealthCardEligible ?? false,
       });
     }
   }, [employee, reset]);
@@ -130,6 +132,15 @@ export default function EmployeeFormPage() {
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
               </select>
+            </div>
+            <div className="flex items-center mt-6 space-x-2">
+              <input 
+                type="checkbox" 
+                id="isHealthCardEligible" 
+                className="w-4 h-4 rounded border-slate-400 accent-green-600 cursor-pointer" 
+                {...register('isHealthCardEligible')} 
+              />
+              <label htmlFor="isHealthCardEligible" className="label !mb-0 cursor-pointer">Eligible for Health Card</label>
             </div>
           </div>
         </div>

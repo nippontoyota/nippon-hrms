@@ -212,7 +212,7 @@ func (d *dedupStore) evict(now time.Time) {
 
 func canonicalInput(input string) string {
 	switch normalizeMenuSelection(input) {
-	case payloadGeneratePay, payloadRequestSalary, payloadRequestLeave, payloadRequestHolidays, payloadRequestReferral:
+	case payloadGeneratePay, payloadRequestSalary, payloadRequestLeave, payloadRequestHolidays, payloadRequestReferral, payloadRequestHealthCard:
 		return normalizeMenuSelection(input)
 	default:
 		if sel := normalizeLeaveTypeSelection(input); sel != "" {
@@ -248,6 +248,8 @@ func normalizeMenuSelection(input string) string {
 		return payloadRequestSalary
 	case trimmed == payloadRequestLeave, lower == "request leave":
 		return payloadRequestLeave
+	case trimmed == payloadRequestHealthCard, lower == "request health card", lower == "health card":
+		return payloadRequestHealthCard
 	case trimmed == payloadRequestHolidays, lower == "holiday calendar":
 		return payloadRequestHolidays
 	case trimmed == payloadRequestReferral, trimmed == payloadReferCandidate, lower == "referral link", lower == "refer a candidate", lower == "refer":
