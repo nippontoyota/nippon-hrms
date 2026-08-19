@@ -44,16 +44,16 @@ func GenerateHealthCardPDF(emp *employee.Employee) ([]byte, error) {
 	pdf.RegisterImageOptionsReader("front", opt, bytes.NewReader(frontTemplate))
 	pdf.RegisterImageOptionsReader("back", opt, bytes.NewReader(backTemplate))
 
-	// Card sizes (Credit card standard is 85.6 x 54)
-	cardW := 85.6
-	cardH := 54.0
+	// Card sizes scaled up by ~1.5x for better legibility
+	cardW := 130.0
+	cardH := 82.0
 	
-	// Center the cards on A4 Portrait (210 width -> (210 - 85.6)/2 = 62.2 padding)
+	// Center the cards on A4 Portrait (210 width -> (210 - 130)/2 = 40 padding)
 	startX := (210.0 - cardW) / 2.0
 	
 	// Start at Top
 	c1X := startX
-	c1Y := 60.0 // Very clean, top-centered
+	c1Y := 40.0 // Adjusted for taller cards
 
 	// ==========================================
 	// CARD 1 (FRONT)
@@ -63,26 +63,26 @@ func GenerateHealthCardPDF(emp *employee.Employee) ([]byte, error) {
 	pdf.ImageOptions("front", c1X, c1Y, cardW, cardH, false, opt, 0, "")
 
 	// "ICICILOMBARD" Subheader
-	pdf.SetFont("Arial", "B", 6)
+	pdf.SetFont("Arial", "B", 9)
 	pdf.SetTextColor(0, 0, 0)
-	pdf.SetXY(c1X+4, c1Y+13)
-	pdf.CellFormat(cardW, 4, "ICICILOMBARD", "", 0, "L", false, 0, "")
+	pdf.SetXY(c1X+6, c1Y+19.5)
+	pdf.CellFormat(cardW, 6, "ICICILOMBARD", "", 0, "L", false, 0, "")
 
 	// Fields
-	fieldsY := c1Y + 17
-	lineHeight := 3.5
+	fieldsY := c1Y + 26
+	lineHeight := 5.2
 
 	drawField := func(label, val string, y float64) {
-		pdf.SetFont("Arial", "B", 6)
-		pdf.SetXY(c1X+4, y)
-		pdf.CellFormat(20, lineHeight, label, "", 0, "L", false, 0, "")
+		pdf.SetFont("Arial", "B", 9)
+		pdf.SetXY(c1X+6, y)
+		pdf.CellFormat(30, lineHeight, label, "", 0, "L", false, 0, "")
 		
-		pdf.SetXY(c1X+24, y)
-		pdf.CellFormat(2, lineHeight, ":", "", 0, "L", false, 0, "")
+		pdf.SetXY(c1X+36, y)
+		pdf.CellFormat(3, lineHeight, ":", "", 0, "L", false, 0, "")
 		
-		pdf.SetFont("Arial", "", 6)
-		pdf.SetXY(c1X+27, y)
-		pdf.CellFormat(40, lineHeight, val, "", 0, "L", false, 0, "")
+		pdf.SetFont("Arial", "", 9)
+		pdf.SetXY(c1X+40, y)
+		pdf.CellFormat(60, lineHeight, val, "", 0, "L", false, 0, "")
 	}
 
 	drawField("Name", emp.Name, fieldsY)
@@ -98,30 +98,30 @@ func GenerateHealthCardPDF(emp *employee.Employee) ([]byte, error) {
 	// CARD 2 (BACK)
 	// ==========================================
 	c2X := startX
-	c2Y := c1Y + cardH + 30.0 // 30mm gap below the front card
+	c2Y := c1Y + cardH + 25.0 // 25mm gap
 
 	// Draw Back Template
 	pdf.ImageOptions("back", c2X, c2Y, cardW, cardH, false, opt, 0, "")
 
 	// Text Content
 	pdf.SetTextColor(0, 0, 0)
-	pdf.SetFont("Arial", "", 3.5) // very tiny font for fine print
-	txtY := c2Y + 4
-	lh := 2.2
+	pdf.SetFont("Arial", "", 5) // scaled up font for fine print
+	txtY := c2Y + 6.0
+	lh := 3.3
 
 	drawTextLine := func(txt string, bold bool, isRed bool) {
 		if bold {
-			pdf.SetFont("Arial", "B", 3.5)
+			pdf.SetFont("Arial", "B", 5)
 		} else {
-			pdf.SetFont("Arial", "", 3.5)
+			pdf.SetFont("Arial", "", 5)
 		}
 		if isRed {
 			pdf.SetTextColor(180, 20, 20)
 		} else {
 			pdf.SetTextColor(0, 0, 0)
 		}
-		pdf.SetXY(c2X+3, txtY)
-		pdf.CellFormat(cardW-6, lh, txt, "", 0, "L", false, 0, "")
+		pdf.SetXY(c2X+4.5, txtY)
+		pdf.CellFormat(cardW-9, lh, txt, "", 0, "L", false, 0, "")
 		txtY += lh
 	}
 
@@ -137,7 +137,7 @@ func GenerateHealthCardPDF(emp *employee.Employee) ([]byte, error) {
 	drawTextLine("  issued by Government.", false, false)
 	drawTextLine("• Valid up to policy expiry date or cancellation date whichever is earlier.", false, false)
 	
-	txtY += 1
+	txtY += 1.5
 
 	drawTextLine("ICICI Lombard Health Care Pays: Hospitalisation bills for admissible claim, subject to prior approval. In case of", true, true)
 	drawTextLine("emergency, approval can be taken within 24 hours of hospitalization.", true, true)
@@ -148,25 +148,25 @@ func GenerateHealthCardPDF(emp *employee.Employee) ([]byte, error) {
 	drawTextLine("Prabhadevi, Mumbai 400 025.", true, true)
 
 	// Bottom contacts
-	txtY = c2Y + cardH - 12
-	pdf.SetFont("Arial", "B", 3.5)
+	txtY = c2Y + cardH - 18.0
+	pdf.SetFont("Arial", "B", 5)
 	pdf.SetTextColor(0, 0, 0)
 	
-	pdf.SetXY(c2X+3, txtY)
-	pdf.CellFormat(30, lh, "Fax Number: (040) 6698 9150/51", "", 0, "L", false, 0, "")
-	pdf.SetXY(c2X+cardW-33, txtY)
-	pdf.CellFormat(30, lh, "Toll Free Number: 1800 2666", "", 0, "L", false, 0, "")
+	pdf.SetXY(c2X+4.5, txtY)
+	pdf.CellFormat(45, lh, "Fax Number: (040) 6698 9150/51", "", 0, "L", false, 0, "")
+	pdf.SetXY(c2X+cardW-45, txtY)
+	pdf.CellFormat(45, lh, "Toll Free Number: 1800 2666", "", 0, "L", false, 0, "")
 
-	pdf.SetXY(c2X+3, txtY+lh)
-	pdf.CellFormat(30, lh, "Email: ihealthcare@icicilombard.com", "", 0, "L", false, 0, "")
-	pdf.SetXY(c2X+cardW-33, txtY+lh)
-	pdf.CellFormat(30, lh, "Visit us at: www.icicilombard.com", "", 0, "L", false, 0, "")
+	pdf.SetXY(c2X+4.5, txtY+lh)
+	pdf.CellFormat(45, lh, "Email: ihealthcare@icicilombard.com", "", 0, "L", false, 0, "")
+	pdf.SetXY(c2X+cardW-45, txtY+lh)
+	pdf.CellFormat(45, lh, "Visit us at: www.icicilombard.com", "", 0, "L", false, 0, "")
 
-	txtY += lh + 2
-	pdf.SetXY(c2X+3, txtY)
-	pdf.CellFormat(80, lh, "Insurance is the subject matter of the solicitation. IRDA Reg No.: 115. CIN: L67200MH2000PLC129408", "", 0, "L", false, 0, "")
-	pdf.SetXY(c2X+3, txtY+lh)
-	pdf.CellFormat(80, lh, "*The mentioned covers are add-ons by paying additional premium and available only if opted by the policyholders.", "", 0, "L", false, 0, "")
+	txtY += lh + 3.0
+	pdf.SetXY(c2X+4.5, txtY)
+	pdf.CellFormat(120, lh, "Insurance is the subject matter of the solicitation. IRDA Reg No.: 115. CIN: L67200MH2000PLC129408", "", 0, "L", false, 0, "")
+	pdf.SetXY(c2X+4.5, txtY+lh)
+	pdf.CellFormat(120, lh, "*The mentioned covers are add-ons by paying additional premium and available only if opted by the policyholders.", "", 0, "L", false, 0, "")
 
 	var buf bytes.Buffer
 	err := pdf.Output(&buf)
