@@ -42,6 +42,9 @@ type Employee struct {
 	ManagerID                 *string   `json:"managerId,omitempty"`
 	ManagerName               *string   `json:"managerName,omitempty"`
 	IsHealthCardEligible      bool      `json:"isHealthCardEligible"`
+	HealthCardNo              string    `json:"healthCardNo,omitempty"`
+	HealthPolicyNo            string    `json:"healthPolicyNo,omitempty"`
+	HealthCardValidUpto       string    `json:"healthCardValidUpto,omitempty"`
 	CreatedAt                 time.Time `json:"createdAt"`
 	UpdatedAt                 time.Time `json:"updatedAt"`
 }

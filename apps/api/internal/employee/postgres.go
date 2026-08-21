@@ -32,7 +32,9 @@ func (r *PostgresRepository) FindByPhone(ctx context.Context, rawPhone string) (
 			e.hostel, e.children, e.total_salary, e.mobile, e.conveyance, e.wash_allowance, 
 			e.branch_allowance, e.special_allowance, e.training, e.total_allowances, 
 			e.total_salary_with_allowances, COALESCE(e.bank_name, ''), COALESCE(e.account_number, ''),
-			COALESCE(e.bank_branch, ''), COALESCE(e.ifsc_code, ''), e.manager_id, COALESCE(m.name, ''), e.is_health_card_eligible, e.created_at, e.updated_at
+			COALESCE(e.bank_branch, ''), COALESCE(e.ifsc_code, ''), e.manager_id, COALESCE(m.name, ''), 
+			e.is_health_card_eligible, COALESCE(e.health_card_no, ''), COALESCE(e.health_policy_no, ''), COALESCE(e.health_card_valid_upto, ''), 
+			e.created_at, e.updated_at
 		FROM employees e
 		LEFT JOIN employees m ON e.manager_id = m.id
 		WHERE RIGHT(REGEXP_REPLACE(e.mobile_number, '[^0-9]', '', 'g'), 10) = $1
@@ -45,7 +47,9 @@ func (r *PostgresRepository) FindByPhone(ctx context.Context, rawPhone string) (
 		&e.Hostel, &e.Children, &e.TotalSalary, &e.Mobile, &e.Conveyance, &e.WashAllowance,
 		&e.BranchAllowance, &e.SpecialAllowance, &e.Training, &e.TotalAllowances,
 		&e.TotalSalaryWithAllowances, &e.BankName, &e.AccountNumber, &e.BankBranch,
-		&e.IFSCCode, &e.ManagerID, &e.ManagerName, &e.IsHealthCardEligible, &e.CreatedAt, &e.UpdatedAt,
+		&e.IFSCCode, &e.ManagerID, &e.ManagerName, &e.IsHealthCardEligible,
+		&e.HealthCardNo, &e.HealthPolicyNo, &e.HealthCardValidUpto,
+		&e.CreatedAt, &e.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -69,7 +73,9 @@ func (r *PostgresRepository) GetByID(ctx context.Context, id string) (*Employee,
 			e.branch_allowance, e.special_allowance, e.training, e.total_allowances, 
 			e.total_salary_with_allowances, COALESCE(e.bank_name, ''), COALESCE(e.account_number, ''),
 			COALESCE(e.bank_branch, ''), COALESCE(e.ifsc_code, ''), 
-			e.manager_id, COALESCE(m.name, ''), e.is_health_card_eligible, e.created_at, e.updated_at
+			e.manager_id, COALESCE(m.name, ''), 
+			e.is_health_card_eligible, COALESCE(e.health_card_no, ''), COALESCE(e.health_policy_no, ''), COALESCE(e.health_card_valid_upto, ''),
+			e.created_at, e.updated_at
 		FROM employees e
 		LEFT JOIN employees m ON e.manager_id = m.id
 		WHERE e.id = $1 LIMIT 1
@@ -81,7 +87,9 @@ func (r *PostgresRepository) GetByID(ctx context.Context, id string) (*Employee,
 		&e.Hostel, &e.Children, &e.TotalSalary, &e.Mobile, &e.Conveyance, &e.WashAllowance,
 		&e.BranchAllowance, &e.SpecialAllowance, &e.Training, &e.TotalAllowances,
 		&e.TotalSalaryWithAllowances, &e.BankName, &e.AccountNumber, &e.BankBranch,
-		&e.IFSCCode, &e.ManagerID, &e.ManagerName, &e.IsHealthCardEligible, &e.CreatedAt, &e.UpdatedAt,
+		&e.IFSCCode, &e.ManagerID, &e.ManagerName, &e.IsHealthCardEligible,
+		&e.HealthCardNo, &e.HealthPolicyNo, &e.HealthCardValidUpto,
+		&e.CreatedAt, &e.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -139,7 +147,7 @@ func (r *PostgresRepository) List(ctx context.Context) ([]Employee, error) {
 			e.branch_allowance, e.special_allowance, e.training, e.total_allowances, 
 			e.total_salary_with_allowances, COALESCE(e.bank_name, ''), COALESCE(e.account_number, ''),
 			COALESCE(e.bank_branch, ''), COALESCE(e.ifsc_code, ''),
-			e.manager_id, COALESCE(m.name, ''), e.is_health_card_eligible, e.created_at, e.updated_at
+			e.manager_id, COALESCE(m.name, ''), e.is_health_card_eligible, COALESCE(e.health_card_no, ''), COALESCE(e.health_policy_no, ''), COALESCE(e.health_card_valid_upto, ''), e.created_at, e.updated_at
 		FROM employees e
 		LEFT JOIN employees m ON e.manager_id = m.id
 		ORDER BY e.created_at DESC
@@ -159,7 +167,7 @@ func (r *PostgresRepository) List(ctx context.Context) ([]Employee, error) {
 			&e.Hostel, &e.Children, &e.TotalSalary, &e.Mobile, &e.Conveyance, &e.WashAllowance,
 			&e.BranchAllowance, &e.SpecialAllowance, &e.Training, &e.TotalAllowances,
 			&e.TotalSalaryWithAllowances, &e.BankName, &e.AccountNumber, &e.BankBranch,
-			&e.IFSCCode, &e.ManagerID, &e.ManagerName, &e.IsHealthCardEligible, &e.CreatedAt, &e.UpdatedAt,
+			&e.IFSCCode, &e.ManagerID, &e.ManagerName, &e.IsHealthCardEligible, &e.HealthCardNo, &e.HealthPolicyNo, &e.HealthCardValidUpto, &e.CreatedAt, &e.UpdatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan error: %w", err)
 		}
@@ -201,7 +209,7 @@ func (r *PostgresRepository) ListPaginated(ctx context.Context, page, limit int,
 			e.branch_allowance, e.special_allowance, e.training, e.total_allowances, 
 			e.total_salary_with_allowances, COALESCE(e.bank_name, ''), COALESCE(e.account_number, ''),
 			COALESCE(e.bank_branch, ''), COALESCE(e.ifsc_code, ''),
-			e.manager_id, COALESCE(m.name, ''), e.is_health_card_eligible, e.created_at, e.updated_at
+			e.manager_id, COALESCE(m.name, ''), e.is_health_card_eligible, COALESCE(e.health_card_no, ''), COALESCE(e.health_policy_no, ''), COALESCE(e.health_card_valid_upto, ''), e.created_at, e.updated_at
 		FROM employees e
 		LEFT JOIN employees m ON e.manager_id = m.id` + baseWhere + ` ORDER BY e.created_at DESC, e.id ASC LIMIT $` + fmt.Sprintf("%d", len(args)+1) + ` OFFSET $` + fmt.Sprintf("%d", len(args)+2)
 	listArgs := append(args, limit, offset)
@@ -221,7 +229,7 @@ func (r *PostgresRepository) ListPaginated(ctx context.Context, page, limit int,
 			&e.Hostel, &e.Children, &e.TotalSalary, &e.Mobile, &e.Conveyance, &e.WashAllowance,
 			&e.BranchAllowance, &e.SpecialAllowance, &e.Training, &e.TotalAllowances,
 			&e.TotalSalaryWithAllowances, &e.BankName, &e.AccountNumber, &e.BankBranch,
-			&e.IFSCCode, &e.ManagerID, &e.ManagerName, &e.IsHealthCardEligible, &e.CreatedAt, &e.UpdatedAt,
+			&e.IFSCCode, &e.ManagerID, &e.ManagerName, &e.IsHealthCardEligible, &e.HealthCardNo, &e.HealthPolicyNo, &e.HealthCardValidUpto, &e.CreatedAt, &e.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -385,7 +393,7 @@ func (r *PostgresRepository) GetByEmployeeIDs(ctx context.Context, ids []string)
 			e.hostel, e.children, e.total_salary, e.mobile, e.conveyance, e.wash_allowance, 
 			e.branch_allowance, e.special_allowance, e.training, e.total_allowances, 
 			e.total_salary_with_allowances, COALESCE(e.bank_name, ''), COALESCE(e.account_number, ''),
-			COALESCE(e.bank_branch, ''), COALESCE(e.ifsc_code, ''), e.manager_id, COALESCE(m.name, ''), e.is_health_card_eligible, e.created_at, e.updated_at
+			COALESCE(e.bank_branch, ''), COALESCE(e.ifsc_code, ''), e.manager_id, COALESCE(m.name, ''), e.is_health_card_eligible, COALESCE(e.health_card_no, ''), COALESCE(e.health_policy_no, ''), COALESCE(e.health_card_valid_upto, ''), e.created_at, e.updated_at
 		FROM employees e
 		LEFT JOIN employees m ON e.manager_id = m.id
 		WHERE e.id = ANY($1)
@@ -405,7 +413,7 @@ func (r *PostgresRepository) GetByEmployeeIDs(ctx context.Context, ids []string)
 			&e.Hostel, &e.Children, &e.TotalSalary, &e.Mobile, &e.Conveyance, &e.WashAllowance,
 			&e.BranchAllowance, &e.SpecialAllowance, &e.Training, &e.TotalAllowances,
 			&e.TotalSalaryWithAllowances, &e.BankName, &e.AccountNumber, &e.BankBranch,
-			&e.IFSCCode, &e.ManagerID, &e.ManagerName, &e.IsHealthCardEligible, &e.CreatedAt, &e.UpdatedAt,
+			&e.IFSCCode, &e.ManagerID, &e.ManagerName, &e.IsHealthCardEligible, &e.HealthCardNo, &e.HealthPolicyNo, &e.HealthCardValidUpto, &e.CreatedAt, &e.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}

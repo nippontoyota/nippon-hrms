@@ -61,6 +61,9 @@ export interface Employee {
   bankDetails?: BankDetails;
   status: EmployeeStatus;
   isHealthCardEligible?: boolean;
+  healthCardNo?: string;
+  healthPolicyNo?: string;
+  healthCardValidUpto?: string;
   createdAt: string;
 }
 

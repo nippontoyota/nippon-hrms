@@ -85,14 +85,19 @@ func GenerateHealthCardPDF(emp *employee.Employee) ([]byte, error) {
 		pdf.CellFormat(60, lineHeight, val, "", 0, "L", false, 0, "")
 	}
 
+	cardValidUpTo := emp.HealthCardValidUpto
+	if cardValidUpTo == "" {
+		cardValidUpTo = validUpTo
+	}
+
 	drawField("Name", emp.Name, fieldsY)
-	drawField("Policy No", "", fieldsY+lineHeight)
+	drawField("Policy No", emp.HealthPolicyNo, fieldsY+lineHeight)
 	drawField("Policy Type", "Base Policy", fieldsY+lineHeight*2)
-	drawField("Card No", "", fieldsY+lineHeight*3)
+	drawField("Card No", emp.HealthCardNo, fieldsY+lineHeight*3)
 	drawField("Relationship", "Self", fieldsY+lineHeight*4)
 	drawField("Emp. ID.", emp.EmployeeID, fieldsY+lineHeight*5)
 	drawField("Age", ageStr, fieldsY+lineHeight*6)
-	drawField("Valid Up to", validUpTo, fieldsY+lineHeight*7)
+	drawField("Valid Up to", cardValidUpTo, fieldsY+lineHeight*7)
 
 	// ==========================================
 	// CARD 2 (BACK)
