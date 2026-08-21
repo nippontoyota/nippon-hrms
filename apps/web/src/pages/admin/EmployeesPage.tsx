@@ -516,6 +516,9 @@ export default function EmployeesPage() {
                   <th>IFSC Code</th>
                   <th>Zone</th>
                   <th className="text-center">Health Card Eligible</th>
+                  <th className="text-center">Health Card No.</th>
+                  <th className="text-center">Policy No.</th>
+                  <th className="text-center">Valid Up To</th>
                   <th className="sticky right-0 z-10 bg-slate-100 dark:bg-slate-700 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.05)] border-l border-slate-300 dark:border-slate-600">Actions</th>
                 </tr>
               </thead>
@@ -582,6 +585,24 @@ export default function EmployeesPage() {
                         type="checkbox"
                         className="text-center font-bold"
                         formatFn={v => v ? <span className="text-green-600">Yes</span> : <span className="text-slate-400">No</span>}
+                      />
+                      <Cell 
+                        {...cellProps} 
+                        field="healthCardNo" 
+                        className="text-center font-mono"
+                        formatFn={v => (!e.isHealthCardEligible || !v) ? <span className="text-slate-400 italic">N/A</span> : v}
+                      />
+                      <Cell 
+                        {...cellProps} 
+                        field="healthPolicyNo" 
+                        className="text-center font-mono"
+                        formatFn={v => (!e.isHealthCardEligible || !v) ? <span className="text-slate-400 italic">N/A</span> : v}
+                      />
+                      <Cell 
+                        {...cellProps} 
+                        field="healthCardValidUpto" 
+                        className="text-center"
+                        formatFn={v => (!e.isHealthCardEligible || !v) ? <span className="text-slate-400 italic">N/A</span> : v}
                       />
                       
                       <td className={`sticky right-0 z-10 ${isEditing ? 'bg-yellow-50' : 'bg-white dark:bg-slate-800 group-hover:bg-slate-50 dark:hover:bg-slate-700 dark:bg-slate-900'} border-l border-slate-300 dark:border-slate-600 text-center space-x-2 px-2 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.05)]`}>
