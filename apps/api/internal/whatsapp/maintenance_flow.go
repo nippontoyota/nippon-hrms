@@ -48,6 +48,12 @@ func (s *Service) beginMaintenanceFlow(ctx context.Context, sess *Session, from 
 }
 
 func (s *Service) handleMaintenanceAwaitLocation(ctx context.Context, sess *Session, from, input string) error {
+	if isGreeting(input) {
+		sess.resetFlow()
+		s.sessions.Set(from, sess)
+		return s.handleIdle(ctx, sess, from, input)
+	}
+
 	// Guard against duplicate webhook payload triggering the next state
 	if input == payloadRequestMaintenance || canonicalInput(input) == payloadRequestMaintenance {
 		return nil
@@ -66,6 +72,12 @@ func (s *Service) handleMaintenanceAwaitLocation(ctx context.Context, sess *Sess
 }
 
 func (s *Service) handleMaintenanceAwaitCategory(ctx context.Context, sess *Session, from, input string) error {
+	if isGreeting(input) {
+		sess.resetFlow()
+		s.sessions.Set(from, sess)
+		return s.handleIdle(ctx, sess, from, input)
+	}
+
 	// Map the ID back to a readable category name
 	catName := input
 	switch input {
@@ -89,6 +101,12 @@ func (s *Service) handleMaintenanceAwaitCategory(ctx context.Context, sess *Sess
 }
 
 func (s *Service) handleMaintenanceAwaitDescription(ctx context.Context, sess *Session, from, input string, timestamp int64) error {
+	if isGreeting(input) {
+		sess.resetFlow()
+		s.sessions.Set(from, sess)
+		return s.handleIdle(ctx, sess, from, input)
+	}
+
 	if len(strings.TrimSpace(input)) < 5 {
 		return s.sendText(ctx, from, "Description is too short. "+msgMaintenanceAwaitDescription)
 	}
