@@ -18,27 +18,9 @@ import {
 // Note: In a real app, these items would be filtered by user role
 const navItems = [
   {
-    title: 'Dashboard',
-    href: '/dashboard',
-    icon: LayoutDashboard,
-    section: 'Dashboard'
-  },
-  {
-    title: 'All Tickets',
+    title: 'Tickets',
     href: '/tickets',
     icon: Ticket,
-    section: 'Maintenance'
-  },
-  {
-    title: 'My Tickets',
-    href: '/tickets/my-tickets',
-    icon: Ticket,
-    section: 'Maintenance'
-  },
-  {
-    title: 'Raise Ticket',
-    href: '/raise-ticket',
-    icon: PlusCircle,
     section: 'Maintenance'
   },
   {
@@ -46,36 +28,6 @@ const navItems = [
     href: '/inventory',
     icon: Package,
     section: 'Inventory'
-  },
-  {
-    title: 'Transactions',
-    href: '/inventory/transactions',
-    icon: ArrowLeftRight,
-    section: 'Inventory'
-  },
-  {
-    title: 'Low Stock',
-    href: '/inventory/low-stock',
-    icon: AlertTriangle,
-    section: 'Inventory'
-  },
-  {
-    title: 'Users',
-    href: '/management/users',
-    icon: Users,
-    section: 'Management'
-  },
-  {
-    title: 'Locations',
-    href: '/management/locations',
-    icon: MapPin,
-    section: 'Management'
-  },
-  {
-    title: 'Categories',
-    href: '/management/categories',
-    icon: Tag,
-    section: 'Management'
   }
 ]
 
