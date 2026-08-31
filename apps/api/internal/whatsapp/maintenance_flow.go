@@ -107,6 +107,17 @@ func (s *Service) handleMaintenanceAwaitDescription(ctx context.Context, sess *S
 		return s.handleIdle(ctx, sess, from, input)
 	}
 
+	// Guard against WhatsApp's text-fallback echoing the category list selection or the prompt itself
+	lowerInput := strings.ToLower(strings.TrimSpace(input))
+	if strings.HasPrefix(lowerInput, "cat_") || 
+		lowerInput == "electrical" || lowerInput == "plumbing" || 
+		lowerInput == "hvac" || lowerInput == "civil" || lowerInput == "it" || 
+		strings.Contains(lowerInput, "select category") || 
+		strings.Contains(lowerInput, "category of the issue") ||
+		strings.EqualFold(input, sess.TempMaintenanceCategory) {
+		return nil
+	}
+
 	if len(strings.TrimSpace(input)) < 5 {
 		return s.sendText(ctx, from, "Description is too short. "+msgMaintenanceAwaitDescription)
 	}
