@@ -7,15 +7,16 @@ import (
 )
 
 const (
-	payloadGeneratePay   = "generate_pay"
-	payloadRequestSalary = "request_salary_slip"
-	payloadRequestLeave  = "request_leave"
-	payloadRequestHolidays = "request_holidays"
-	payloadRequestHealthCard = "request_health_card"
-	payloadReferCandidate  = "refer_candidate"
+	payloadGeneratePay        = "generate_pay"
+	payloadRequestSalary      = "request_salary_slip"
+	payloadRequestLeave       = "request_leave"
+	payloadRequestHolidays    = "request_holidays"
+	payloadRequestHealthCard  = "request_health_card"
+	payloadRequestMaintenance = "request_maintenance"
+	payloadReferCandidate     = "refer_candidate"
 
-	payloadLeaveCasual   = "leave_casual"
-	payloadLeaveDuty     = "leave_duty"
+	payloadLeaveCasual     = "leave_casual"
+	payloadLeaveDuty       = "leave_duty"
 	payloadRequestReferral = "request_referral_link"
 
 	leaveReasonWhatsApp = "Requested via WhatsApp"
@@ -34,37 +35,45 @@ const (
 	StateLeaveAwaitConfirm
 	StateLeaveAwaitRejectionReason
 	StateLeaveAwaitPickRequest
+
+	StateMaintenanceAwaitLocation
+	StateMaintenanceAwaitCategory
+	StateMaintenanceAwaitDescription
 )
 
 type Session struct {
-	Phone              string
-	State              State
-	EmployeeID         string
-	LastMenuSentAt     time.Time
-	LastPeriodPromptAt    time.Time
-	LastPayslipSentAt     time.Time
-	LastLeaveTypePromptAt time.Time
-	LastLeaveSubmittedAt  time.Time
-	LastLeaveDateAt         time.Time
-	LastAcceptedLeaveInput  string
-	LastLeaveStepAt         time.Time
-	LastEndPromptAt         time.Time
-	HasEndDateAttempt       bool
-	LastStartMessageID      string
-	LastReasonPromptAt      time.Time
-	LastLeaveReminderAt     time.Time
-	LastOutboundAt          time.Time
-	LastOutboundText        string
-	UpdatedAt               time.Time
+	Phone                  string
+	State                  State
+	EmployeeID             string
+	LastMenuSentAt         time.Time
+	LastPeriodPromptAt     time.Time
+	LastPayslipSentAt      time.Time
+	LastLeaveTypePromptAt  time.Time
+	LastLeaveSubmittedAt   time.Time
+	LastLeaveDateAt        time.Time
+	LastAcceptedLeaveInput string
+	LastLeaveStepAt        time.Time
+	LastEndPromptAt        time.Time
+	HasEndDateAttempt      bool
+	LastStartMessageID     string
+	LastReasonPromptAt     time.Time
+	LastLeaveReminderAt    time.Time
+	LastOutboundAt         time.Time
+	LastOutboundText       string
+	UpdatedAt              time.Time
 
-	TempLeaveType   leave.LeaveType
-	TempLeaveStart  string
-	TempLeaveEnd    string
-	TempLeaveReason string
+	TempLeaveType           leave.LeaveType
+	TempLeaveStart          string
+	TempLeaveEnd            string
+	TempLeaveReason         string
 	PendingRejectionLeaveID string
 	LastRejectionPromptAt   time.Time
 	PendingPickLeaveIDs     []string
 	PendingTemplateApprove  *bool
+
+	TempMaintenanceLocation    string
+	TempMaintenanceCategory    string
+	TempMaintenanceDescription string
 }
 
 func (s *Session) resetFlow() {
@@ -80,6 +89,10 @@ func (s *Session) resetFlow() {
 	s.PendingPickLeaveIDs = nil
 	s.PendingTemplateApprove = nil
 	s.LastStartMessageID = ""
+
+	s.TempMaintenanceLocation = ""
+	s.TempMaintenanceCategory = ""
+	s.TempMaintenanceDescription = ""
 }
 
 func (s *Session) reset() {

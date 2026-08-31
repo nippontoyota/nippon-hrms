@@ -2,6 +2,7 @@ package doubletick
 
 import (
 	"encoding/json"
+	"strconv"
 	"strings"
 )
 
@@ -151,6 +152,7 @@ func tryParseMetaCloud(raw []byte) (*Webhook, bool) {
 						From      string `json:"from"`
 						ID        string `json:"id"`
 						Type      string `json:"type"`
+						Timestamp string `json:"timestamp"`
 						Text      *struct {
 							Body string `json:"body"`
 						} `json:"text,omitempty"`
@@ -190,11 +192,13 @@ func tryParseMetaCloud(raw []byte) (*Webhook, bool) {
 				continue
 			}
 
+			ts, _ := strconv.ParseInt(msg.Timestamp, 10, 64)
 			data := MessageData{
 				MessageID: msg.ID,
 				From:      normalizePhone(msg.From),
 				To:        normalizePhone(change.Value.Metadata.DisplayPhoneNumber),
 				Type:      strings.ToLower(msg.Type),
+				Timestamp: ts,
 			}
 
 			switch strings.ToLower(msg.Type) {

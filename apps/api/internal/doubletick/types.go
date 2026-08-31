@@ -106,6 +106,7 @@ type MessageData struct {
 	From      string         `json:"from"`
 	To        string         `json:"to"`
 	Type      string         `json:"type"`
+	Timestamp int64          `json:"timestamp,omitempty"`
 	Text      *TextBody      `json:"text,omitempty"`
 	Button    *ButtonBody    `json:"button,omitempty"`
 	ListReply *ListReplyBody `json:"listReply,omitempty"`
@@ -141,15 +142,15 @@ type ListReplyBody struct {
 
 // InteractiveButtonRequest is the body for POST /whatsapp/message/interactive.
 type InteractiveButtonRequest struct {
-	From    string                    `json:"from"`
-	To      string                    `json:"to"`
-	Content InteractiveButtonContent  `json:"content"`
+	From    string                   `json:"from"`
+	To      string                   `json:"to"`
+	Content InteractiveButtonContent `json:"content"`
 }
 
 type InteractiveButtonContent struct {
-	Header  string            `json:"header,omitempty"`
-	Body    string            `json:"body"`
-	Footer  string            `json:"footer,omitempty"`
+	Header  string              `json:"header,omitempty"`
+	Body    string              `json:"body"`
+	Footer  string              `json:"footer,omitempty"`
 	Buttons []InteractiveButton `json:"buttons"`
 }
 
@@ -160,9 +161,9 @@ type InteractiveButton struct {
 
 // InteractiveMediaRequest is the body for POST /whatsapp/message/interactive/media.
 type InteractiveMediaRequest struct {
-	From    string                   `json:"from"`
-	To      string                   `json:"to"`
-	Content InteractiveMediaContent  `json:"content"`
+	From    string                  `json:"from"`
+	To      string                  `json:"to"`
+	Content InteractiveMediaContent `json:"content"`
 }
 
 type InteractiveMediaContent struct {
@@ -181,15 +182,15 @@ type InteractiveListRequest struct {
 }
 
 type InteractiveListContent struct {
-	Header   string                 `json:"header,omitempty"`
-	Body     string                 `json:"body"`
-	Footer   string                 `json:"footer,omitempty"`
-	Button   string                 `json:"button"`
+	Header   string                   `json:"header,omitempty"`
+	Body     string                   `json:"body"`
+	Footer   string                   `json:"footer,omitempty"`
+	Button   string                   `json:"button"`
 	Sections []InteractiveListSection `json:"sections"`
 }
 
 type InteractiveListSection struct {
-	Title string              `json:"title"`
+	Title string               `json:"title"`
 	Rows  []InteractiveListRow `json:"rows"`
 }
 

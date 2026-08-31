@@ -1,0 +1,157 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Enums
+
+enum ReporterType {
+  EMPLOYEE
+  SECURITY
+  CONSULTANT
+  VENDOR
+  OTHER
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  EMERGENCY
+}
+
+enum TicketStatus {
+  NEW
+  UNDER_REVIEW
+  PENDING_INFORMATION
+  MATERIALS_ADDED
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  IN_PROGRESS
+  COMPLETED
+  CLOSED
+}
+
+enum TransactionType {
+  STOCK_IN
+  RESERVATION
+  RELEASE
+  CONSUMPTION
+  ADJUSTMENT
+}
+
+enum MaterialStatus {
+  ADDED
+  RESERVED
+  CONSUMED
+  RELEASED
+}
+
+// Models
+
+model Location {
+  id         String   @id @default(cuid())
+  name       String   @unique
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  tickets Ticket[]
+}
+
+model Category {
+  id         String   @id @default(cuid())
+  name       String   @unique
+  type       String // "TICKET" or "INVENTORY"
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  tickets         Ticket[]
+  inventory_items InventoryItem[]
+}
+
+model Ticket {
+  id            String         @id @default(cuid())
+  ticket_number String         @unique // e.g. MT-2026-0001
+  status        TicketStatus   @default(NEW)
+  priority      TicketPriority
+
+  reporter_name String
+  reporter_type ReporterType
+
+  location_id String
+  location    Location @relation(fields: [location_id], references: [id])
+
+  category_id String
+  category    Category @relation(fields: [category_id], references: [id])
+
+  description String
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  status_history TicketStatusHistory[]
+  materials      TicketMaterial[]
+}
+
+model TicketStatusHistory {
+  id         String       @id @default(cuid())
+  ticket_id  String
+  ticket     Ticket       @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
+  status     TicketStatus
+  notes      String?
+  created_at DateTime     @default(now())
+}
+
+model InventoryItem {
+  id               String   @id @default(cuid())
+  item_code        String   @unique
+  name             String
+  category_id      String
+  category         Category @relation(fields: [category_id], references: [id])
+  unit             String
+  current_stock    Int      @default(0)
+  reserved_stock   Int      @default(0)
+  minimum_stock    Int      @default(0)
+  unit_cost        Decimal  @db.Decimal(10, 2)
+  supplier         String?
+  storage_location String?
+  is_active        Boolean  @default(true)
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  transactions     InventoryTransaction[]
+  ticket_materials TicketMaterial[]
+}
+
+model TicketMaterial {
+  id                String         @id @default(cuid())
+  ticket_id         String
+  ticket            Ticket         @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
+  inventory_item_id String
+  inventory_item    InventoryItem  @relation(fields: [inventory_item_id], references: [id])
+  quantity          Int
+  unit_cost_at_time Decimal        @db.Decimal(10, 2)
+  status            MaterialStatus @default(ADDED)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model InventoryTransaction {
+  id                String          @id @default(cuid())
+  inventory_item_id String
+  inventory_item    InventoryItem   @relation(fields: [inventory_item_id], references: [id])
+  type              TransactionType
+  quantity          Int
+  ticket_id         String?
+  notes             String?
+  created_at        DateTime        @default(now())
+}
