@@ -1,6 +1,6 @@
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
@@ -9,13 +9,6 @@ generator client {
 }
 
 // Enums
-enum Role {
-  REPORTER
-  MAINTENANCE_STAFF
-  MAINTENANCE_MANAGER
-  INVENTORY_MANAGER
-  ADMIN
-}
 
 enum ReporterType {
   EMPLOYEE
@@ -60,102 +53,61 @@ enum MaterialStatus {
   RELEASED
 }
 
-enum ApprovalStatus {
-  APPROVED
-  REJECTED
-  REQUESTED_INFO
-}
-
 // Models
-model User {
-  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  auth_id       String    @unique
-  email         String    @unique
-  name          String
-  role          Role      @default(REPORTER)
-  created_at    DateTime  @default(now())
-  updated_at    DateTime  @updatedAt
-
-  tickets_created    Ticket[] @relation("TicketCreator")
-  tickets_assigned   Ticket[] @relation("TicketAssignee")
-  audit_logs         AuditLog[]
-  transactions       InventoryTransaction[]
-  approvals          Approval[]
-}
 
 model Location {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  is_active   Boolean  @default(true)
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
+  id         String   @id @default(cuid())
+  name       String   @unique
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
-  tickets     Ticket[]
+  tickets Ticket[]
 }
 
 model Category {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  type        String   // "TICKET" or "INVENTORY"
-  is_active   Boolean  @default(true)
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
+  id         String   @id @default(cuid())
+  name       String   @unique
+  type       String // "TICKET" or "INVENTORY"
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
   tickets         Ticket[]
   inventory_items InventoryItem[]
 }
 
 model Ticket {
-  id              String         @id @default(cuid())
-  ticket_number   String         @unique // e.g. MT-2026-0001
-  status          TicketStatus   @default(NEW)
-  priority        TicketPriority
-  
-  reporter_name   String
-  reporter_type   ReporterType
-  
-  location_id     String
-  location        Location       @relation(fields: [location_id], references: [id])
-  
-  category_id     String
-  category        Category       @relation(fields: [category_id], references: [id])
-  
-  description     String
-  
-  created_by_id   String?        @db.Uuid
-  created_by      User?          @relation("TicketCreator", fields: [created_by_id], references: [id])
-  
-  assigned_to_id  String?        @db.Uuid
-  assigned_to     User?          @relation("TicketAssignee", fields: [assigned_to_id], references: [id])
+  id            String         @id @default(cuid())
+  ticket_number String         @unique // e.g. MT-2026-0001
+  status        TicketStatus   @default(NEW)
+  priority      TicketPriority
 
-  created_at      DateTime       @default(now())
-  updated_at      DateTime       @updatedAt
+  reporter_name String
+  reporter_type ReporterType
 
-  attachments     TicketAttachment[]
-  status_history  TicketStatusHistory[]
-  materials       TicketMaterial[]
-  approvals       Approval[]
-}
+  location_id String
+  location    Location @relation(fields: [location_id], references: [id])
 
-model TicketAttachment {
-  id            String   @id @default(cuid())
-  ticket_id     String
-  ticket        Ticket   @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
-  file_path     String
-  file_name     String
-  mime_type     String?
-  uploaded_by   String?  @db.Uuid
-  uploaded_at   DateTime @default(now())
+  category_id String
+  category    Category @relation(fields: [category_id], references: [id])
+
+  description String
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  status_history TicketStatusHistory[]
+  materials      TicketMaterial[]
 }
 
 model TicketStatusHistory {
-  id            String       @id @default(cuid())
-  ticket_id     String
-  ticket        Ticket       @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
-  status        TicketStatus
-  changed_by_id String?      @db.Uuid
-  notes         String?
-  created_at    DateTime     @default(now())
+  id         String       @id @default(cuid())
+  ticket_id  String
+  ticket     Ticket       @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
+  status     TicketStatus
+  notes      String?
+  created_at DateTime     @default(now())
 }
 
 model InventoryItem {
@@ -180,17 +132,17 @@ model InventoryItem {
 }
 
 model TicketMaterial {
-  id                  String         @id @default(cuid())
-  ticket_id           String
-  ticket              Ticket         @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
-  inventory_item_id   String
-  inventory_item      InventoryItem  @relation(fields: [inventory_item_id], references: [id])
-  quantity            Int
-  unit_cost_at_time   Decimal        @db.Decimal(10, 2)
-  status              MaterialStatus @default(ADDED)
-  
-  created_at          DateTime       @default(now())
-  updated_at          DateTime       @updatedAt
+  id                String         @id @default(cuid())
+  ticket_id         String
+  ticket            Ticket         @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
+  inventory_item_id String
+  inventory_item    InventoryItem  @relation(fields: [inventory_item_id], references: [id])
+  quantity          Int
+  unit_cost_at_time Decimal        @db.Decimal(10, 2)
+  status            MaterialStatus @default(ADDED)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 }
 
 model InventoryTransaction {
@@ -200,30 +152,6 @@ model InventoryTransaction {
   type              TransactionType
   quantity          Int
   ticket_id         String?
-  performed_by_id   String?         @db.Uuid
-  performed_by      User?           @relation(fields: [performed_by_id], references: [id])
   notes             String?
   created_at        DateTime        @default(now())
-}
-
-model Approval {
-  id              String         @id @default(cuid())
-  ticket_id       String
-  ticket          Ticket         @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
-  approver_id     String         @db.Uuid
-  approver        User           @relation(fields: [approver_id], references: [id])
-  status          ApprovalStatus
-  comments        String?
-  created_at      DateTime       @default(now())
-}
-
-model AuditLog {
-  id          String   @id @default(cuid())
-  action      String
-  entity_type String
-  entity_id   String
-  user_id     String?  @db.Uuid
-  user        User?    @relation(fields: [user_id], references: [id])
-  details     Json?
-  created_at  DateTime @default(now())
 }

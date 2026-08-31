@@ -6,8 +6,16 @@ import { PageTransition } from '@/components/ui/page-transition'
 
 export const dynamic = 'force-dynamic'
 
-export default async function TicketsPage() {
+export default async function TicketsPage(props: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+  const searchParams = await props.searchParams
+  const status = searchParams.status === 'resolved' ? 'resolved' : 'pending'
+
   const tickets = await prisma.ticket.findMany({
+    where: {
+      status: status === 'resolved' 
+        ? { in: ['COMPLETED', 'CLOSED'] }
+        : { notIn: ['COMPLETED', 'CLOSED'] }
+    },
     include: {
       location: true,
       category: true,
@@ -24,29 +32,22 @@ export default async function TicketsPage() {
         <div className="flex items-center justify-between mb-4">
           {/* We rely on global Header, so just a subtle title here or we can recreate the top bar */}
           <h2 className="text-xl font-bold tracking-tight text-center flex-1">Tickets</h2>
-          <Link href="/raise-ticket">
-            <div className="h-10 w-10 bg-zinc-900 rounded-full flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors border border-white/5">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
-            </div>
-          </Link>
         </div>
 
-        {/* Search & Filters */}
-        <div className="flex items-center gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" strokeWidth={2} />
-            <input 
-              type="search" 
-              placeholder="Search" 
-              className="w-full h-11 bg-[#121214] border-0 rounded-lg py-2 pl-9 pr-4 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-zinc-700 transition-shadow"
-            />
-          </div>
-          <button className="h-11 w-11 bg-[#121214] rounded-lg flex items-center justify-center text-zinc-400 hover:text-white transition-colors">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M7 12h10"/><path d="M10 18h4"/></svg>
-          </button>
-          <button className="h-11 w-11 bg-[#121214] rounded-lg flex items-center justify-center text-zinc-400 hover:text-white transition-colors">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          </button>
+        {/* Toggle */}
+        <div className="flex bg-[#121214] p-1 rounded-lg mb-4">
+          <Link href="?status=pending" scroll={false} className={`flex-1 text-center py-2 text-sm font-medium rounded-md transition-colors ${status === 'pending' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}>Pending</Link>
+          <Link href="?status=resolved" scroll={false} className={`flex-1 text-center py-2 text-sm font-medium rounded-md transition-colors ${status === 'resolved' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}>Resolved</Link>
+        </div>
+
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" strokeWidth={2} />
+          <input 
+            type="search" 
+            placeholder="Search tickets..." 
+            className="w-full h-11 bg-[#121214] border-0 rounded-lg py-2 pl-9 pr-4 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-zinc-700 transition-shadow"
+          />
         </div>
       </div>
 

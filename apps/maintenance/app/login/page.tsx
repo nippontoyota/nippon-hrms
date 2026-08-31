@@ -16,7 +16,7 @@ export default function LoginPage() {
     if (email === 'maintenance@nippontoyota.com' && password === 'maintenance123') {
       const cookieStore = await cookies()
       cookieStore.set('dev_session', 'true', { secure: true, path: '/' })
-      redirect('/dashboard')
+      redirect('/tickets')
     }
     redirect('/login?error=true')
   }
