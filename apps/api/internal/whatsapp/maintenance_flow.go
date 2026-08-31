@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"strings"
 
+	"github.com/nippon-toyota/hrms/internal/doubletick"
 	"github.com/nippon-toyota/hrms/internal/maintenance"
 )
 
@@ -14,9 +15,7 @@ const (
 
 Example: Workshop Bay 3, Showroom, Main Office`
 
-	msgMaintenanceAwaitCategory = `Please enter the *Category* of the issue.
-
-Example: Electrical, Plumbing, HVAC, Civil, IT`
+	msgMaintenanceAwaitCategory = `Please select the *Category* of the issue.`
 
 	msgMaintenanceAwaitDescription = `Please describe the issue in detail.`
 
@@ -27,6 +26,21 @@ Our team will review it shortly. Reply *Hi* to return to the main menu.`
 	msgMaintenanceError = `There was an error creating your maintenance ticket. Please try again or contact support.`
 )
 
+func maintenanceCategoryListSections() []doubletick.InteractiveListSection {
+	return []doubletick.InteractiveListSection{
+		{
+			Title: "Categories",
+			Rows: []doubletick.InteractiveListRow{
+				{ID: "cat_electrical", Title: "Electrical", Description: "Lighting, wiring, power issues"},
+				{ID: "cat_plumbing", Title: "Plumbing", Description: "Leaks, pipes, washroom"},
+				{ID: "cat_hvac", Title: "HVAC", Description: "Air conditioning, cooling"},
+				{ID: "cat_civil", Title: "Civil", Description: "Building, painting, structural"},
+				{ID: "cat_it", Title: "IT & Network", Description: "Computers, internet, printers"},
+			},
+		},
+	}
+}
+
 func (s *Service) beginMaintenanceFlow(ctx context.Context, sess *Session, from string) error {
 	sess.State = StateMaintenanceAwaitLocation
 	s.sessions.Set(from, sess)
@@ -34,6 +48,11 @@ func (s *Service) beginMaintenanceFlow(ctx context.Context, sess *Session, from 
 }
 
 func (s *Service) handleMaintenanceAwaitLocation(ctx context.Context, sess *Session, from, input string) error {
+	// Guard against duplicate webhook payload triggering the next state
+	if input == payloadRequestMaintenance || canonicalInput(input) == payloadRequestMaintenance {
+		return nil
+	}
+
 	if len(strings.TrimSpace(input)) < 2 {
 		return s.sendText(ctx, from, "Location name is too short. "+msgMaintenanceAwaitLocation)
 	}
@@ -42,15 +61,27 @@ func (s *Service) handleMaintenanceAwaitLocation(ctx context.Context, sess *Sess
 	sess.State = StateMaintenanceAwaitCategory
 	s.sessions.Set(from, sess)
 
-	return s.sendText(ctx, from, msgMaintenanceAwaitCategory)
+	_, err := s.dt.SendInteractiveList(ctx, from, "", msgMaintenanceAwaitCategory, "", "Select Category", maintenanceCategoryListSections())
+	return err
 }
 
 func (s *Service) handleMaintenanceAwaitCategory(ctx context.Context, sess *Session, from, input string) error {
-	if len(strings.TrimSpace(input)) < 2 {
-		return s.sendText(ctx, from, "Category name is too short. "+msgMaintenanceAwaitCategory)
+	// Map the ID back to a readable category name
+	catName := input
+	switch input {
+	case "cat_electrical": catName = "Electrical"
+	case "cat_plumbing": catName = "Plumbing"
+	case "cat_hvac": catName = "HVAC"
+	case "cat_civil": catName = "Civil"
+	case "cat_it": catName = "IT"
 	}
 
-	sess.TempMaintenanceCategory = strings.TrimSpace(input)
+	if len(strings.TrimSpace(catName)) < 2 {
+		_, err := s.dt.SendInteractiveList(ctx, from, "", "Category is invalid. "+msgMaintenanceAwaitCategory, "", "Select Category", maintenanceCategoryListSections())
+		return err
+	}
+
+	sess.TempMaintenanceCategory = strings.TrimSpace(catName)
 	sess.State = StateMaintenanceAwaitDescription
 	s.sessions.Set(from, sess)
 
