@@ -6,10 +6,8 @@ import { LayoutDashboard, Ticket, Package, UserCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const bottomNavItems = [
-  { title: 'Home', href: '/dashboard', icon: LayoutDashboard },
   { title: 'Tickets', href: '/tickets', icon: Ticket },
   { title: 'Inventory', href: '/inventory', icon: Package },
-  { title: 'Profile', href: '/profile', icon: UserCircle },
 ]
 
 export function BottomNav() {
