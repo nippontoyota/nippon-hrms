@@ -702,11 +702,10 @@ func (s *Service) sendMainMenu(ctx context.Context, to, name string) error {
 			// Add a delay to ensure the heavier image message is delivered first
 			// before the lightweight text list message. WhatsApp doesn't guarantee order.
 			// Run in a goroutine to avoid blocking the webhook response.
-			// Temporarily disabled per user request
-			// go func(bgCtx context.Context, phone string) {
-			// 	time.Sleep(3500 * time.Millisecond)
-			// 	_ = s.sendMoreOptionsMenu(bgCtx, phone)
-			// }(context.WithoutCancel(ctx), to)
+			go func(bgCtx context.Context, phone string) {
+				time.Sleep(3500 * time.Millisecond)
+				_ = s.sendMoreOptionsMenu(bgCtx, phone)
+			}(context.WithoutCancel(ctx), to)
 
 			return nil
 		}
@@ -721,21 +720,19 @@ func (s *Service) sendMainMenu(ctx context.Context, to, name string) error {
 		if err := s.sendText(ctx, to, body+"\n\n"+msgMenuTextFallback); err != nil {
 			return err
 		}
-		// Temporarily disabled per user request
-		// go func(bgCtx context.Context, phone string) {
-		// 	time.Sleep(3500 * time.Millisecond)
-		// 	_ = s.sendMoreOptionsMenu(bgCtx, phone)
-		// }(context.WithoutCancel(ctx), to)
+		go func(bgCtx context.Context, phone string) {
+			time.Sleep(3500 * time.Millisecond)
+			_ = s.sendMoreOptionsMenu(bgCtx, phone)
+		}(context.WithoutCancel(ctx), to)
 		return nil
 	}
 	slog.Info("whatsapp menu sent", "to", to, "type", "buttons")
 	s.recordOutbound(to)
 
-	// Temporarily disabled per user request
-	// go func(bgCtx context.Context, phone string) {
-	// 	time.Sleep(3500 * time.Millisecond)
-	// 	_ = s.sendMoreOptionsMenu(bgCtx, phone)
-	// }(context.WithoutCancel(ctx), to)
+	go func(bgCtx context.Context, phone string) {
+		time.Sleep(3500 * time.Millisecond)
+		_ = s.sendMoreOptionsMenu(bgCtx, phone)
+	}(context.WithoutCancel(ctx), to)
 
 	return nil
 }
