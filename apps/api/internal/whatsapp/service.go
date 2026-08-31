@@ -17,24 +17,26 @@ import (
 	"github.com/nippon-toyota/hrms/internal/healthcard"
 	"github.com/nippon-toyota/hrms/internal/holiday"
 	"github.com/nippon-toyota/hrms/internal/leave"
+	"github.com/nippon-toyota/hrms/internal/maintenance"
 	"github.com/nippon-toyota/hrms/internal/payroll"
 	"github.com/nippon-toyota/hrms/internal/referral"
 )
 
 type Service struct {
-	dt            *doubletick.Client
-	sessions      SessionStore
-	sessionWindow SessionWindowStore
-	dedup         *dedupStore
-	phoneLock     *phoneLocker
-	inbound       *inboundQueue
-	empRepo       employee.Repository
-	epfRepo       epf.Repository
-	payrollRepo   payroll.Repository
-	leaveRepo     leave.Repository
-	holidayRepo   holiday.Repository
-	referralSvc   *referral.Service
-	menuImage     menuImageCache
+	dt               *doubletick.Client
+	sessions         SessionStore
+	sessionWindow    SessionWindowStore
+	dedup            *dedupStore
+	phoneLock        *phoneLocker
+	inbound          *inboundQueue
+	empRepo          employee.Repository
+	epfRepo          epf.Repository
+	payrollRepo      payroll.Repository
+	leaveRepo        leave.Repository
+	holidayRepo      holiday.Repository
+	referralSvc      *referral.Service
+	maintenanceStore *maintenance.Store
+	menuImage        menuImageCache
 }
 
 type menuImageCache struct {
@@ -45,20 +47,21 @@ type menuImageCache struct {
 
 const menuImageCacheRefreshBefore = 5 * time.Minute
 
-func NewService(dt *doubletick.Client, sessions SessionStore, sessionWindow SessionWindowStore, empRepo employee.Repository, epfRepo epf.Repository, payrollRepo payroll.Repository, leaveRepo leave.Repository, holidayRepo holiday.Repository, referralSvc *referral.Service) *Service {
+func NewService(dt *doubletick.Client, sessions SessionStore, sessionWindow SessionWindowStore, empRepo employee.Repository, epfRepo epf.Repository, payrollRepo payroll.Repository, leaveRepo leave.Repository, holidayRepo holiday.Repository, referralSvc *referral.Service, maintenanceStore *maintenance.Store) *Service {
 	return &Service{
-		dt:            dt,
-		sessions:      sessions,
-		sessionWindow: sessionWindow,
-		dedup:         newDedupStore(0),
-		phoneLock:     newPhoneLocker(),
-		inbound:       newInboundQueue(),
-		empRepo:       empRepo,
-		epfRepo:       epfRepo,
-		payrollRepo:   payrollRepo,
-		leaveRepo:     leaveRepo,
-		holidayRepo:   holidayRepo,
-		referralSvc:   referralSvc,
+		dt:               dt,
+		sessions:         sessions,
+		sessionWindow:    sessionWindow,
+		dedup:            newDedupStore(0),
+		phoneLock:        newPhoneLocker(),
+		inbound:          newInboundQueue(),
+		empRepo:          empRepo,
+		epfRepo:          epfRepo,
+		payrollRepo:      payrollRepo,
+		leaveRepo:        leaveRepo,
+		holidayRepo:      holidayRepo,
+		referralSvc:      referralSvc,
+		maintenanceStore: maintenanceStore,
 	}
 }
 
@@ -104,7 +107,7 @@ func (s *Service) HandleWebhook(ctx context.Context, wh *doubletick.Webhook) err
 				break
 			}
 			for _, msg := range msgs {
-				processed, err := s.handleWebhookLocked(ctx, from, msg.input, msg.msgType, msg.messageID)
+				processed, err := s.handleWebhookLocked(ctx, from, msg.input, msg.msgType, msg.messageID, msg.timestamp)
 				if err != nil {
 					handleErr = err
 				}
@@ -117,13 +120,11 @@ func (s *Service) HandleWebhook(ctx context.Context, wh *doubletick.Webhook) err
 	return handleErr
 }
 
-func (s *Service) handleWebhookLocked(ctx context.Context, from, input, msgType, messageID string) (bool, error) {
+func (s *Service) handleWebhookLocked(ctx context.Context, from, input, msgType, messageID string, timestamp int64) (bool, error) {
 	sess, ok := s.sessions.Get(from)
 	if !ok {
 		sess = &Session{Phone: from, State: StateIdle}
 	}
-
-
 
 	if shouldSkipInboundEcho(input, msgType, sess.State) {
 		slog.Info("whatsapp inbound skipped echo", "from", from, "input", input, "type", msgType, "state", sess.State)
@@ -188,6 +189,12 @@ func (s *Service) handleWebhookLocked(ctx context.Context, from, input, msgType,
 		err = s.handleLeaveAwaitRejectionReason(ctx, sess, from, input)
 	case StateLeaveAwaitPickRequest:
 		err = s.handleLeaveAwaitPickRequest(ctx, sess, from, input)
+	case StateMaintenanceAwaitLocation:
+		err = s.handleMaintenanceAwaitLocation(ctx, sess, from, input)
+	case StateMaintenanceAwaitCategory:
+		err = s.handleMaintenanceAwaitCategory(ctx, sess, from, input)
+	case StateMaintenanceAwaitDescription:
+		err = s.handleMaintenanceAwaitDescription(ctx, sess, from, input, timestamp)
 	default:
 		err = s.handleIdle(ctx, sess, from, input)
 	}
@@ -360,6 +367,8 @@ func (s *Service) handleIdle(ctx context.Context, sess *Session, from, input str
 		return s.beginHolidayFlow(ctx, sess, from)
 	case payloadRequestHealthCard:
 		return s.handleHealthCardRequest(ctx, sess, from)
+	case payloadRequestMaintenance:
+		return s.beginMaintenanceFlow(ctx, sess, from)
 	case payloadReferCandidate:
 		return s.handleReferralLinkRequest(ctx, sess, from)
 	}
@@ -488,7 +497,7 @@ func (s *Service) handleReferralLinkRequest(ctx context.Context, sess *Session, 
 		portalBaseUrl = "http://localhost:5173"
 	}
 	url := fmt.Sprintf("%s/referrals/%s", portalBaseUrl, link.Code)
-	
+
 	msg := fmt.Sprintf("Here is your unique referral link:\n%s\n\nIt is valid for 30 days.", url)
 	if err := s.sendText(ctx, from, msg); err != nil {
 		return err
@@ -1344,4 +1353,3 @@ func (s *Service) handleHealthCardRequest(ctx context.Context, sess *Session, fr
 	s.sessions.Set(from, sess)
 	return err
 }
-

@@ -16,9 +16,10 @@ import (
 	"github.com/nippon-toyota/hrms/internal/employee"
 	"github.com/nippon-toyota/hrms/internal/epf"
 	"github.com/nippon-toyota/hrms/internal/handler"
-	"github.com/nippon-toyota/hrms/internal/importjob"
 	"github.com/nippon-toyota/hrms/internal/holiday"
+	"github.com/nippon-toyota/hrms/internal/importjob"
 	"github.com/nippon-toyota/hrms/internal/leave"
+	"github.com/nippon-toyota/hrms/internal/maintenance"
 	appMiddleware "github.com/nippon-toyota/hrms/internal/middleware"
 	"github.com/nippon-toyota/hrms/internal/payroll"
 	"github.com/nippon-toyota/hrms/internal/referral"
@@ -74,7 +75,9 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 	vehicleReferralRepo := vehiclereferral.NewPostgresRepository(pgPool)
 	vehicleReferralH := handler.NewVehicleReferralHandler(vehicleReferralRepo)
 
-	waSvc := whatsapp.NewService(dtClient, sessionStore, sessionWindow, empRepo, epfRepo, payrollRepo, leaveRepo, holidayRepo, referralSvc)
+	maintenanceStore := maintenance.NewStore(pgPool)
+
+	waSvc := whatsapp.NewService(dtClient, sessionStore, sessionWindow, empRepo, epfRepo, payrollRepo, leaveRepo, holidayRepo, referralSvc, maintenanceStore)
 	waHandler := whatsapp.NewHandler(waSvc, cfg.DoubleTickWebhookSecret)
 
 	employeeH := handler.NewEmployeeHandler(empRepo, pgPool)

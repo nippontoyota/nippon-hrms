@@ -20,8 +20,8 @@ type flowEmpRepo struct {
 	emp employee.Employee
 }
 
-func (r *flowEmpRepo) List(context.Context) ([]employee.Employee, error) { return nil, nil }
-func (r *flowEmpRepo) DeleteMany(context.Context, []string) (int64, error) { return 0, nil }
+func (r *flowEmpRepo) List(context.Context) ([]employee.Employee, error)         { return nil, nil }
+func (r *flowEmpRepo) DeleteMany(context.Context, []string) (int64, error)       { return 0, nil }
 func (r *flowEmpRepo) DeleteManyByFilter(context.Context, string) (int64, error) { return 0, nil }
 func (r *flowEmpRepo) ListPaginated(context.Context, int, int, string) (*employee.ListResult, error) {
 	return nil, nil
@@ -33,7 +33,7 @@ func (r *flowEmpRepo) GetByID(_ context.Context, id string) (*employee.Employee,
 	}
 	return nil, nil
 }
-func (r *flowEmpRepo) Create(context.Context, *employee.Employee) error { return nil }
+func (r *flowEmpRepo) Create(context.Context, *employee.Employee) error         { return nil }
 func (r *flowEmpRepo) Update(context.Context, string, *employee.Employee) error { return nil }
 func (r *flowEmpRepo) FindByPhone(_ context.Context, phone string) (*employee.Employee, error) {
 	if phone == r.emp.MobileNumber {
@@ -45,11 +45,13 @@ func (r *flowEmpRepo) FindByPhone(_ context.Context, phone string) (*employee.Em
 func (r *flowEmpRepo) VerifyIdentity(context.Context, string, string) (*employee.Employee, error) {
 	return nil, nil
 }
-func (r *flowEmpRepo) UpdatePhone(context.Context, string, string) error { return nil }
+func (r *flowEmpRepo) UpdatePhone(context.Context, string, string) error     { return nil }
 func (r *flowEmpRepo) BulkInsert(context.Context, []employee.Employee) error { return nil }
-func (r *flowEmpRepo) Delete(context.Context, string) error { return nil }
-func (r *flowEmpRepo) DeleteAll(context.Context) error { return nil }
-func (r *flowEmpRepo) GetByEmployeeIDs(context.Context, []string) ([]employee.Employee, error) { return nil, nil }
+func (r *flowEmpRepo) Delete(context.Context, string) error                  { return nil }
+func (r *flowEmpRepo) DeleteAll(context.Context) error                       { return nil }
+func (r *flowEmpRepo) GetByEmployeeIDs(context.Context, []string) ([]employee.Employee, error) {
+	return nil, nil
+}
 
 type flowLeaveRepo struct {
 	created []*leave.LeaveRequest
@@ -75,12 +77,14 @@ func (r *flowLeaveRepo) GetMonthlyBalance(context.Context, string, int, int) (*l
 	}
 	return &leave.LeaveBalance{TotalCasual: 10, UsedCasual: 0}, nil
 }
-func (r *flowLeaveRepo) GetByID(context.Context, string) (*leave.LeaveRequest, error) { return nil, nil }
+func (r *flowLeaveRepo) GetByID(context.Context, string) (*leave.LeaveRequest, error) {
+	return nil, nil
+}
 
 type recordedOutbound struct {
-	mu     sync.Mutex
-	texts  []string
-	paths  []string
+	mu    sync.Mutex
+	texts []string
+	paths []string
 }
 
 func (r *recordedOutbound) append(path string, body []byte) {
@@ -160,7 +164,7 @@ func newFlowTestService(t *testing.T) (*Service, *recordedOutbound, *InMemorySto
 	store := NewInMemoryStore(0)
 	emp := &flowEmpRepo{emp: employee.Employee{ID: "EMP001", Name: "Krishnanand G", MobileNumber: phone}}
 	leaveRepo := &flowLeaveRepo{}
-	svc := NewService(dt, store, nil, emp, nil, nil, leaveRepo, nil, nil)
+	svc := NewService(dt, store, nil, emp, nil, nil, leaveRepo, nil, nil, nil)
 	return svc, rec, store, phone
 }
 

@@ -1,0 +1,16 @@
+{
+  "name": "Nippon Toyota Maintenance",
+  "short_name": "NT Maintenance",
+  "description": "Internal maintenance and inventory system",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon"
+    }
+  ]
+}

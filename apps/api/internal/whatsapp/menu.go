@@ -59,7 +59,6 @@ func msgPayslipAlreadySent(month, year int) string {
 	)
 }
 
-
 func mainMenuButtons() []doubletick.InteractiveButton {
 	return []doubletick.InteractiveButton{
 		{ID: payloadRequestSalary, Title: "Salary Slip"},
@@ -73,6 +72,7 @@ func moreOptionsListSections() []doubletick.InteractiveListSection {
 		{
 			Title: "More Options",
 			Rows: []doubletick.InteractiveListRow{
+				{ID: payloadRequestMaintenance, Title: "Maintenance Ticket", Description: "Report a facility issue"},
 				{ID: payloadRequestReferral, Title: "Referral Link", Description: "Generate your unique employee referral link"},
 			},
 		},

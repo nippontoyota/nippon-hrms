@@ -8,20 +8,20 @@ import (
 )
 
 type dedupStore struct {
-	mu                 sync.Mutex
-	ttl                time.Duration
-	echoWindow         time.Duration
-	actionWindow       time.Duration
-	greetingWindow     time.Duration
-	periodWindow       time.Duration
-	payslipWindow      time.Duration
-	leaveSubmitWindow  time.Duration
-	byMessageID        map[string]time.Time
-	byAction           map[string]time.Time
-	lastStructuredAt   map[string]time.Time
-	byPayslipDelivery  map[string]time.Time
-	byLeaveSubmit      map[string]time.Time
-	inFlightPayslip    map[string]bool
+	mu                  sync.Mutex
+	ttl                 time.Duration
+	echoWindow          time.Duration
+	actionWindow        time.Duration
+	greetingWindow      time.Duration
+	periodWindow        time.Duration
+	payslipWindow       time.Duration
+	leaveSubmitWindow   time.Duration
+	byMessageID         map[string]time.Time
+	byAction            map[string]time.Time
+	lastStructuredAt    map[string]time.Time
+	byPayslipDelivery   map[string]time.Time
+	byLeaveSubmit       map[string]time.Time
+	inFlightPayslip     map[string]bool
 	inFlightLeaveSubmit map[string]bool
 }
 
@@ -30,11 +30,11 @@ func newDedupStore(ttl time.Duration) *dedupStore {
 		ttl = 5 * time.Minute
 	}
 	return &dedupStore{
-		ttl:               ttl,
-		echoWindow:        time.Second,
-		actionWindow:      5 * time.Second,
-		greetingWindow:    30 * time.Second,
-		periodWindow:      30 * time.Second,
+		ttl:                 ttl,
+		echoWindow:          time.Second,
+		actionWindow:        5 * time.Second,
+		greetingWindow:      30 * time.Second,
+		periodWindow:        30 * time.Second,
 		payslipWindow:       1 * time.Minute,
 		leaveSubmitWindow:   1 * time.Minute,
 		byMessageID:         make(map[string]time.Time),
@@ -87,7 +87,7 @@ func (d *dedupStore) isDuplicate(messageID, phone, input, msgType string, state 
 		actionWindow = d.greetingWindow
 	} else if looksLikePeriodAttempt(input) {
 		actionWindow = d.periodWindow
-	} else if cInp := canonicalInput(input); cInp == payloadRequestHolidays || cInp == payloadRequestReferral || cInp == payloadRequestHealthCard {
+	} else if cInp := canonicalInput(input); cInp == payloadRequestHolidays || cInp == payloadRequestReferral || cInp == payloadRequestHealthCard || cInp == payloadRequestMaintenance {
 		actionWindow = 5 * time.Minute
 	}
 	if seenAt, ok := d.byAction[actionKey]; ok && now.Sub(seenAt) < actionWindow {
@@ -212,7 +212,7 @@ func (d *dedupStore) evict(now time.Time) {
 
 func canonicalInput(input string) string {
 	switch normalizeMenuSelection(input) {
-	case payloadGeneratePay, payloadRequestSalary, payloadRequestLeave, payloadRequestHolidays, payloadRequestReferral, payloadRequestHealthCard:
+	case payloadGeneratePay, payloadRequestSalary, payloadRequestLeave, payloadRequestHolidays, payloadRequestReferral, payloadRequestHealthCard, payloadRequestMaintenance:
 		return normalizeMenuSelection(input)
 	default:
 		if sel := normalizeLeaveTypeSelection(input); sel != "" {
@@ -254,6 +254,8 @@ func normalizeMenuSelection(input string) string {
 		return payloadRequestHolidays
 	case trimmed == payloadRequestReferral, trimmed == payloadReferCandidate, lower == "referral link", lower == "refer a candidate", lower == "refer":
 		return payloadRequestReferral
+	case trimmed == payloadRequestMaintenance, lower == "maintenance ticket", lower == "report a facility issue":
+		return payloadRequestMaintenance
 	}
 	// WhatsApp often echoes the full interactive body plus the chosen button label.
 	if isMainMenuEcho(lower) || strings.Contains(lower, "how may we help") || strings.Contains(lower, "more options") {
@@ -270,6 +272,8 @@ func normalizeMenuSelection(input string) string {
 			return payloadRequestHealthCard
 		case strings.Contains(lower, "referral link"), strings.Contains(lower, "refer a candidate"), strings.Contains(lower, "refer"):
 			return payloadRequestReferral
+		case strings.Contains(lower, "maintenance ticket"), strings.Contains(lower, "report a facility issue"):
+			return payloadRequestMaintenance
 		}
 	}
 	return trimmed
