@@ -131,7 +131,7 @@ export default function LoginPage() {
           <div className="mt-8 pt-6 border-t border-slate-300 dark:border-slate-700">
             <p className="text-sm font-medium text-slate-500 dark:text-slate-400 text-center mb-3">Facility & Inventory Management</p>
             <a 
-              href="http://localhost:3000/login" 
+              href={import.meta.env.VITE_MAINTENANCE_URL || 'http://localhost:3000/login'}
               className="w-full flex items-center justify-center gap-2 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white font-bold py-3 px-4 rounded-md transition-colors"
             >
               Maintenance Team Login
