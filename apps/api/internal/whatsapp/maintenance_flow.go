@@ -24,7 +24,7 @@ Example: Workshop Bay 3, Showroom, Main Office`
 
 Our team will review it shortly. Reply *Hi* to return to the main menu.`
 
-	msgMaintenanceError        = `There was an error creating your maintenance ticket. Please try again or contact support.`
+	msgMaintenanceError        = `There was an error creating your maintenance ticket. Please try again or contact support.\n\nReply *Hi* to return to the main menu.`
 	msgMaintenanceImageInvalid = `I need a photo for this ticket. Please attach an image and send it here.`
 )
 
