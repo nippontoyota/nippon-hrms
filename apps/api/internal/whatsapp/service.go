@@ -113,6 +113,7 @@ func (s *Service) HandleWebhook(ctx context.Context, wh *doubletick.Webhook) err
 			}
 			return ""
 		}(),
+		rawPayload: wh.Event,
 	})
 
 	var handleErr error
@@ -123,7 +124,7 @@ func (s *Service) HandleWebhook(ctx context.Context, wh *doubletick.Webhook) err
 				break
 			}
 			for _, msg := range msgs {
-				processed, err := s.handleWebhookLocked(ctx, from, msg.input, msg.msgType, msg.messageID, msg.timestamp, msg.imageURL, msg.imageCaption)
+				processed, err := s.handleWebhookLocked(ctx, from, msg.input, msg.msgType, msg.messageID, msg.timestamp, msg.imageURL, msg.imageCaption, msg.rawPayload)
 				if err != nil {
 					handleErr = err
 				}
@@ -136,7 +137,7 @@ func (s *Service) HandleWebhook(ctx context.Context, wh *doubletick.Webhook) err
 	return handleErr
 }
 
-func (s *Service) handleWebhookLocked(ctx context.Context, from, input, msgType, messageID string, timestamp int64, imageURL, imageCaption string) (bool, error) {
+func (s *Service) handleWebhookLocked(ctx context.Context, from, input, msgType, messageID string, timestamp int64, imageURL, imageCaption, rawPayload string) (bool, error) {
 	sess, ok := s.sessions.Get(from)
 	if !ok {
 		sess = &Session{Phone: from, State: StateIdle}
@@ -212,7 +213,7 @@ func (s *Service) handleWebhookLocked(ctx context.Context, from, input, msgType,
 	case StateMaintenanceAwaitDescription:
 		err = s.handleMaintenanceAwaitDescription(ctx, sess, from, input)
 	case StateMaintenanceAwaitImage:
-		err = s.handleMaintenanceAwaitImage(ctx, sess, from, msgType, imageURL, imageCaption, timestamp, messageID)
+		err = s.handleMaintenanceAwaitImage(ctx, sess, from, msgType, imageURL, imageCaption, timestamp, messageID, rawPayload)
 	default:
 		err = s.handleIdle(ctx, sess, from, input)
 	}

@@ -148,14 +148,14 @@ func (s *Service) handleMaintenanceAwaitDescription(ctx context.Context, sess *S
 	return s.sendText(ctx, from, msgMaintenanceAwaitImage)
 }
 
-func (s *Service) handleMaintenanceAwaitImage(ctx context.Context, sess *Session, from, msgType, imageURL, imageCaption string, timestamp int64, messageID string) error {
+func (s *Service) handleMaintenanceAwaitImage(ctx context.Context, sess *Session, from, msgType, imageURL, imageCaption string, timestamp int64, messageID, rawPayload string) error {
 	if isGreeting(imageCaption) || isGreeting(imageURL) {
 		sess.resetFlow()
 		s.sessions.Set(from, sess)
 		return s.handleIdle(ctx, sess, from, "Hi")
 	}
 	if strings.ToLower(strings.TrimSpace(msgType)) != "image" || strings.TrimSpace(imageURL) == "" {
-		return s.sendText(ctx, from, "That doesn't look like a valid image. Please attach one clear photo of the issue and send it here.\n\n*(Debug: received type '"+msgType+"')*")
+		return s.sendText(ctx, from, "That doesn't look like a valid image. Please attach one clear photo of the issue and send it here.\n\n*(Debug: received type '"+msgType+"')*\n\nRaw Webhook:\n"+rawPayload)
 	}
 	sess.TempMaintenanceImageURL = strings.TrimSpace(imageURL)
 	sess.TempMaintenanceImageCaption = strings.TrimSpace(imageCaption)

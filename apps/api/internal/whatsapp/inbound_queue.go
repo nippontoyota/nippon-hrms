@@ -13,6 +13,7 @@ type inboundMessage struct {
 	timestamp    int64
 	imageURL     string
 	imageCaption string
+	rawPayload   string
 	receivedAt   time.Time
 }
 
