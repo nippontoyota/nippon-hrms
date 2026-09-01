@@ -175,7 +175,7 @@ func (s *PostgresSessionStore) Set(phone string, sess *Session) {
 		VALUES ($1, $2::jsonb, NOW())
 		ON CONFLICT (phone) DO UPDATE
 		SET flow_state = EXCLUDED.flow_state, updated_at = NOW()
-	`, phone, raw)
+	`, phone, string(raw))
 	if err != nil {
 		slog.Error("whatsapp session persist failed, using memory cache", "phone", phone, "state", sess.State, "err", err)
 	}
