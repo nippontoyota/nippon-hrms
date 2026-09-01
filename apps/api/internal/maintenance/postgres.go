@@ -45,7 +45,7 @@ func (m *MediaStorage) ensureBucket(ctx context.Context) error {
 		return err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusConflict {
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusConflict&& resp.StatusCode != http.StatusConflict resp.StatusCode != http.StatusConflict && resp.StatusCode != http.StatusBadRequest {
 		return fmt.Errorf("ensure maintenance image bucket: status %d", resp.StatusCode)
 	}
 	return nil
