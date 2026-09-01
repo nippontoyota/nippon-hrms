@@ -81,7 +81,7 @@ func (d *dedupStore) isDuplicate(messageID, phone, input, msgType string, state 
 		}
 	}
 
-	actionKey := fmt.Sprintf("%s|%d|%s", phone, state, canonicalInput(input))
+	actionKey := fmt.Sprintf("%s|%s", phone, canonicalInput(input))
 	actionWindow := d.actionWindow
 	if isGreeting(input) {
 		actionWindow = d.greetingWindow
