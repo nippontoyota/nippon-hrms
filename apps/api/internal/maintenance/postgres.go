@@ -45,7 +45,7 @@ func (m *MediaStorage) ensureBucket(ctx context.Context) error {
 		return err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusConflict&& resp.StatusCode != http.StatusConflict resp.StatusCode != http.StatusConflict && resp.StatusCode != http.StatusBadRequest {
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusConflict && resp.StatusCode != http.StatusBadRequest {
 		return fmt.Errorf("ensure maintenance image bucket: status %d", resp.StatusCode)
 	}
 	return nil
@@ -127,7 +127,11 @@ func (s *Store) MatchLocation(ctx context.Context, name string) (string, string,
 		LIMIT 1`,
 		"%"+name+"%", strings.TrimSpace(name)).Scan(&id, &locName)
 	if err != nil {
-		err = s.db.QueryRow(ctx, `INSERT INTO "Location" (id, name, is_active) VALUES (gen_random_uuid()::text, $1, true) RETURNING id`, strings.TrimSpace(name)).Scan(&id)\n\t\tif err != nil {\n\t\t\treturn "", "", fmt.Errorf("location %q not found and could not be created: %w", name, err)\n\t\t}\n\t\treturn id, strings.TrimSpace(name), nil
+		err = s.db.QueryRow(ctx, `INSERT INTO "Location" (id, name, is_active) VALUES (gen_random_uuid()::text, $1, true) RETURNING id`, strings.TrimSpace(name)).Scan(&id)
+		if err != nil {
+			return "", "", fmt.Errorf("location %q not found and could not be created: %w", name, err)
+		}
+		return id, strings.TrimSpace(name), nil
 	}
 	return id, locName, nil
 }
