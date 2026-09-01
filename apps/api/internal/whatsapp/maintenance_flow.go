@@ -81,21 +81,26 @@ func (s *Service) handleMaintenanceAwaitCategory(ctx context.Context, sess *Sess
 	}
 
 	// Map the ID back to a readable category name
-	catName := input
-	switch input {
-	case "cat_electrical":
+	catName := ""
+	lowerInput := strings.ToLower(strings.TrimSpace(input))
+	switch lowerInput {
+	case "cat_electrical", "electrical":
 		catName = "Electrical"
-	case "cat_plumbing":
+	case "cat_plumbing", "plumbing":
 		catName = "Plumbing"
-	case "cat_hvac":
+	case "cat_hvac", "hvac":
 		catName = "HVAC"
-	case "cat_civil":
+	case "cat_civil", "civil":
 		catName = "Civil"
-	case "cat_it":
+	case "cat_it", "it", "it & network":
 		catName = "IT"
 	}
 
-	if len(strings.TrimSpace(catName)) < 2 {
+	if catName == "" {
+		// Just silently drop long echo strings so we don't spam the user with "Category is invalid" twice
+		if len(lowerInput) > 15 {
+			return nil
+		}
 		_, err := s.dt.SendInteractiveList(ctx, from, "", "Category is invalid. "+msgMaintenanceAwaitCategory, "", "Select Category", maintenanceCategoryListSections())
 		return err
 	}
