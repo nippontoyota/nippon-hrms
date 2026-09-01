@@ -66,7 +66,7 @@ func (m *MediaStorage) copyImage(ctx context.Context, sourceURL, sourcePhone, me
 	if err != nil {
 		return "", err
 	}
-	req.Header.Set("Authorization", "Bearer "+m.doubleTickKey)
+	req.Header.Set("Authorization", m.doubleTickKey)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("download maintenance image: %w", err)
