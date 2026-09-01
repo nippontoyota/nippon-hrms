@@ -13,7 +13,7 @@ export default function LoginPage() {
     const email = formData.get('email')
     const password = formData.get('password')
 
-    if (email === 'maintenance@nippontoyota.com' && password === 'maintenance123') {
+    if (email === 'mntc@nippontoyota.com' && password === 'mntc123') {
       const cookieStore = await cookies()
       cookieStore.set('dev_session', 'true', { secure: true, path: '/' })
       redirect('/tickets')
@@ -36,7 +36,7 @@ export default function LoginPage() {
             <Input 
               name="email"
               type="email" 
-              defaultValue="maintenance@nippontoyota.com"
+              defaultValue="mntc@nippontoyota.com"
               required
               className="h-12 w-full rounded-md border border-border bg-card px-4 text-sm text-foreground focus-visible:ring-1 focus-visible:ring-red-500 transition-colors"
             />
@@ -46,7 +46,7 @@ export default function LoginPage() {
             <label className="text-sm font-medium text-foreground">Password</label>
             <PasswordInput 
               name="password"
-              defaultValue="maintenance123"
+              defaultValue="mntc123"
               required
               className="h-12 w-full rounded-md border border-border bg-card px-4 text-sm text-foreground focus-visible:ring-1 focus-visible:ring-red-500 transition-colors"
             />
@@ -62,7 +62,7 @@ export default function LoginPage() {
           </div>
           
           <p className="mt-8 text-center text-xs text-muted-foreground">
-            For development, use maintenance@nippontoyota.com / maintenance123
+            For development, use mntc@nippontoyota.com / mntc123
           </p>
         </form>
       </div>

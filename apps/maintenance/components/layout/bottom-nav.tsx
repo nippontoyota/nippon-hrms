@@ -2,8 +2,9 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Ticket, Package, UserCircle } from 'lucide-react'
+import { LayoutDashboard, Ticket, Package, UserCircle, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { logout } from '@/app/actions/auth'
 
 const bottomNavItems = [
   { title: 'Tickets', href: '/tickets', icon: Ticket },
@@ -32,6 +33,20 @@ export function BottomNav() {
           </Link>
         )
       })}
+      
+      <button
+        onClick={() => {
+          import('react').then(react => {
+            react.startTransition(() => {
+              logout()
+            })
+          })
+        }}
+        className="flex flex-col items-center justify-center gap-1 w-16 h-full transition-colors text-muted-foreground hover:text-red-500"
+      >
+        <LogOut className="h-6 w-6" />
+        <span className="text-[10px] font-medium tracking-wide">Logout</span>
+      </button>
     </div>
   )
 }

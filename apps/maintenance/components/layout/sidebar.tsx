@@ -12,8 +12,10 @@ import {
   AlertTriangle,
   Users,
   MapPin,
-  Tag
+  Tag,
+  LogOut
 } from 'lucide-react'
+import { logout } from '@/app/actions/auth'
 
 // Note: In a real app, these items would be filtered by user role
 const navItems = [
@@ -73,6 +75,22 @@ export function Sidebar() {
             </div>
           ))}
         </nav>
+      </div>
+
+      <div className="p-4 border-t border-border mt-auto">
+        <button 
+          onClick={() => {
+            import('react').then(react => {
+              react.startTransition(() => {
+                logout()
+              })
+            })
+          }}
+          className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-slate-500 hover:bg-red-50 hover:text-red-600 transition-all duration-200"
+        >
+          <LogOut className="h-4 w-4" />
+          Log Out
+        </button>
       </div>
     </div>
   )
