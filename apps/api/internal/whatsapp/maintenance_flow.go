@@ -145,8 +145,8 @@ func (s *Service) handleMaintenanceAwaitDescription(ctx context.Context, sess *S
 	return s.sendText(ctx, from, msgMaintenanceAwaitImage)
 }
 
-func (s *Service) handleMaintenanceAwaitImage(ctx context.Context, sess *Session, from, msgType, imageURL, imageCaption string, timestamp int64, messageID, rawPayload string) error {
-	if isGreeting(imageCaption) || isGreeting(imageURL) {
+func (s *Service) handleMaintenanceAwaitImage(ctx context.Context, sess *Session, from, input, msgType, imageURL, imageCaption string, timestamp int64, messageID, rawPayload string) error {
+	if isGreeting(input) || isGreeting(imageCaption) || isGreeting(imageURL) {
 		sess.resetFlow()
 		s.sessions.Set(from, sess)
 		return s.handleIdle(ctx, sess, from, "Hi")
