@@ -33,7 +33,7 @@ export function ItemForm({ categories }: ItemFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(formSchema) as any,
     defaultValues: {
       item_code: '',
       name: '',
@@ -72,15 +72,15 @@ export function ItemForm({ categories }: ItemFormProps) {
       {/* Sleek Back Button */}
       <button 
         onClick={() => router.back()} 
-        className="absolute top-0 left-0 flex items-center gap-2 text-sm font-medium text-zinc-400 hover:text-white transition-colors"
+        className="absolute top-0 left-0 flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
         Back
       </button>
 
       <div className="mb-10 text-left mt-8">
-        <h1 className="text-3xl font-bold tracking-tight text-white">Add Inventory Item</h1>
-        <p className="mt-2 text-sm text-zinc-400">
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">Add Inventory Item</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
           Register a new material or spare part into the system.
         </p>
       </div>
@@ -94,10 +94,10 @@ export function ItemForm({ categories }: ItemFormProps) {
               name="item_code"
               render={({ field }) => (
                 <FormItem className="space-y-2">
-                  <FormLabel className="text-sm font-medium text-zinc-300">Item Code</FormLabel>
+                  <FormLabel className="text-sm font-medium text-foreground">Item Code</FormLabel>
                   <FormControl>
                     <Input 
-                      className="h-12 w-full rounded-md border border-zinc-800 bg-[#121214] px-4 text-sm text-white focus-visible:ring-1 focus-visible:ring-red-500 uppercase transition-colors" 
+                      className="h-12 w-full rounded-md border border-border bg-card px-4 text-sm text-foreground focus-visible:ring-1 focus-visible:ring-red-500 uppercase transition-colors" 
                       {...field} 
                     />
                   </FormControl>
@@ -111,14 +111,14 @@ export function ItemForm({ categories }: ItemFormProps) {
               name="unit"
               render={({ field }) => (
                 <FormItem className="space-y-2">
-                  <FormLabel className="text-sm font-medium text-zinc-300">Unit Type</FormLabel>
+                  <FormLabel className="text-sm font-medium text-foreground">Unit Type</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                      <SelectTrigger className="h-12 w-full rounded-md border border-zinc-800 bg-[#121214] px-4 text-sm text-white focus-visible:ring-1 focus-visible:ring-red-500 transition-colors">
+                      <SelectTrigger className="h-12 w-full rounded-md border border-border bg-card px-4 text-sm text-foreground focus-visible:ring-1 focus-visible:ring-red-500 transition-colors">
                         <SelectValue />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent className="border border-zinc-800 bg-[#121214] text-white rounded-md shadow-xl">
+                    <SelectContent className="border border-border bg-card text-foreground rounded-md shadow-xl">
                       <SelectItem value="pcs">Pieces (pcs)</SelectItem>
                       <SelectItem value="kg">Kilograms (kg)</SelectItem>
                       <SelectItem value="ltr">Liters (ltr)</SelectItem>
@@ -138,10 +138,10 @@ export function ItemForm({ categories }: ItemFormProps) {
             name="name"
             render={({ field }) => (
               <FormItem className="space-y-2">
-                <FormLabel className="text-sm font-medium text-zinc-300">Item Name</FormLabel>
+                <FormLabel className="text-sm font-medium text-foreground">Item Name</FormLabel>
                 <FormControl>
                   <Input 
-                    className="h-12 w-full rounded-md border border-zinc-800 bg-[#121214] px-4 text-sm text-white focus-visible:ring-1 focus-visible:ring-red-500 transition-colors" 
+                    className="h-12 w-full rounded-md border border-border bg-card px-4 text-sm text-foreground focus-visible:ring-1 focus-visible:ring-red-500 transition-colors" 
                     {...field} 
                   />
                 </FormControl>
@@ -155,14 +155,14 @@ export function ItemForm({ categories }: ItemFormProps) {
             name="category_id"
             render={({ field }) => (
               <FormItem className="space-y-2">
-                <FormLabel className="text-sm font-medium text-zinc-300">Category</FormLabel>
+                <FormLabel className="text-sm font-medium text-foreground">Category</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
-                    <SelectTrigger className="h-12 w-full rounded-md border border-zinc-800 bg-[#121214] px-4 text-sm text-white focus-visible:ring-1 focus-visible:ring-red-500 transition-colors">
+                    <SelectTrigger className="h-12 w-full rounded-md border border-border bg-card px-4 text-sm text-foreground focus-visible:ring-1 focus-visible:ring-red-500 transition-colors">
                       <SelectValue />
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent className="border border-zinc-800 bg-[#121214] text-white rounded-md shadow-xl max-h-64">
+                  <SelectContent className="border border-border bg-card text-foreground rounded-md shadow-xl max-h-64">
                     {categories.map((cat) => (
                       <SelectItem key={cat.id} value={cat.id}>
                         {cat.name}
@@ -181,11 +181,11 @@ export function ItemForm({ categories }: ItemFormProps) {
               name="current_stock"
               render={({ field }) => (
                 <FormItem className="space-y-2">
-                  <FormLabel className="text-sm font-medium text-zinc-300">Current Stock</FormLabel>
+                  <FormLabel className="text-sm font-medium text-foreground">Current Stock</FormLabel>
                   <FormControl>
                     <Input 
                       type="number"
-                      className="h-12 w-full rounded-md border border-zinc-800 bg-[#121214] px-4 text-sm text-white focus-visible:ring-1 focus-visible:ring-red-500 transition-colors" 
+                      className="h-12 w-full rounded-md border border-border bg-card px-4 text-sm text-foreground focus-visible:ring-1 focus-visible:ring-red-500 transition-colors" 
                       {...field} 
                     />
                   </FormControl>
@@ -199,11 +199,11 @@ export function ItemForm({ categories }: ItemFormProps) {
               name="minimum_stock"
               render={({ field }) => (
                 <FormItem className="space-y-2">
-                  <FormLabel className="text-sm font-medium text-zinc-300">Minimum Stock</FormLabel>
+                  <FormLabel className="text-sm font-medium text-foreground">Minimum Stock</FormLabel>
                   <FormControl>
                     <Input 
                       type="number"
-                      className="h-12 w-full rounded-md border border-zinc-800 bg-[#121214] px-4 text-sm text-white focus-visible:ring-1 focus-visible:ring-red-500 transition-colors" 
+                      className="h-12 w-full rounded-md border border-border bg-card px-4 text-sm text-foreground focus-visible:ring-1 focus-visible:ring-red-500 transition-colors" 
                       {...field} 
                     />
                   </FormControl>
@@ -219,12 +219,12 @@ export function ItemForm({ categories }: ItemFormProps) {
               name="unit_cost"
               render={({ field }) => (
                 <FormItem className="space-y-2">
-                  <FormLabel className="text-sm font-medium text-zinc-300">Unit Cost ($)</FormLabel>
+                  <FormLabel className="text-sm font-medium text-foreground">Unit Cost ($)</FormLabel>
                   <FormControl>
                     <Input 
                       type="number"
                       step="0.01"
-                      className="h-12 w-full rounded-md border border-zinc-800 bg-[#121214] px-4 text-sm text-white focus-visible:ring-1 focus-visible:ring-red-500 transition-colors" 
+                      className="h-12 w-full rounded-md border border-border bg-card px-4 text-sm text-foreground focus-visible:ring-1 focus-visible:ring-red-500 transition-colors" 
                       {...field} 
                     />
                   </FormControl>
@@ -238,10 +238,10 @@ export function ItemForm({ categories }: ItemFormProps) {
               name="storage_location"
               render={({ field }) => (
                 <FormItem className="space-y-2">
-                  <FormLabel className="text-sm font-medium text-zinc-300">Aisle/Bin</FormLabel>
+                  <FormLabel className="text-sm font-medium text-foreground">Aisle/Bin</FormLabel>
                   <FormControl>
                     <Input 
-                      className="h-12 w-full rounded-md border border-zinc-800 bg-[#121214] px-4 text-sm text-white focus-visible:ring-1 focus-visible:ring-red-500 transition-colors" 
+                      className="h-12 w-full rounded-md border border-border bg-card px-4 text-sm text-foreground focus-visible:ring-1 focus-visible:ring-red-500 transition-colors" 
                       {...field} 
                     />
                   </FormControl>

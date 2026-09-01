@@ -24,7 +24,7 @@ export function BottomNav() {
             href={item.href}
             className={cn(
               "flex flex-col items-center justify-center gap-1 w-16 h-full transition-colors",
-              isActive ? "text-red-500" : "text-zinc-500 hover:text-zinc-300"
+              isActive ? "text-red-500" : "text-muted-foreground hover:text-foreground"
             )}
           >
             <item.icon className={cn("h-6 w-6", isActive ? "fill-red-500/10" : "")} />

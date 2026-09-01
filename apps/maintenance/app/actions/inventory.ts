@@ -45,3 +45,16 @@ export async function createInventoryItem(data: {
     return { success: false, error: 'Failed to create inventory item. Please try again.' }
   }
 }
+
+export async function deleteInventoryItem(id: string) {
+  try {
+    await prisma.inventoryItem.delete({
+      where: { id }
+    })
+    revalidatePath('/inventory')
+    return { success: true }
+  } catch (error) {
+    console.error('Failed to delete inventory item:', error)
+    return { success: false, error: 'Failed to delete inventory item. It may be in use.' }
+  }
+}

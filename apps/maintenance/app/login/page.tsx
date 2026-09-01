@@ -22,35 +22,33 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
       <div className="mb-10 flex flex-col items-center">
-        <div className="h-16 w-16 bg-red-600 rounded-full flex items-center justify-center mb-4 shadow-lg shadow-red-900/20">
-          <Wrench className="h-8 w-8 text-white" />
-        </div>
-        <h1 className="text-2xl font-bold tracking-tight text-white">Nippon Toyota</h1>
-        <p className="text-zinc-400 text-sm mt-1">Facility Management Portal</p>
+        <img src="/nippon-logo.png" alt="Nippon Toyota Logo" className="h-20 object-contain mb-4" />
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Maintenance Portal</h1>
+        <p className="text-muted-foreground mt-2">Sign in to manage facilities and tickets</p>
       </div>
 
       <div className="w-full max-w-sm">
         <form action={handleLogin} className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-zinc-300">Email Address</label>
+            <label className="text-sm font-medium text-foreground">Email Address</label>
             <Input 
               name="email"
               type="email" 
               defaultValue="maintenance@nippontoyota.com"
               required
-              className="h-12 w-full rounded-md border border-zinc-800 bg-[#121214] px-4 text-sm text-white focus-visible:ring-1 focus-visible:ring-red-500 transition-colors"
+              className="h-12 w-full rounded-md border border-border bg-card px-4 text-sm text-foreground focus-visible:ring-1 focus-visible:ring-red-500 transition-colors"
             />
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-zinc-300">Password</label>
+            <label className="text-sm font-medium text-foreground">Password</label>
             <PasswordInput 
               name="password"
               defaultValue="maintenance123"
               required
-              className="h-12 w-full rounded-md border border-zinc-800 bg-[#121214] px-4 text-sm text-white focus-visible:ring-1 focus-visible:ring-red-500 transition-colors"
+              className="h-12 w-full rounded-md border border-border bg-card px-4 text-sm text-foreground focus-visible:ring-1 focus-visible:ring-red-500 transition-colors"
             />
           </div>
 
@@ -63,7 +61,7 @@ export default function LoginPage() {
             </Button>
           </div>
           
-          <p className="mt-8 text-center text-xs text-zinc-600">
+          <p className="mt-8 text-center text-xs text-muted-foreground">
             For development, use maintenance@nippontoyota.com / maintenance123
           </p>
         </form>

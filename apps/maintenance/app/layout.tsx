@@ -1,9 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Geist } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
-const plusJakarta = Plus_Jakarta_Sans({
+const geist = Geist({
   variable: "--font-inter", // keeping variable name to avoid refactoring CSS
   subsets: ["latin"],
 });
@@ -37,7 +37,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${plusJakarta.variable} font-sans h-full antialiased`}
+      className={`${geist.variable} font-sans h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         {children}

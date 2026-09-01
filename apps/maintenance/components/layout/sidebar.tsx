@@ -37,12 +37,9 @@ export function Sidebar() {
   const sections = Array.from(new Set(navItems.map(item => item.section)))
 
   return (
-    <div className="flex h-full w-64 flex-col bg-[#111] text-slate-50 border-r border-[#222]">
-      <div className="flex h-14 items-center gap-2 px-6 font-bold text-lg border-b border-[#222]">
-        <div className="h-6 w-6 rounded-full bg-red-600 flex items-center justify-center">
-          <span className="text-white text-xs font-black">T</span>
-        </div>
-        <span className="tracking-tight">Nippon Toyota</span>
+    <div className="flex h-full w-64 flex-col bg-background text-foreground border-r border-border">
+      <div className="flex h-16 items-center px-6 border-b border-border">
+        <img src="/nippon-logo.png" alt="Nippon Toyota" className="h-8 object-contain" />
       </div>
       <div className="flex-1 overflow-y-auto py-6">
         <nav className="space-y-8 px-3">
@@ -63,11 +60,11 @@ export function Sidebar() {
                         className={cn(
                           'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-all duration-200',
                           isActive 
-                            ? 'bg-red-600 text-white shadow-md shadow-red-900/20' 
-                            : 'text-slate-400 hover:bg-[#222] hover:text-white'
+                            ? 'bg-red-600 text-foreground shadow-md shadow-red-900/20' 
+                            : 'text-slate-400 hover:bg-[#222] hover:text-foreground'
                         )}
                       >
-                        <item.icon className={cn("h-4 w-4", isActive ? "text-white" : "text-slate-400")} />
+                        <item.icon className={cn("h-4 w-4", isActive ? "text-foreground" : "text-slate-400")} />
                         {item.title}
                       </Link>
                     )
