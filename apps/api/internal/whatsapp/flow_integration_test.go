@@ -597,7 +597,7 @@ func TestFlow_batchProcessesOnlyFirstInbound(t *testing.T) {
 	svc.phoneLock.run(phone, func() {
 		msgs := svc.inbound.drain(phone)
 		for _, msg := range msgs {
-			processed, _ := svc.handleWebhookLocked(ctx, phone, msg.input, msg.msgType, msg.messageID)
+			processed, _ := svc.handleWebhookLocked(ctx, phone, msg.input, msg.msgType, msg.messageID, msg.timestamp, "", "")
 			if processed {
 				break
 			}

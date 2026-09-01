@@ -91,12 +91,28 @@ func (s *Service) HandleWebhook(ctx context.Context, wh *doubletick.Webhook) err
 	}
 
 	input := strings.TrimSpace(wh.Data.Body())
+	timestamp := wh.Timestamp
+	if timestamp == 0 {
+		timestamp = wh.Data.Timestamp
+	}
 
 	s.inbound.enqueue(from, inboundMessage{
 		messageID: messageID,
 		input:     input,
 		msgType:   wh.Data.Type,
-		timestamp: wh.Timestamp,
+		timestamp: timestamp,
+		imageURL: func() string {
+			if wh.Data.Image != nil {
+				return wh.Data.Image.URL
+			}
+			return ""
+		}(),
+		imageCaption: func() string {
+			if wh.Data.Image != nil {
+				return wh.Data.Image.Caption
+			}
+			return ""
+		}(),
 	})
 
 	var handleErr error
@@ -107,7 +123,7 @@ func (s *Service) HandleWebhook(ctx context.Context, wh *doubletick.Webhook) err
 				break
 			}
 			for _, msg := range msgs {
-				processed, err := s.handleWebhookLocked(ctx, from, msg.input, msg.msgType, msg.messageID, msg.timestamp)
+				processed, err := s.handleWebhookLocked(ctx, from, msg.input, msg.msgType, msg.messageID, msg.timestamp, msg.imageURL, msg.imageCaption)
 				if err != nil {
 					handleErr = err
 				}
@@ -120,7 +136,7 @@ func (s *Service) HandleWebhook(ctx context.Context, wh *doubletick.Webhook) err
 	return handleErr
 }
 
-func (s *Service) handleWebhookLocked(ctx context.Context, from, input, msgType, messageID string, timestamp int64) (bool, error) {
+func (s *Service) handleWebhookLocked(ctx context.Context, from, input, msgType, messageID string, timestamp int64, imageURL, imageCaption string) (bool, error) {
 	sess, ok := s.sessions.Get(from)
 	if !ok {
 		sess = &Session{Phone: from, State: StateIdle}
@@ -194,7 +210,9 @@ func (s *Service) handleWebhookLocked(ctx context.Context, from, input, msgType,
 	case StateMaintenanceAwaitCategory:
 		err = s.handleMaintenanceAwaitCategory(ctx, sess, from, input)
 	case StateMaintenanceAwaitDescription:
-		err = s.handleMaintenanceAwaitDescription(ctx, sess, from, input, timestamp)
+		err = s.handleMaintenanceAwaitDescription(ctx, sess, from, input)
+	case StateMaintenanceAwaitImage:
+		err = s.handleMaintenanceAwaitImage(ctx, sess, from, msgType, imageURL, imageCaption, timestamp, messageID)
 	default:
 		err = s.handleIdle(ctx, sess, from, input)
 	}

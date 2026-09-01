@@ -54,6 +54,7 @@ func tryParsePayloadV01(raw []byte) (*Webhook, bool) {
 		Text           *TextBody       `json:"text,omitempty"`
 		Button         *ButtonBody     `json:"button,omitempty"`
 		ListReply      *ListReplyBody  `json:"listReply,omitempty"`
+		Image          *ImageBody      `json:"image,omitempty"`
 		Interactive    json.RawMessage `json:"interactive,omitempty"`
 	}
 	if err := json.Unmarshal(raw, &p); err != nil || p.PayloadVersion == "" || p.From == "" {
@@ -68,6 +69,7 @@ func tryParsePayloadV01(raw []byte) (*Webhook, bool) {
 		Text:      p.Text,
 		Button:    p.Button,
 		ListReply: p.ListReply,
+		Image:     p.Image,
 	}
 	applyInteractiveReply(p.Interactive, &data)
 
@@ -87,6 +89,8 @@ func tryParseDocsFormat(raw []byte) (*Webhook, bool) {
 			Text               string          `json:"text"`
 			Payload            string          `json:"payload"`
 			InteractiveMessage json.RawMessage `json:"interactiveMessage,omitempty"`
+			URL                string          `json:"url"`
+			Caption            string          `json:"caption"`
 		} `json:"message"`
 	}
 	if err := json.Unmarshal(raw, &p); err != nil || p.From == "" {
@@ -127,6 +131,11 @@ func tryParseDocsFormat(raw []byte) (*Webhook, bool) {
 		if data.Body() == "" {
 			return nil, false
 		}
+	case "IMAGE":
+		if strings.TrimSpace(p.Message.URL) == "" {
+			return nil, false
+		}
+		data.Image = &ImageBody{URL: strings.TrimSpace(p.Message.URL), Caption: strings.TrimSpace(p.Message.Caption)}
 	default:
 		return nil, false
 	}
@@ -172,6 +181,10 @@ func tryParseMetaCloud(raw []byte) (*Webhook, bool) {
 								Description string `json:"description"`
 							} `json:"list_reply,omitempty"`
 						} `json:"interactive,omitempty"`
+						Image *struct {
+							URL     string `json:"url"`
+							Caption string `json:"caption"`
+						} `json:"image,omitempty"`
 					} `json:"messages"`
 					Statuses []json.RawMessage `json:"statuses"`
 				} `json:"value"`
@@ -230,11 +243,16 @@ func tryParseMetaCloud(raw []byte) (*Webhook, bool) {
 						data.Type = "interactive"
 					}
 				}
+			case "image":
+				if msg.Image == nil || strings.TrimSpace(msg.Image.URL) == "" {
+					continue
+				}
+				data.Image = &ImageBody{URL: strings.TrimSpace(msg.Image.URL), Caption: strings.TrimSpace(msg.Image.Caption)}
 			default:
 				continue
 			}
 
-			if data.Body() == "" && data.Text == nil {
+			if data.Body() == "" && data.Text == nil && data.Image == nil {
 				continue
 			}
 

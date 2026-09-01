@@ -65,7 +65,7 @@ func acceptsInboundAtState(state State, input string) bool {
 		n, err := strconv.Atoi(strings.TrimSpace(input))
 		return err == nil && n >= 1 && n <= 9
 
-	case StateMaintenanceAwaitLocation, StateMaintenanceAwaitCategory, StateMaintenanceAwaitDescription:
+	case StateMaintenanceAwaitLocation, StateMaintenanceAwaitCategory, StateMaintenanceAwaitDescription, StateMaintenanceAwaitImage:
 		return true
 
 	default:

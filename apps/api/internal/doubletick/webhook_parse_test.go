@@ -35,6 +35,17 @@ func TestParseWebhook_docsFormatButton(t *testing.T) {
 	}
 }
 
+func TestParseWebhook_docsFormatImage(t *testing.T) {
+	raw := []byte(`{"to":"917594086900","from":"918590215315","messageId":"img-1","message":{"type":"IMAGE","url":"https://cdn.doubletick.io/example.jpg","caption":"broken machine"}}`)
+	wh, ok, err := ParseWebhook(raw)
+	if err != nil || !ok || wh == nil || wh.Data.Image == nil {
+		t.Fatalf("expected image webhook: ok=%v err=%v", ok, err)
+	}
+	if wh.Data.Image.URL != "https://cdn.doubletick.io/example.jpg" || wh.Data.Image.Caption != "broken machine" {
+		t.Fatalf("unexpected image: %#v", wh.Data.Image)
+	}
+}
+
 func TestParseWebhook_statusUpdateIgnored(t *testing.T) {
 	raw := []byte(`{"status":"DELIVERED","messageId":"abc","to":"918590215315","statusTimestamp":"2022-12-15T07:36:24.504Z"}`)
 

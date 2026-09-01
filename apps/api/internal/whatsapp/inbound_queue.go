@@ -7,11 +7,13 @@ import (
 )
 
 type inboundMessage struct {
-	messageID  string
-	input      string
-	msgType    string
-	timestamp  int64
-	receivedAt time.Time
+	messageID    string
+	input        string
+	msgType      string
+	timestamp    int64
+	imageURL     string
+	imageCaption string
+	receivedAt   time.Time
 }
 
 type inboundQueue struct {

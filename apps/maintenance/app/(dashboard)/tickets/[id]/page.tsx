@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { format } from 'date-fns'
+import { updateTicketStatus } from '@/app/actions/tickets'
 
 export const dynamic = 'force-dynamic'
 
@@ -79,6 +80,15 @@ export default async function TicketDetailsPage({ params }: { params: { id: stri
                   {ticket.description}
                 </div>
               </div>
+              {ticket.image_url && (
+                <div>
+                  <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Submitted photo</p>
+                  <a href={ticket.image_url} target="_blank" rel="noreferrer" className="block rounded-md border border-border overflow-hidden bg-accent max-w-xl">
+                    <img src={ticket.image_url} alt={ticket.image_caption || `Photo for ${ticket.ticket_number}`} className="max-h-96 w-full object-contain" />
+                  </a>
+                  {ticket.image_caption && <p className="text-sm text-muted-foreground mt-2">{ticket.image_caption}</p>}
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -142,9 +152,21 @@ export default async function TicketDetailsPage({ params }: { params: { id: stri
               <CardTitle className="text-lg">Update Status</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button className="w-full bg-blue-600 hover:bg-blue-700 text-foreground font-semibold">Mark In Progress</Button>
-              <Button className="w-full bg-green-600 hover:bg-green-700 text-foreground font-semibold">Mark as Resolved</Button>
-              <Button className="w-full bg-muted hover:bg-zinc-700 border-zinc-700 border text-foreground">Cancel Ticket</Button>
+              <form action={updateTicketStatus}>
+                <input type="hidden" name="ticketId" value={ticket.id} />
+                <input type="hidden" name="status" value="IN_PROGRESS" />
+                <Button type="submit" disabled={ticket.status === 'IN_PROGRESS' || ticket.status === 'CLOSED'} className="w-full bg-blue-600 hover:bg-blue-700 text-foreground font-semibold">Mark In Progress</Button>
+              </form>
+              <form action={updateTicketStatus}>
+                <input type="hidden" name="ticketId" value={ticket.id} />
+                <input type="hidden" name="status" value="COMPLETED" />
+                <Button type="submit" disabled={ticket.status === 'COMPLETED' || ticket.status === 'CLOSED'} className="w-full bg-green-600 hover:bg-green-700 text-foreground font-semibold">Mark as Resolved</Button>
+              </form>
+              <form action={updateTicketStatus}>
+                <input type="hidden" name="ticketId" value={ticket.id} />
+                <input type="hidden" name="status" value="CLOSED" />
+                <Button type="submit" disabled={ticket.status === 'CLOSED'} className="w-full bg-muted hover:bg-zinc-700 border-zinc-700 border text-foreground">Close Ticket</Button>
+              </form>
             </CardContent>
           </Card>
 

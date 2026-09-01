@@ -18,12 +18,14 @@ Example: Workshop Bay 3, Showroom, Main Office`
 	msgMaintenanceAwaitCategory = `Please select the *Category* of the issue.`
 
 	msgMaintenanceAwaitDescription = `Please describe the issue in detail.`
+	msgMaintenanceAwaitImage       = `Please attach one clear photo of the issue and send it here. The photo is required to submit the ticket.`
 
 	msgMaintenanceTicketCreated = `Your maintenance ticket (*%s*) has been submitted successfully!
 
 Our team will review it shortly. Reply *Hi* to return to the main menu.`
 
-	msgMaintenanceError = `There was an error creating your maintenance ticket. Please try again or contact support.`
+	msgMaintenanceError        = `There was an error creating your maintenance ticket. Please try again or contact support.`
+	msgMaintenanceImageInvalid = `I need a photo for this ticket. Please attach an image and send it here.`
 )
 
 func maintenanceCategoryListSections() []doubletick.InteractiveListSection {
@@ -81,11 +83,16 @@ func (s *Service) handleMaintenanceAwaitCategory(ctx context.Context, sess *Sess
 	// Map the ID back to a readable category name
 	catName := input
 	switch input {
-	case "cat_electrical": catName = "Electrical"
-	case "cat_plumbing": catName = "Plumbing"
-	case "cat_hvac": catName = "HVAC"
-	case "cat_civil": catName = "Civil"
-	case "cat_it": catName = "IT"
+	case "cat_electrical":
+		catName = "Electrical"
+	case "cat_plumbing":
+		catName = "Plumbing"
+	case "cat_hvac":
+		catName = "HVAC"
+	case "cat_civil":
+		catName = "Civil"
+	case "cat_it":
+		catName = "IT"
 	}
 
 	if len(strings.TrimSpace(catName)) < 2 {
@@ -100,7 +107,7 @@ func (s *Service) handleMaintenanceAwaitCategory(ctx context.Context, sess *Sess
 	return s.sendText(ctx, from, msgMaintenanceAwaitDescription)
 }
 
-func (s *Service) handleMaintenanceAwaitDescription(ctx context.Context, sess *Session, from, input string, timestamp int64) error {
+func (s *Service) handleMaintenanceAwaitDescription(ctx context.Context, sess *Session, from, input string) error {
 	if isGreeting(input) {
 		sess.resetFlow()
 		s.sessions.Set(from, sess)
@@ -109,10 +116,10 @@ func (s *Service) handleMaintenanceAwaitDescription(ctx context.Context, sess *S
 
 	// Guard against WhatsApp's text-fallback echoing the category list selection or the prompt itself
 	lowerInput := strings.ToLower(strings.TrimSpace(input))
-	if strings.HasPrefix(lowerInput, "cat_") || 
-		lowerInput == "electrical" || lowerInput == "plumbing" || 
-		lowerInput == "hvac" || lowerInput == "civil" || lowerInput == "it" || 
-		strings.Contains(lowerInput, "select category") || 
+	if strings.HasPrefix(lowerInput, "cat_") ||
+		lowerInput == "electrical" || lowerInput == "plumbing" ||
+		lowerInput == "hvac" || lowerInput == "civil" || lowerInput == "it" ||
+		strings.Contains(lowerInput, "select category") ||
 		strings.Contains(lowerInput, "category of the issue") ||
 		strings.EqualFold(input, sess.TempMaintenanceCategory) {
 		return nil
@@ -123,6 +130,22 @@ func (s *Service) handleMaintenanceAwaitDescription(ctx context.Context, sess *S
 	}
 
 	sess.TempMaintenanceDescription = strings.TrimSpace(input)
+	sess.State = StateMaintenanceAwaitImage
+	s.sessions.Set(from, sess)
+	return s.sendText(ctx, from, msgMaintenanceAwaitImage)
+}
+
+func (s *Service) handleMaintenanceAwaitImage(ctx context.Context, sess *Session, from, msgType, imageURL, imageCaption string, timestamp int64, messageID string) error {
+	if isGreeting(imageCaption) || isGreeting(imageURL) {
+		sess.resetFlow()
+		s.sessions.Set(from, sess)
+		return s.handleIdle(ctx, sess, from, "Hi")
+	}
+	if strings.ToLower(strings.TrimSpace(msgType)) != "image" || strings.TrimSpace(imageURL) == "" {
+		return s.sendText(ctx, from, msgMaintenanceImageInvalid+"\n\n"+msgMaintenanceAwaitImage)
+	}
+	sess.TempMaintenanceImageURL = strings.TrimSpace(imageURL)
+	sess.TempMaintenanceImageCaption = strings.TrimSpace(imageCaption)
 
 	// Create the ticket!
 	name := "WhatsApp User"
@@ -145,11 +168,15 @@ func (s *Service) handleMaintenanceAwaitDescription(ctx context.Context, sess *S
 
 	// 3. Create Ticket
 	ticketNum, err := s.maintenanceStore.CreateTicket(ctx, maintenance.TicketData{
-		ReporterName: name, // We store the name
-		LocationID:   locID,
-		CategoryID:   catID,
-		Description:  sess.TempMaintenanceDescription,
-		Timestamp:    timestamp,
+		ReporterName:    name, // We store the name
+		LocationID:      locID,
+		CategoryID:      catID,
+		Description:     sess.TempMaintenanceDescription,
+		ImageURL:        sess.TempMaintenanceImageURL,
+		ImageCaption:    sess.TempMaintenanceImageCaption,
+		SourcePhone:     from,
+		SourceMessageID: messageID,
+		Timestamp:       timestamp,
 	})
 	if err != nil {
 		slog.Error("failed to create ticket", "err", err)

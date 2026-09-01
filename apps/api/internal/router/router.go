@@ -75,7 +75,7 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 	vehicleReferralRepo := vehiclereferral.NewPostgresRepository(pgPool)
 	vehicleReferralH := handler.NewVehicleReferralHandler(vehicleReferralRepo)
 
-	maintenanceStore := maintenance.NewStore(pgPool)
+	maintenanceStore := maintenance.NewStoreWithStorage(pgPool, cfg.SupabaseURL, cfg.SupabaseServiceRoleKey, cfg.DoubleTickAPIKey)
 
 	waSvc := whatsapp.NewService(dtClient, sessionStore, sessionWindow, empRepo, epfRepo, payrollRepo, leaveRepo, holidayRepo, referralSvc, maintenanceStore)
 	waHandler := whatsapp.NewHandler(waSvc, cfg.DoubleTickWebhookSecret)

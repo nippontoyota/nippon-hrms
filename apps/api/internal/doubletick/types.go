@@ -110,6 +110,12 @@ type MessageData struct {
 	Text      *TextBody      `json:"text,omitempty"`
 	Button    *ButtonBody    `json:"button,omitempty"`
 	ListReply *ListReplyBody `json:"listReply,omitempty"`
+	Image     *ImageBody     `json:"image,omitempty"`
+}
+
+type ImageBody struct {
+	URL     string `json:"url"`
+	Caption string `json:"caption,omitempty"`
 }
 
 func (d *MessageData) Body() string {
