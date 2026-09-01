@@ -97,12 +97,9 @@ func (s *Service) handleMaintenanceAwaitCategory(ctx context.Context, sess *Sess
 	}
 
 	if catName == "" {
-		// Just silently drop long echo strings so we don't spam the user with "Category is invalid" twice
-		if len(lowerInput) > 15 {
-			return nil
-		}
-		_, err := s.dt.SendInteractiveList(ctx, from, "", "Category is invalid. "+msgMaintenanceAwaitCategory, "", "Select Category", maintenanceCategoryListSections())
-		return err
+		// Silently drop any invalid text (including duplicate DoubleTick webhooks and shadow echoes)
+		// The interactive list is already visible to the user, so we don't need to spam them with errors.
+		return nil
 	}
 
 	sess.TempMaintenanceCategory = strings.TrimSpace(catName)
