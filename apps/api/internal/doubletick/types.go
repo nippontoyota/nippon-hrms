@@ -95,6 +95,7 @@ type Webhook struct {
 	Event     string      `json:"event"`
 	Timestamp int64       `json:"timestamp"`
 	Data      MessageData `json:"data"`
+	RawPayload string     `json:"-"`
 }
 
 func (w *Webhook) IsInbound() bool {

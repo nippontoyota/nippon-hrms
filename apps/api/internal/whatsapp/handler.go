@@ -62,7 +62,7 @@ func (h *Handler) Webhook(w http.ResponseWriter, r *http.Request) {
 			slog.Info("whatsapp webhook ignored", "preview", preview)
 			return
 		}
-		wh.Event = string(raw)
+		wh.RawPayload = string(raw)
 
 		ctx := context.Background()
 		if err := h.service.HandleWebhook(ctx, wh); err != nil {

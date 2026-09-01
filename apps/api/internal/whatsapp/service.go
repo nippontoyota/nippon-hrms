@@ -113,7 +113,7 @@ func (s *Service) HandleWebhook(ctx context.Context, wh *doubletick.Webhook) err
 			}
 			return ""
 		}(),
-		rawPayload: wh.Event,
+		rawPayload: wh.RawPayload,
 	})
 
 	var handleErr error
