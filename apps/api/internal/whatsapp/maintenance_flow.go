@@ -155,7 +155,7 @@ func (s *Service) handleMaintenanceAwaitImage(ctx context.Context, sess *Session
 		return s.handleIdle(ctx, sess, from, "Hi")
 	}
 	if strings.ToLower(strings.TrimSpace(msgType)) != "image" || strings.TrimSpace(imageURL) == "" {
-		return s.sendText(ctx, from, msgMaintenanceImageInvalid+"\n\n"+msgMaintenanceAwaitImage)
+		return s.sendText(ctx, from, "That doesn't look like a valid image. Please attach one clear photo of the issue and send it here.\n\n*(Debug: received type '"+msgType+"')*")
 	}
 	sess.TempMaintenanceImageURL = strings.TrimSpace(imageURL)
 	sess.TempMaintenanceImageCaption = strings.TrimSpace(imageCaption)

@@ -758,7 +758,7 @@ func (s *Service) sendMainMenu(ctx context.Context, to, name string) error {
 func (s *Service) sendMoreOptionsMenu(ctx context.Context, to string) error {
 	sections := moreOptionsListSections()
 	// Minimal body — WhatsApp requires one; keeps the list as a compact "More Options" row under the 3 buttons.
-	_, err := s.dt.SendInteractiveList(ctx, to, "", "\u200b", "", msgMoreOptionsButton, sections)
+	_, err := s.dt.SendInteractiveList(ctx, to, "", "Or select from these additional options:", "", "More Options", sections)
 	if err != nil {
 		slog.Warn("interactive list send failed, falling back to text", "err", err)
 		return s.sendText(ctx, to, "Tap *More Options* for *Referral Link*, or reply *Referral Link*.")
