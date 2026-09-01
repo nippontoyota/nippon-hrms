@@ -7,7 +7,9 @@ export async function logout() {
   const cookieStore = await cookies()
   cookieStore.delete('dev_session')
   
-  // Redirect to the main HRMS app login page
-  const hrmsUrl = process.env.NEXT_PUBLIC_HRMS_URL || 'http://localhost:5173'
+  // Intelligently route to production Cloudflare app vs local Vite app
+  const isProd = process.env.NODE_ENV === 'production'
+  const hrmsUrl = isProd ? 'https://nippon-hrms.pages.dev' : 'http://localhost:5173'
+  
   redirect(`${hrmsUrl}/login`)
 }
