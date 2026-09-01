@@ -116,12 +116,20 @@ func (s *Service) handleMaintenanceAwaitDescription(ctx context.Context, sess *S
 
 	// Guard against WhatsApp's text-fallback echoing the category list selection or the prompt itself
 	lowerInput := strings.ToLower(strings.TrimSpace(input))
+	strippedInput := strings.ReplaceAll(strings.ReplaceAll(lowerInput, " ", ""), "\n", "")
+	
 	if strings.HasPrefix(lowerInput, "cat_") ||
 		lowerInput == "electrical" || lowerInput == "plumbing" ||
 		lowerInput == "hvac" || lowerInput == "civil" || lowerInput == "it" ||
 		strings.Contains(lowerInput, "select category") ||
 		strings.Contains(lowerInput, "category of the issue") ||
-		strings.EqualFold(input, sess.TempMaintenanceCategory) {
+		strings.EqualFold(input, sess.TempMaintenanceCategory) ||
+		strippedInput == "electricallighting,wiring,powerissues" ||
+		strippedInput == "plumbingleaks,pipes,washroom" ||
+		strippedInput == "hvacairconditioning,cooling" ||
+		strippedInput == "civilbuilding,painting,structural" ||
+		strippedInput == "it&networkcomputers,internet,printers" ||
+		strippedInput == "itcomputers,internet,printers" {
 		return nil
 	}
 
