@@ -54,7 +54,7 @@ func tryParsePayloadV01(raw []byte) (*Webhook, bool) {
 		Text           *TextBody       `json:"text,omitempty"`
 		Button         *ButtonBody     `json:"button,omitempty"`
 		ListReply      *ListReplyBody  `json:"listReply,omitempty"`
-		Image          *ImageBody      `json:"image,omitempty"`
+		Image          *struct { URL string `json:"url"`; MediaURL string `json:"mediaURL"`; Caption string `json:"caption"` } `json:"image,omitempty"`
 		Interactive    json.RawMessage `json:"interactive,omitempty"`
 	}
 	if err := json.Unmarshal(raw, &p); err != nil || p.PayloadVersion == "" || p.From == "" {
@@ -69,8 +69,16 @@ func tryParsePayloadV01(raw []byte) (*Webhook, bool) {
 		Text:      p.Text,
 		Button:    p.Button,
 		ListReply: p.ListReply,
-		Image:     p.Image,
 	}
+	
+	if p.Image != nil {
+		u := p.Image.MediaURL
+		if u == "" {
+			u = p.Image.URL
+		}
+		data.Image = &ImageBody{URL: u, Caption: p.Image.Caption}
+	}
+	
 	applyInteractiveReply(p.Interactive, &data)
 
 	return &Webhook{
