@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/nippon-toyota/hrms/internal/employee"
 	"github.com/nippon-toyota/hrms/internal/importjob"
 	"github.com/nippon-toyota/hrms/internal/vault"
@@ -17,7 +18,6 @@ import (
 	"github.com/nippon-toyota/hrms/pkg/logger"
 	"github.com/nippon-toyota/hrms/pkg/respond"
 	"github.com/xuri/excelize/v2"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // EmployeeHandler provides HTTP endpoints for employee management.
@@ -135,7 +135,7 @@ func (h *EmployeeHandler) List(w http.ResponseWriter, r *http.Request) {
 			emp.TotalSalary = 0
 			emp.Mobile = 0
 			emp.Conveyance = 0
-			emp.WashAllowance = 0
+			emp.PerformanceAllowance = 0
 			emp.BranchAllowance = 0
 			emp.SpecialAllowance = 0
 			emp.Training = 0
@@ -298,7 +298,7 @@ func (h *EmployeeHandler) ExportExcel(w http.ResponseWriter, r *http.Request) {
 	headers := []string{
 		"employeeId", "name", "department", "mobileNo", "level", "doj", "birthday", "yearsExperience",
 		"branch", "designation", "basic", "da", "revisedBasicDa", "hra", "travel",
-		"hostel", "children", "totalSalary", "mobile", "conveyance", "washAllowance",
+		"hostel", "children", "totalSalary", "mobile", "conveyance", "performanceAllowance",
 		"branchAllowance", "specialAllowance", "training", "totalAllowances",
 		"totalSalaryWithAllowances", "bankName", "accountNumber", "bankBranch", "ifscCode", "zone",
 	}
@@ -316,7 +316,7 @@ func (h *EmployeeHandler) ExportExcel(w http.ResponseWriter, r *http.Request) {
 			emp.EmployeeID, emp.Name, emp.Department, emp.MobileNumber, emp.Level,
 			emp.DOJ, emp.Birthday, emp.YearsExperience, emp.Branch, emp.Designation,
 			emp.Basic, emp.DA, emp.RevisedBasicDA, emp.HRA, emp.Travel, emp.Hostel, emp.Children,
-			emp.TotalSalary, emp.Mobile, emp.Conveyance, emp.WashAllowance, emp.BranchAllowance,
+			emp.TotalSalary, emp.Mobile, emp.Conveyance, emp.PerformanceAllowance, emp.BranchAllowance,
 			emp.SpecialAllowance, emp.Training, emp.TotalAllowances, emp.TotalSalaryWithAllowances,
 			emp.BankName, emp.AccountNumber, emp.BankBranch, emp.IFSCCode, emp.Zone,
 		}
@@ -347,7 +347,7 @@ func (h *EmployeeHandler) DownloadTemplate(w http.ResponseWriter, r *http.Reques
 	headers := []string{
 		"employeeId", "name", "department", "mobileNo", "level", "doj", "birthday", "yearsExperience",
 		"branch", "designation", "basic", "da", "revisedBasicDa", "hra", "travel",
-		"hostel", "children", "totalSalary", "mobile", "conveyance", "washAllowance",
+		"hostel", "children", "totalSalary", "mobile", "conveyance", "performanceAllowance",
 		"branchAllowance", "specialAllowance", "training", "totalAllowances",
 		"totalSalaryWithAllowances", "bankName", "accountNumber", "bankBranch", "ifscCode", "zone",
 	}
@@ -464,4 +464,3 @@ func (h *EmployeeHandler) PreviewBulkDelete(w http.ResponseWriter, r *http.Reque
 		},
 	})
 }
-

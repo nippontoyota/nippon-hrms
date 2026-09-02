@@ -27,6 +27,10 @@ export const metadata: Metadata = {
     follow: false,
   },
   manifest: "/manifest.json",
+  icons: {
+    icon: "/nippon-logo.png",
+    apple: "/nippon-logo.png",
+  },
 };
 
 export default function RootLayout({

@@ -45,7 +45,7 @@ export interface Employee {
   totalSalary?: number;
   mobile?: number;
   conveyance?: number;
-  washAllowance?: number;
+  performanceAllowance?: number;
   branchAllowance?: number;
   specialAllowance?: number;
   training?: number;
@@ -138,7 +138,7 @@ export interface PayrollRecord {
   mobile: number;
   conveyance: number;
   branchAllowance: number;
-  washAllowance: number;
+  performanceAllowance: number;
   specialAllowance: number;
   training: number;
   incentive: number;

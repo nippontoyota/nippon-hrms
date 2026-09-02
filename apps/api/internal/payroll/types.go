@@ -25,7 +25,7 @@ type Record struct {
 	Mobile                       float64    `json:"mobile"`
 	Conveyance                   float64    `json:"conveyance"`
 	BranchAllowance              float64    `json:"branchAllowance"`
-	WashAllowance                float64    `json:"washAllowance"`
+	PerformanceAllowance         float64    `json:"performanceAllowance"`
 	SpecialAllowance             float64    `json:"specialAllowance"`
 	Training                     float64    `json:"training"`
 	Incentive                    float64    `json:"incentive"`

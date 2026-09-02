@@ -44,7 +44,7 @@ func (r *PostgresRepository) FindByPhone(ctx context.Context, rawPhone string) (
 	err := r.db.QueryRow(ctx, query, normalized).Scan(
 		&e.ID, &e.Name, &e.Department, &e.MobileNumber, &e.Level, &e.DOJ, &e.Birthday, &e.YearsExperience,
 		&e.Branch, &e.Designation, &e.Zone, &e.Basic, &e.DA, &e.RevisedBasicDA, &e.HRA, &e.Travel,
-		&e.Hostel, &e.Children, &e.TotalSalary, &e.Mobile, &e.Conveyance, &e.WashAllowance,
+		&e.Hostel, &e.Children, &e.TotalSalary, &e.Mobile, &e.Conveyance, &e.PerformanceAllowance,
 		&e.BranchAllowance, &e.SpecialAllowance, &e.Training, &e.TotalAllowances,
 		&e.TotalSalaryWithAllowances, &e.BankName, &e.AccountNumber, &e.BankBranch,
 		&e.IFSCCode, &e.ManagerID, &e.ManagerName, &e.IsHealthCardEligible,
@@ -84,7 +84,7 @@ func (r *PostgresRepository) GetByID(ctx context.Context, id string) (*Employee,
 	err := r.db.QueryRow(ctx, query, id).Scan(
 		&e.ID, &e.Name, &e.Department, &e.MobileNumber, &e.Level, &e.DOJ, &e.Birthday, &e.YearsExperience,
 		&e.Branch, &e.Designation, &e.Zone, &e.Basic, &e.DA, &e.RevisedBasicDA, &e.HRA, &e.Travel,
-		&e.Hostel, &e.Children, &e.TotalSalary, &e.Mobile, &e.Conveyance, &e.WashAllowance,
+		&e.Hostel, &e.Children, &e.TotalSalary, &e.Mobile, &e.Conveyance, &e.PerformanceAllowance,
 		&e.BranchAllowance, &e.SpecialAllowance, &e.Training, &e.TotalAllowances,
 		&e.TotalSalaryWithAllowances, &e.BankName, &e.AccountNumber, &e.BankBranch,
 		&e.IFSCCode, &e.ManagerID, &e.ManagerName, &e.IsHealthCardEligible,
@@ -127,7 +127,7 @@ func (r *PostgresRepository) BulkInsert(ctx context.Context, employees []Employe
 			return []interface{}{
 				e.ID, e.Name, e.Department, e.MobileNumber, e.Level, ParseDOJ(e.DOJ), ParseDOJ(e.Birthday), e.YearsExperience,
 				e.Branch, e.Designation, e.Zone, e.Basic, e.DA, e.RevisedBasicDA, e.HRA, e.Travel,
-				e.Hostel, e.Children, e.TotalSalary, e.Mobile, e.Conveyance, e.WashAllowance,
+				e.Hostel, e.Children, e.TotalSalary, e.Mobile, e.Conveyance, e.PerformanceAllowance,
 				e.BranchAllowance, e.SpecialAllowance, e.Training, e.TotalAllowances,
 				e.TotalSalaryWithAllowances, e.BankName, e.AccountNumber, e.BankBranch, e.IFSCCode, e.ManagerID, e.IsHealthCardEligible,
 			}, nil
@@ -164,7 +164,7 @@ func (r *PostgresRepository) List(ctx context.Context) ([]Employee, error) {
 		if err := rows.Scan(
 			&e.ID, &e.Name, &e.Department, &e.MobileNumber, &e.Level, &e.DOJ, &e.Birthday, &e.YearsExperience,
 			&e.Branch, &e.Designation, &e.Zone, &e.Basic, &e.DA, &e.RevisedBasicDA, &e.HRA, &e.Travel,
-			&e.Hostel, &e.Children, &e.TotalSalary, &e.Mobile, &e.Conveyance, &e.WashAllowance,
+			&e.Hostel, &e.Children, &e.TotalSalary, &e.Mobile, &e.Conveyance, &e.PerformanceAllowance,
 			&e.BranchAllowance, &e.SpecialAllowance, &e.Training, &e.TotalAllowances,
 			&e.TotalSalaryWithAllowances, &e.BankName, &e.AccountNumber, &e.BankBranch,
 			&e.IFSCCode, &e.ManagerID, &e.ManagerName, &e.IsHealthCardEligible, &e.HealthCardNo, &e.HealthPolicyNo, &e.HealthCardValidUpto, &e.CreatedAt, &e.UpdatedAt,
@@ -226,7 +226,7 @@ func (r *PostgresRepository) ListPaginated(ctx context.Context, page, limit int,
 		if err := rows.Scan(
 			&e.ID, &e.Name, &e.Department, &e.MobileNumber, &e.Level, &e.DOJ, &e.Birthday, &e.YearsExperience,
 			&e.Branch, &e.Designation, &e.Zone, &e.Basic, &e.DA, &e.RevisedBasicDA, &e.HRA, &e.Travel,
-			&e.Hostel, &e.Children, &e.TotalSalary, &e.Mobile, &e.Conveyance, &e.WashAllowance,
+			&e.Hostel, &e.Children, &e.TotalSalary, &e.Mobile, &e.Conveyance, &e.PerformanceAllowance,
 			&e.BranchAllowance, &e.SpecialAllowance, &e.Training, &e.TotalAllowances,
 			&e.TotalSalaryWithAllowances, &e.BankName, &e.AccountNumber, &e.BankBranch,
 			&e.IFSCCode, &e.ManagerID, &e.ManagerName, &e.IsHealthCardEligible, &e.HealthCardNo, &e.HealthPolicyNo, &e.HealthCardValidUpto, &e.CreatedAt, &e.UpdatedAt,
@@ -264,7 +264,7 @@ func (r *PostgresRepository) Create(ctx context.Context, e *Employee) error {
 		)`,
 		e.ID, e.Name, e.Department, e.MobileNumber, e.Level, ParseDOJ(e.DOJ), ParseDOJ(e.Birthday), e.YearsExperience,
 		e.Branch, e.Designation, e.Zone, e.Basic, e.DA, e.RevisedBasicDA, e.HRA, e.Travel,
-		e.Hostel, e.Children, e.TotalSalary, e.Mobile, e.Conveyance, e.WashAllowance,
+		e.Hostel, e.Children, e.TotalSalary, e.Mobile, e.Conveyance, e.PerformanceAllowance,
 		e.BranchAllowance, e.SpecialAllowance, e.Training, e.TotalAllowances,
 		e.TotalSalaryWithAllowances, e.BankName, e.AccountNumber, e.BankBranch, e.IFSCCode, e.ManagerID, e.IsHealthCardEligible,
 	)
@@ -290,7 +290,7 @@ func (r *PostgresRepository) Update(ctx context.Context, id string, e *Employee)
 		WHERE id=$1`,
 		id, e.Name, e.Department, e.MobileNumber, e.Level, ParseDOJ(e.DOJ), ParseDOJ(e.Birthday), e.YearsExperience,
 		e.Branch, e.Designation, e.Zone, e.Basic, e.DA, e.RevisedBasicDA, e.HRA, e.Travel,
-		e.Hostel, e.Children, e.TotalSalary, e.Mobile, e.Conveyance, e.WashAllowance,
+		e.Hostel, e.Children, e.TotalSalary, e.Mobile, e.Conveyance, e.PerformanceAllowance,
 		e.BranchAllowance, e.SpecialAllowance, e.Training, e.TotalAllowances,
 		e.TotalSalaryWithAllowances, e.BankName, e.AccountNumber, e.BankBranch, e.IFSCCode, e.ManagerID, e.IsHealthCardEligible,
 	)
@@ -410,7 +410,7 @@ func (r *PostgresRepository) GetByEmployeeIDs(ctx context.Context, ids []string)
 		if err := rows.Scan(
 			&e.ID, &e.Name, &e.Department, &e.MobileNumber, &e.Level, &e.DOJ, &e.Birthday, &e.YearsExperience,
 			&e.Branch, &e.Designation, &e.Zone, &e.Basic, &e.DA, &e.RevisedBasicDA, &e.HRA, &e.Travel,
-			&e.Hostel, &e.Children, &e.TotalSalary, &e.Mobile, &e.Conveyance, &e.WashAllowance,
+			&e.Hostel, &e.Children, &e.TotalSalary, &e.Mobile, &e.Conveyance, &e.PerformanceAllowance,
 			&e.BranchAllowance, &e.SpecialAllowance, &e.Training, &e.TotalAllowances,
 			&e.TotalSalaryWithAllowances, &e.BankName, &e.AccountNumber, &e.BankBranch,
 			&e.IFSCCode, &e.ManagerID, &e.ManagerName, &e.IsHealthCardEligible, &e.HealthCardNo, &e.HealthPolicyNo, &e.HealthCardValidUpto, &e.CreatedAt, &e.UpdatedAt,

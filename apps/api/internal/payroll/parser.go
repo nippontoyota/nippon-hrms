@@ -85,7 +85,7 @@ func ParseExcel(r io.Reader, month, year int) ([]Record, []string, error) {
 			Mobile:                       parseFloat(row[12]),
 			Conveyance:                   parseFloat(row[13]),
 			BranchAllowance:              parseFloat(row[14]),
-			WashAllowance:                parseFloat(row[15]),
+			PerformanceAllowance:                parseFloat(row[15]),
 			SpecialAllowance:             parseFloat(row[16]),
 			Training:                     parseFloat(row[17]),
 			Incentive:                    parseFloat(row[18]),

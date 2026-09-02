@@ -28,7 +28,7 @@ type Employee struct {
 	TotalSalary               float64   `json:"totalSalary"`
 	Mobile                    float64   `json:"mobile"`
 	Conveyance                float64   `json:"conveyance"`
-	WashAllowance             float64   `json:"washAllowance"`
+	PerformanceAllowance      float64   `json:"performanceAllowance"`
 	BranchAllowance           float64   `json:"branchAllowance"`
 	SpecialAllowance          float64   `json:"specialAllowance"`
 	Training                  float64   `json:"training"`

@@ -151,7 +151,7 @@ func newPayslipView(emp *employee.Employee, rec *Record, epfRec *epf.Record) Pay
 		{"Children Education Allowances", money(rec.ChildrenEducation)},
 		{"Mobile Allowances", money(rec.Mobile)},
 		{"Conveyance", money(rec.Conveyance)},
-		{"Washing Allowances", money(rec.WashAllowance)},
+		{"Performance Allowance", money(rec.PerformanceAllowance)},
 		{"Branch Allowances", money(rec.BranchAllowance)},
 		{"Special Allowances", money(rec.SpecialAllowance)},
 		{"Training Allowances", money(rec.Training)},

@@ -250,7 +250,7 @@ func (r *Repository) CopyStagingEmployees(ctx context.Context, jobID string, row
 				jobID, e.RowNum, e.RowHash, e.ID, e.Name, e.Department, e.MobileNumber, e.Level,
 				e.DOJDate, e.BirthdayDate, e.YearsExperience, e.Branch, e.Designation, e.Zone,
 				e.Basic, e.DA, e.RevisedBasicDA, e.HRA, e.Travel, e.Hostel, e.Children, e.TotalSalary,
-				e.Mobile, e.Conveyance, e.WashAllowance, e.BranchAllowance, e.SpecialAllowance, e.Training,
+				e.Mobile, e.Conveyance, e.PerformanceAllowance, e.BranchAllowance, e.SpecialAllowance, e.Training,
 				e.TotalAllowances, e.TotalSalaryWithAllowances,
 				e.BankName, e.AccountNumber, e.BankBranch, e.IFSCCode,
 			}, nil
@@ -302,7 +302,7 @@ func (r *Repository) CopyStagingPayroll(ctx context.Context, jobID string, rows 
 				jobID, p.RowNum, p.RowHash, p.EmployeeID, p.Month, p.Year, p.EmpNameSnapshot,
 				p.Leaves, p.LOP, p.Days, p.Absents, p.Basic, p.DA, p.BasicDA, p.HRA, p.Travel,
 				p.ChildrenHostel, p.ChildrenEducation, p.Mobile, p.Conveyance, p.BranchAllowance,
-				p.WashAllowance, p.SpecialAllowance, p.Training, p.Incentive, p.TotalEarWithIncen,
+				p.PerformanceAllowance, p.SpecialAllowance, p.Training, p.Incentive, p.TotalEarWithIncen,
 				p.GrossSalWithoutIncentives, p.GrossForPT, p.PF, p.PF367, p.PF833, p.ESI075, p.ESI325,
 				p.TDS, p.SalAdv, p.AdditionalDeduction, p.Loan, p.Advance, p.LOPDeduction,
 				p.CompanyStatutoryContribution, p.ReimbMedical, p.ReimbLTA, p.ZetaMealVoucher,

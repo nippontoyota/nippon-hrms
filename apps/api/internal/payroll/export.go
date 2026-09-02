@@ -5,12 +5,13 @@ import (
 
 	"github.com/nippon-toyota/hrms/pkg/employeeid"
 )
+
 // ExportHeaders lists the only columns included in salary directory Excel/CSV exports.
 // UI-only table columns (Preview, Sl. No., checkboxes, computed totals) must never be added here.
 var ExportHeaders = []string{
 	"employeeId", "empNameSnapshot", "paidDays", "basicDa",
 	"hra", "travel", "childrenHostel", "childrenEducation", "mobile", "conveyance",
-	"branchAllowance", "washAllowance", "specialAllowance", "training", "incentive",
+	"branchAllowance", "performanceAllowance", "specialAllowance", "training", "incentive",
 	"totalEarWithIncen", "pf", "esi075", "tds",
 	"salAdv", "additionalDeduction", "loan", "totalDeductions", "actualFinalAmount",
 }
@@ -29,7 +30,7 @@ func RecordToExportValues(rec Record) []any {
 		rec.Mobile,
 		rec.Conveyance,
 		rec.BranchAllowance,
-		rec.WashAllowance,
+		rec.PerformanceAllowance,
 		rec.SpecialAllowance,
 		rec.Training,
 		rec.Incentive,

@@ -44,7 +44,7 @@ for (const month of months) {
       n(d, 'Mobile'),
       n(d, 'Convy'),
       n(d, 'Br. Allow'),
-      n(d, 'W.A.'),
+      n(d, 'Performance Allowance'),
       n(d, 'Spl All'),
       n(d, 'Training'),
       n(d, 'Incentive'),

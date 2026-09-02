@@ -67,7 +67,7 @@ func seedRowToRecord(row salarySeedRow, month, year int) Record {
 		Mobile:                       seedFloat(d, "Mobile"),
 		Conveyance:                   seedFloat(d, "Convy"),
 		BranchAllowance:              seedFloat(d, "Br. Allow"),
-		WashAllowance:                seedFloat(d, "W.A."),
+		PerformanceAllowance:         seedFloat(d, "Performance Allowance"),
 		SpecialAllowance:             seedFloat(d, "Spl All"),
 		Training:                     seedFloat(d, "Training"),
 		Incentive:                    seedFloat(d, "Incentive"),

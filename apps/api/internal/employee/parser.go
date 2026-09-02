@@ -86,7 +86,7 @@ func ParseExcel(r io.Reader) ([]Employee, []string, error) {
 			TotalSalary:               parseFloat(row[17]),
 			Mobile:                    parseFloat(row[18]),
 			Conveyance:                parseFloat(row[19]),
-			WashAllowance:             parseFloat(row[20]),
+			PerformanceAllowance:      parseFloat(row[20]),
 			BranchAllowance:           parseFloat(row[21]),
 			SpecialAllowance:          parseFloat(row[22]),
 			Training:                  parseFloat(row[23]),

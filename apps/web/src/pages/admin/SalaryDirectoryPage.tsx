@@ -412,7 +412,7 @@ export default function SalaryDirectoryPage() {
                   <Th col="mobile" className="text-right">Mobile</Th>
                   <Th col="conveyance" className="text-right">Convy</Th>
                   <Th col="branchAllowance" className="text-right">Br. Allow</Th>
-                  <Th col="washAllowance" className="text-right">W.A.</Th>
+                  <Th col="performanceAllowance" className="text-right">Performance Allowance</Th>
                   <Th col="specialAllowance" className="text-right">Spl All</Th>
                   <Th col="training" className="text-right">Training</Th>
                   <Th col="incentive" className="text-right text-[#eb0a1e] font-bold">Incentive</Th>
@@ -478,7 +478,7 @@ export default function SalaryDirectoryPage() {
                     <td className="text-right font-mono">{m(r.mobile)}</td>
                     <td className="text-right font-mono">{m(r.conveyance)}</td>
                     <td className="text-right font-mono">{m(r.branchAllowance)}</td>
-                    <td className="text-right font-mono">{m(r.washAllowance)}</td>
+                    <td className="text-right font-mono">{m(r.performanceAllowance)}</td>
                     <td className="text-right font-mono">{m(r.specialAllowance)}</td>
                     <td className="text-right font-mono">{m(r.training)}</td>
                     <td className="text-right font-mono text-[#eb0a1e] font-bold">{m(r.incentive)}</td>
