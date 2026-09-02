@@ -91,7 +91,7 @@ func isActiveMenuSelection(state State, input string) bool {
 	sel := normalizeMenuSelection(input)
 	switch state {
 	case StateIdle:
-		return sel == payloadRequestSalary || sel == payloadRequestLeave || sel == payloadRequestHolidays || sel == payloadRequestReferral || sel == payloadReferCandidate || sel == payloadRequestHealthCard || sel == payloadRequestMaintenance
+		return sel == payloadRequestSalary || sel == payloadRequestLeave || sel == payloadRequestHolidays || sel == payloadRequestReferral || sel == payloadReferCandidate || sel == payloadRequestHealthCard || sel == payloadRequestMaintenance || sel == payloadRequestBonus || sel == payloadRequestEncashment
 	case StateAwaitPeriod:
 		return sel == payloadGeneratePay || sel == payloadRequestSalary
 	default:

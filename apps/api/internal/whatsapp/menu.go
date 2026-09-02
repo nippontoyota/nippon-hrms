@@ -74,6 +74,8 @@ func moreOptionsListSections() []doubletick.InteractiveListSection {
 			Rows: []doubletick.InteractiveListRow{
 				{ID: payloadRequestMaintenance, Title: "Maintenance Ticket", Description: "Report a facility issue"},
 				{ID: payloadRequestReferral, Title: "Referral Link", Description: "Generate your unique employee referral link"},
+				{ID: payloadRequestBonus, Title: "Approved Bonus 2026", Description: "View your approved bonus"},
+				{ID: payloadRequestEncashment, Title: "Leave Encashment 2026", Description: "View your 2025-26 encashment"},
 			},
 		},
 	}

@@ -212,7 +212,7 @@ func (d *dedupStore) evict(now time.Time) {
 
 func canonicalInput(input string) string {
 	switch normalizeMenuSelection(input) {
-	case payloadGeneratePay, payloadRequestSalary, payloadRequestLeave, payloadRequestHolidays, payloadRequestReferral, payloadRequestHealthCard, payloadRequestMaintenance:
+	case payloadGeneratePay, payloadRequestSalary, payloadRequestLeave, payloadRequestHolidays, payloadRequestReferral, payloadRequestHealthCard, payloadRequestMaintenance, payloadRequestBonus, payloadRequestEncashment:
 		return normalizeMenuSelection(input)
 	default:
 		if sel := normalizeLeaveTypeSelection(input); sel != "" {
@@ -256,6 +256,10 @@ func normalizeMenuSelection(input string) string {
 		return payloadRequestReferral
 	case trimmed == payloadRequestMaintenance, lower == "maintenance ticket", lower == "report a facility issue":
 		return payloadRequestMaintenance
+	case trimmed == payloadRequestBonus, lower == "approved bonus 2026", lower == "bonus 2026":
+		return payloadRequestBonus
+	case trimmed == payloadRequestEncashment, lower == "leave encashment 2026", lower == "leave encashment 2025-26":
+		return payloadRequestEncashment
 	}
 	// WhatsApp often echoes the full interactive body plus the chosen button label.
 	if isMainMenuEcho(lower) || strings.Contains(lower, "how may we help") || strings.Contains(lower, "more options") {
@@ -274,6 +278,10 @@ func normalizeMenuSelection(input string) string {
 			return payloadRequestReferral
 		case strings.Contains(lower, "maintenance ticket"), strings.Contains(lower, "report a facility issue"):
 			return payloadRequestMaintenance
+		case strings.Contains(lower, "approved bonus 2026"), strings.Contains(lower, "bonus 2026"):
+			return payloadRequestBonus
+		case strings.Contains(lower, "leave encashment 2026"), strings.Contains(lower, "leave encashment 2025-26"):
+			return payloadRequestEncashment
 		}
 	}
 	return trimmed

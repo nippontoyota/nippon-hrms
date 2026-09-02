@@ -77,7 +77,7 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 
 	maintenanceStore := maintenance.NewStoreWithStorage(pgPool, cfg.SupabaseURL, cfg.SupabaseServiceRoleKey, cfg.DoubleTickAPIKey)
 
-	waSvc := whatsapp.NewService(dtClient, sessionStore, sessionWindow, empRepo, epfRepo, payrollRepo, leaveRepo, holidayRepo, referralSvc, maintenanceStore)
+	waSvc := whatsapp.NewService(dtClient, sessionStore, sessionWindow, empRepo, epfRepo, payrollRepo, leaveRepo, holidayRepo, referralSvc, maintenanceStore, empRepo)
 	waHandler := whatsapp.NewHandler(waSvc, cfg.DoubleTickWebhookSecret)
 
 	employeeH := handler.NewEmployeeHandler(empRepo, pgPool)

@@ -36,6 +36,7 @@ type Service struct {
 	holidayRepo      holiday.Repository
 	referralSvc      *referral.Service
 	maintenanceStore *maintenance.Store
+	benefitRepo      employee.BenefitRepository
 	menuImage        menuImageCache
 }
 
@@ -47,7 +48,11 @@ type menuImageCache struct {
 
 const menuImageCacheRefreshBefore = 5 * time.Minute
 
-func NewService(dt *doubletick.Client, sessions SessionStore, sessionWindow SessionWindowStore, empRepo employee.Repository, epfRepo epf.Repository, payrollRepo payroll.Repository, leaveRepo leave.Repository, holidayRepo holiday.Repository, referralSvc *referral.Service, maintenanceStore *maintenance.Store) *Service {
+func NewService(dt *doubletick.Client, sessions SessionStore, sessionWindow SessionWindowStore, empRepo employee.Repository, epfRepo epf.Repository, payrollRepo payroll.Repository, leaveRepo leave.Repository, holidayRepo holiday.Repository, referralSvc *referral.Service, maintenanceStore *maintenance.Store, benefitRepo ...employee.BenefitRepository) *Service {
+	var benefits employee.BenefitRepository
+	if len(benefitRepo) > 0 {
+		benefits = benefitRepo[0]
+	}
 	return &Service{
 		dt:               dt,
 		sessions:         sessions,
@@ -62,6 +67,7 @@ func NewService(dt *doubletick.Client, sessions SessionStore, sessionWindow Sess
 		holidayRepo:      holidayRepo,
 		referralSvc:      referralSvc,
 		maintenanceStore: maintenanceStore,
+		benefitRepo:      benefits,
 	}
 }
 
@@ -388,6 +394,10 @@ func (s *Service) handleIdle(ctx context.Context, sess *Session, from, input str
 		return s.handleHealthCardRequest(ctx, sess, from)
 	case payloadRequestMaintenance:
 		return s.beginMaintenanceFlow(ctx, sess, from)
+	case payloadRequestBonus:
+		return s.handleEmployeeBenefitRequest(ctx, sess, from, employee.BenefitApprovedBonus, "2026")
+	case payloadRequestEncashment:
+		return s.handleEmployeeBenefitRequest(ctx, sess, from, employee.BenefitLeaveEncashment, "2025-26")
 	case payloadReferCandidate:
 		return s.handleReferralLinkRequest(ctx, sess, from)
 	}
@@ -400,6 +410,10 @@ func (s *Service) handleIdle(ctx context.Context, sess *Session, from, input str
 		return s.beginLeaveFlow(ctx, sess, from)
 	case "referral", "referral link":
 		return s.handleReferralLinkRequest(ctx, sess, from)
+	case "approved bonus 2026", "bonus 2026":
+		return s.handleEmployeeBenefitRequest(ctx, sess, from, employee.BenefitApprovedBonus, "2026")
+	case "leave encashment 2026", "leave encashment 2025-26":
+		return s.handleEmployeeBenefitRequest(ctx, sess, from, employee.BenefitLeaveEncashment, "2025-26")
 	}
 
 	if sel := normalizeLeaveTypeSelection(input); sel != "" {

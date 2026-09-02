@@ -14,6 +14,8 @@ const (
 	payloadRequestHealthCard  = "request_health_card"
 	payloadRequestMaintenance = "request_maintenance"
 	payloadReferCandidate     = "refer_candidate"
+	payloadRequestBonus       = "request_approved_bonus_2026"
+	payloadRequestEncashment  = "request_leave_encashment_2026"
 
 	payloadLeaveCasual     = "leave_casual"
 	payloadLeaveDuty       = "leave_duty"
