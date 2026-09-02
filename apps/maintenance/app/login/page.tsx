@@ -55,7 +55,8 @@ export default function LoginPage() {
           <div className="pt-4">
             <Button 
               type="submit" 
-              className="w-full h-12 rounded-md bg-red-600 text-base font-semibold text-white transition-all hover:bg-red-700 active:scale-[0.98]"
+              className="w-full h-12 rounded-md border border-red-700 text-base font-semibold transition-all hover:brightness-95 active:scale-[0.98]"
+              style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
             >
               Sign In
             </Button>

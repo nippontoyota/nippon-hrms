@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net/url"
+	"path"
 	"strings"
 
 	"github.com/nippon-toyota/hrms/internal/doubletick"
@@ -119,7 +121,7 @@ func (s *Service) handleMaintenanceAwaitDescription(ctx context.Context, sess *S
 	// Guard against WhatsApp's text-fallback echoing the category list selection or the prompt itself
 	lowerInput := strings.ToLower(strings.TrimSpace(input))
 	strippedInput := strings.ReplaceAll(strings.ReplaceAll(lowerInput, " ", ""), "\n", "")
-	
+
 	if strings.HasPrefix(lowerInput, "cat_") ||
 		lowerInput == "electrical" || lowerInput == "plumbing" ||
 		lowerInput == "hvac" || lowerInput == "civil" || lowerInput == "it" ||
@@ -151,8 +153,9 @@ func (s *Service) handleMaintenanceAwaitImage(ctx context.Context, sess *Session
 		s.sessions.Set(from, sess)
 		return s.handleIdle(ctx, sess, from, "Hi")
 	}
-	if strings.ToLower(strings.TrimSpace(msgType)) != "image" || strings.TrimSpace(imageURL) == "" {
-		return s.sendText(ctx, from, "That doesn't look like a valid image. Please attach one clear photo of the issue and send it here.\n\n*(Debug: received type '"+msgType+"')*\n\nRaw Webhook:\n"+rawPayload)
+	if !isSupportedMaintenanceImage(msgType, imageURL) {
+		slog.Warn("rejected maintenance media", "media_type", strings.ToLower(strings.TrimSpace(msgType)), "has_media_url", strings.TrimSpace(imageURL) != "")
+		return s.sendText(ctx, from, msgMaintenanceImageInvalid)
 	}
 	sess.TempMaintenanceImageURL = strings.TrimSpace(imageURL)
 	sess.TempMaintenanceImageCaption = strings.TrimSpace(imageCaption)
@@ -198,4 +201,29 @@ func (s *Service) handleMaintenanceAwaitImage(ctx context.Context, sess *Session
 	s.sessions.Set(from, sess)
 
 	return s.sendText(ctx, from, fmt.Sprintf(msgMaintenanceTicketCreated, ticketNum))
+}
+
+func isSupportedMaintenanceImage(msgType, imageURL string) bool {
+	if strings.TrimSpace(imageURL) == "" {
+		return false
+	}
+
+	mediaType := strings.ToLower(strings.TrimSpace(msgType))
+	if mediaType == "image" {
+		return true
+	}
+	if mediaType != "file" && mediaType != "document" {
+		return false
+	}
+
+	parsed, err := url.Parse(strings.TrimSpace(imageURL))
+	if err != nil {
+		return false
+	}
+	switch strings.ToLower(path.Ext(parsed.Path)) {
+	case ".jpg", ".jpeg", ".png", ".webp", ".gif", ".heic", ".heif":
+		return true
+	default:
+		return false
+	}
 }
