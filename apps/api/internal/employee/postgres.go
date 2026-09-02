@@ -319,9 +319,9 @@ func (r *PostgresRepository) deleteEmployeesByIDs(ctx context.Context, ids []str
 	if _, err := tx.Exec(ctx, `UPDATE leaves SET reviewed_by = NULL WHERE reviewed_by = ANY($1)`, ids); err != nil {
 		return 0, fmt.Errorf("clear leave reviewers: %w", err)
 	}
-	if _, err := tx.Exec(ctx, `DELETE FROM payroll_records WHERE employee_id = ANY($1)`, ids); err != nil {
-		return 0, fmt.Errorf("delete payroll records: %w", err)
-	}
+	// Payroll is historical retention data. Employee removal must never delete
+	// payslips; payroll_records intentionally keeps the employee ID and name
+	// snapshot so former employees can still request their salary history.
 	if _, err := tx.Exec(ctx, `DELETE FROM epf_records WHERE employee_id = ANY($1)`, ids); err != nil {
 		return 0, fmt.Errorf("delete epf records: %w", err)
 	}
