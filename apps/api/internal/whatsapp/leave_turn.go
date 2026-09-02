@@ -30,7 +30,7 @@ func shouldSuppressLeaveTurnNoise(sess *Session, input, messageID string) bool {
 		if trimmed == sess.LastAcceptedLeaveInput {
 			return true
 		}
-		if isStoredLeaveDateEcho(sess, input) {
+		if sess.State != StateLeaveAwaitEnd && isStoredLeaveDateEcho(sess, input) {
 			return true
 		}
 	}

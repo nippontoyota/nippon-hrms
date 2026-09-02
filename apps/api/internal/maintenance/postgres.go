@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"path"
@@ -28,6 +29,8 @@ func NewStoreWithStorage(db *pgxpool.Pool, supabaseURL, serviceKey, doubleTickKe
 }
 
 const maxMaintenanceImageBytes int64 = 10 * 1024 * 1024
+
+const maintenanceMediaTimeout = 3 * time.Second
 
 type MediaStorage struct{ baseURL, serviceKey, doubleTickKey, bucket string }
 
@@ -166,11 +169,7 @@ type TicketData struct {
 // CreateTicket inserts a new ticket based on WhatsApp payload.
 func (s *Store) CreateTicket(ctx context.Context, data TicketData) (string, error) {
 	if data.ImageURL != "" {
-		storedURL, err := s.media.copyImage(ctx, data.ImageURL, data.SourcePhone, data.SourceMessageID)
-		if err != nil {
-			return "", err
-		}
-		data.ImageURL = storedURL
+		data.ImageURL = s.archiveImage(ctx, data)
 	}
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
@@ -252,4 +251,15 @@ func (s *Store) CreateTicket(ctx context.Context, data TicketData) (string, erro
 		return "", fmt.Errorf("commit ticket: %w", err)
 	}
 	return ticketNumber, nil
+}
+
+func (s *Store) archiveImage(ctx context.Context, data TicketData) string {
+	mediaCtx, cancel := context.WithTimeout(ctx, maintenanceMediaTimeout)
+	defer cancel()
+	storedURL, err := s.media.copyImage(mediaCtx, data.ImageURL, data.SourcePhone, data.SourceMessageID)
+	if err != nil {
+		slog.Warn("maintenance image archival skipped", "err", err, "sourceMessageId", data.SourceMessageID)
+		return ""
+	}
+	return storedURL
 }
