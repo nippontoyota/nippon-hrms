@@ -8,11 +8,11 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
-	"path"
 	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/nippon-toyota/hrms/pkg/phone"
 )
 
 type Store struct {
@@ -30,7 +30,7 @@ func NewStoreWithStorage(db *pgxpool.Pool, supabaseURL, serviceKey, doubleTickKe
 
 const maxMaintenanceImageBytes int64 = 10 * 1024 * 1024
 
-const maintenanceMediaTimeout = 3 * time.Second
+const maintenanceMediaTimeout = 15 * time.Second
 
 type MediaStorage struct{ baseURL, serviceKey, doubleTickKey, bucket string }
 
@@ -62,7 +62,7 @@ func (m *MediaStorage) copyImage(ctx context.Context, sourceURL, sourcePhone, me
 		return "", err
 	}
 	u, err := url.Parse(sourceURL)
-	if err != nil || u.Scheme != "https" || u.Host == "" {
+	if err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" {
 		return "", fmt.Errorf("invalid image URL")
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, sourceURL, nil)
@@ -99,8 +99,9 @@ func (m *MediaStorage) copyImage(ctx context.Context, sourceURL, sourcePhone, me
 	}
 	safePhone := strings.NewReplacer("+", "", "/", "", "\\", "").Replace(sourcePhone)
 	safeMessageID := strings.NewReplacer("/", "", "\\", "", " ", "_").Replace(messageID)
-	key := path.Join("whatsapp", safePhone, fmt.Sprintf("%d-%s.%s", time.Now().UnixNano(), safeMessageID, ext))
-	uploadURL := m.baseURL + "/storage/v1/object/" + m.bucket + "/" + url.PathEscape(key)
+	keyParts := []string{"whatsapp", safePhone, fmt.Sprintf("%d-%s.%s", time.Now().UnixNano(), safeMessageID, ext)}
+	escapedKey := strings.Join([]string{url.PathEscape(keyParts[0]), url.PathEscape(keyParts[1]), url.PathEscape(keyParts[2])}, "/")
+	uploadURL := m.baseURL + "/storage/v1/object/" + url.PathEscape(m.bucket) + "/" + escapedKey
 	uReq, err := http.NewRequestWithContext(ctx, http.MethodPost, uploadURL, bytes.NewReader(data))
 	if err != nil {
 		return "", err
@@ -117,7 +118,7 @@ func (m *MediaStorage) copyImage(ctx context.Context, sourceURL, sourcePhone, me
 	if uResp.StatusCode < 200 || uResp.StatusCode >= 300 {
 		return "", fmt.Errorf("upload maintenance image: status %d", uResp.StatusCode)
 	}
-	return m.baseURL + "/storage/v1/object/public/" + m.bucket + "/" + url.PathEscape(key), nil
+	return m.baseURL + "/storage/v1/object/public/" + url.PathEscape(m.bucket) + "/" + escapedKey, nil
 }
 
 // MatchLocation attempts to find a location by partial name match.
@@ -156,6 +157,7 @@ func (s *Store) MatchCategory(ctx context.Context, name string) (string, string,
 
 type TicketData struct {
 	ReporterName    string
+	EmployeeID      string
 	LocationID      string
 	CategoryID      string
 	Description     string
@@ -168,6 +170,14 @@ type TicketData struct {
 
 // CreateTicket inserts a new ticket based on WhatsApp payload.
 func (s *Store) CreateTicket(ctx context.Context, data TicketData) (string, error) {
+	data.SourcePhone = phone.NormalizeIndian(data.SourcePhone)
+	if data.SourcePhone == "" {
+		return "", fmt.Errorf("maintenance ticket requires valid source phone")
+	}
+	data.ReporterName = strings.TrimSpace(data.ReporterName)
+	if data.ReporterName == "" {
+		data.ReporterName = "WhatsApp User"
+	}
 	if data.ImageURL != "" {
 		data.ImageURL = s.archiveImage(ctx, data)
 	}
@@ -225,16 +235,16 @@ func (s *Store) CreateTicket(ctx context.Context, data TicketData) (string, erro
 			id, ticket_number, status, priority, 
 			reporter_name, reporter_type, 
 			location_id, category_id, description, 
-			created_at, updated_at, image_url, image_caption, source_phone, source_message_id
+			created_at, updated_at, image_url, image_caption, source_phone, employee_id, source_message_id
 		) VALUES (
 			gen_random_uuid()::text, $1, 'NEW', 'MEDIUM', 
 			$2, 'EMPLOYEE', 
 			$3, $4, $5, 
-			$6, $6, NULLIF($7, ''), NULLIF($8, ''), NULLIF($9, ''), NULLIF($10, '')
+			$6, $6, NULLIF($7, ''), NULLIF($8, ''), $9, NULLIF($10, ''), NULLIF($11, '')
 		) RETURNING id`,
 		ticketNumber, data.ReporterName,
 		data.LocationID, data.CategoryID, data.Description,
-		createdAt, data.ImageURL, data.ImageCaption, data.SourcePhone, data.SourceMessageID).Scan(&ticketID)
+		createdAt, data.ImageURL, data.ImageCaption, data.SourcePhone, data.EmployeeID, data.SourceMessageID).Scan(&ticketID)
 
 	if err != nil {
 		return "", fmt.Errorf("insert ticket: %w", err)

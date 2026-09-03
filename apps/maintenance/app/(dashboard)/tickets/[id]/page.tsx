@@ -64,6 +64,8 @@ export default async function TicketDetailsPage({ params }: { params: { id: stri
                 <div className="bg-accent p-3 rounded-md border border-border/50">
                   <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Reporter</p>
                   <p className="font-medium text-foreground">{ticket.reporter_name}</p>
+                  <p className="text-sm text-muted-foreground">{ticket.source_phone}</p>
+                  {ticket.employee_id && <p className="text-xs text-muted-foreground">Employee directory match: {ticket.employee_id}</p>}
                 </div>
                 <div className="bg-accent p-3 rounded-md border border-border/50">
                   <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Location</p>

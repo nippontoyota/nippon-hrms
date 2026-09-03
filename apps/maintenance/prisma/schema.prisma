@@ -96,7 +96,8 @@ model Ticket {
 
   image_url        String?
   image_caption    String?
-  source_phone     String?
+  source_phone     String
+  employee_id      String?
   source_message_id String? @unique
 
   created_at DateTime @default(now())

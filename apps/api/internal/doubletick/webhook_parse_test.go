@@ -46,6 +46,28 @@ func TestParseWebhook_docsFormatImage(t *testing.T) {
 	}
 }
 
+func TestParseWebhook_legacyImageMediaURL(t *testing.T) {
+	raw := []byte(`{"event":"message.received","data":{"messageId":"img-legacy","from":"918590215315","type":"image","image":{"mediaUrl":"https://cdn.doubletick.io/legacy.jpg","caption":"legacy image"}}}`)
+	wh, ok, err := ParseWebhook(raw)
+	if err != nil || !ok || wh == nil || wh.Data.Image == nil {
+		t.Fatalf("expected legacy image webhook: ok=%v err=%v", ok, err)
+	}
+	if wh.Data.Image.URL != "https://cdn.doubletick.io/legacy.jpg" {
+		t.Fatalf("image URL = %q", wh.Data.Image.URL)
+	}
+}
+
+func TestParseWebhook_payloadV01ImageSnakeCaseURL(t *testing.T) {
+	raw := []byte(`{"payloadVersion":"0.1","from":"918590215315","type":"image","image":{"media_url":"https://cdn.doubletick.io/snake.jpg"}}`)
+	wh, ok, err := ParseWebhook(raw)
+	if err != nil || !ok || wh == nil || wh.Data.Image == nil {
+		t.Fatalf("expected payload image webhook: ok=%v err=%v", ok, err)
+	}
+	if wh.Data.Image.URL != "https://cdn.doubletick.io/snake.jpg" {
+		t.Fatalf("image URL = %q", wh.Data.Image.URL)
+	}
+}
+
 func TestParseWebhook_statusUpdateIgnored(t *testing.T) {
 	raw := []byte(`{"status":"DELIVERED","messageId":"abc","to":"918590215315","statusTimestamp":"2022-12-15T07:36:24.504Z"}`)
 

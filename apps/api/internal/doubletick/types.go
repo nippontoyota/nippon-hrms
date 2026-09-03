@@ -92,10 +92,10 @@ type MessageStatus struct {
 }
 
 type Webhook struct {
-	Event     string      `json:"event"`
-	Timestamp int64       `json:"timestamp"`
-	Data      MessageData `json:"data"`
-	RawPayload string     `json:"-"`
+	Event      string      `json:"event"`
+	Timestamp  int64       `json:"timestamp"`
+	Data       MessageData `json:"data"`
+	RawPayload string      `json:"-"`
 }
 
 func (w *Webhook) IsInbound() bool {
@@ -115,8 +115,11 @@ type MessageData struct {
 }
 
 type ImageBody struct {
-	URL     string `json:"url"`
-	Caption string `json:"caption,omitempty"`
+	URL           string `json:"url"`
+	MediaURL      string `json:"mediaUrl,omitempty"`
+	MediaURLSnake string `json:"media_url,omitempty"`
+	Link          string `json:"link,omitempty"`
+	Caption       string `json:"caption,omitempty"`
 }
 
 func (d *MessageData) Body() string {

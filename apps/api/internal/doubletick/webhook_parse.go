@@ -46,16 +46,22 @@ func tryParseLegacyEnvelope(raw []byte) (*Webhook, bool) {
 
 func tryParsePayloadV01(raw []byte) (*Webhook, bool) {
 	var p struct {
-		PayloadVersion string          `json:"payloadVersion"`
-		From           string          `json:"from"`
-		WabaNumber     string          `json:"wabaNumber"`
-		MessageID      string          `json:"messageId"`
-		Type           string          `json:"type"`
-		Text           *TextBody       `json:"text,omitempty"`
-		Button         *ButtonBody     `json:"button,omitempty"`
-		ListReply      *ListReplyBody  `json:"listReply,omitempty"`
-		Image          *struct { URL string `json:"url"`; MediaURL string `json:"mediaURL"`; Caption string `json:"caption"` } `json:"image,omitempty"`
-		Interactive    json.RawMessage `json:"interactive,omitempty"`
+		PayloadVersion string         `json:"payloadVersion"`
+		From           string         `json:"from"`
+		WabaNumber     string         `json:"wabaNumber"`
+		MessageID      string         `json:"messageId"`
+		Type           string         `json:"type"`
+		Text           *TextBody      `json:"text,omitempty"`
+		Button         *ButtonBody    `json:"button,omitempty"`
+		ListReply      *ListReplyBody `json:"listReply,omitempty"`
+		Image          *struct {
+			URL           string `json:"url"`
+			MediaURL      string `json:"mediaURL"`
+			MediaURLSnake string `json:"media_url"`
+			Link          string `json:"link"`
+			Caption       string `json:"caption"`
+		} `json:"image,omitempty"`
+		Interactive json.RawMessage `json:"interactive,omitempty"`
 	}
 	if err := json.Unmarshal(raw, &p); err != nil || p.PayloadVersion == "" || p.From == "" {
 		return nil, false
@@ -70,15 +76,11 @@ func tryParsePayloadV01(raw []byte) (*Webhook, bool) {
 		Button:    p.Button,
 		ListReply: p.ListReply,
 	}
-	
+
 	if p.Image != nil {
-		u := p.Image.MediaURL
-		if u == "" {
-			u = p.Image.URL
-		}
-		data.Image = &ImageBody{URL: u, Caption: p.Image.Caption}
+		data.Image = &ImageBody{URL: firstNonEmpty(p.Image.MediaURL, p.Image.MediaURLSnake, p.Image.Link, p.Image.URL), Caption: p.Image.Caption}
 	}
-	
+
 	applyInteractiveReply(p.Interactive, &data)
 
 	return &Webhook{
@@ -98,6 +100,9 @@ func tryParseDocsFormat(raw []byte) (*Webhook, bool) {
 			Payload            string          `json:"payload"`
 			InteractiveMessage json.RawMessage `json:"interactiveMessage,omitempty"`
 			URL                string          `json:"url"`
+			MediaURL           string          `json:"mediaUrl"`
+			MediaURLSnake      string          `json:"media_url"`
+			Link               string          `json:"link"`
 			Caption            string          `json:"caption"`
 		} `json:"message"`
 	}
@@ -140,10 +145,11 @@ func tryParseDocsFormat(raw []byte) (*Webhook, bool) {
 			return nil, false
 		}
 	case "IMAGE":
-		if strings.TrimSpace(p.Message.URL) == "" {
+		imageURL := firstNonEmpty(p.Message.URL, p.Message.MediaURL, p.Message.MediaURLSnake, p.Message.Link)
+		if strings.TrimSpace(imageURL) == "" {
 			return nil, false
 		}
-		data.Image = &ImageBody{URL: strings.TrimSpace(p.Message.URL), Caption: strings.TrimSpace(p.Message.Caption)}
+		data.Image = &ImageBody{URL: strings.TrimSpace(imageURL), Caption: strings.TrimSpace(p.Message.Caption)}
 	default:
 		return nil, false
 	}
@@ -190,8 +196,10 @@ func tryParseMetaCloud(raw []byte) (*Webhook, bool) {
 							} `json:"list_reply,omitempty"`
 						} `json:"interactive,omitempty"`
 						Image *struct {
-							URL     string `json:"url"`
-							Caption string `json:"caption"`
+							URL      string `json:"url"`
+							MediaURL string `json:"media_url"`
+							Link     string `json:"link"`
+							Caption  string `json:"caption"`
 						} `json:"image,omitempty"`
 					} `json:"messages"`
 					Statuses []json.RawMessage `json:"statuses"`
@@ -252,10 +260,14 @@ func tryParseMetaCloud(raw []byte) (*Webhook, bool) {
 					}
 				}
 			case "image":
-				if msg.Image == nil || strings.TrimSpace(msg.Image.URL) == "" {
+				imageURL := ""
+				if msg.Image != nil {
+					imageURL = firstNonEmpty(msg.Image.URL, msg.Image.MediaURL, msg.Image.Link)
+				}
+				if strings.TrimSpace(imageURL) == "" {
 					continue
 				}
-				data.Image = &ImageBody{URL: strings.TrimSpace(msg.Image.URL), Caption: strings.TrimSpace(msg.Image.Caption)}
+				data.Image = &ImageBody{URL: strings.TrimSpace(imageURL), Caption: strings.TrimSpace(msg.Image.Caption)}
 			default:
 				continue
 			}
@@ -340,6 +352,9 @@ func normalizeMessageData(data *MessageData) {
 	data.From = normalizePhone(data.From)
 	data.To = normalizePhone(data.To)
 	data.Type = strings.ToLower(data.Type)
+	if data.Image != nil {
+		data.Image.URL = firstNonEmpty(data.Image.URL, data.Image.MediaURL, data.Image.MediaURLSnake, data.Image.Link)
+	}
 }
 
 func normalizePhone(raw string) string {

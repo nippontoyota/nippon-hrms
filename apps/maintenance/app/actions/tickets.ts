@@ -7,6 +7,7 @@ import { ReporterType, TicketPriority, TicketStatus } from '@prisma/client'
 
 const createTicketSchema = z.object({
   reporter_name: z.string().min(2, "Name must be at least 2 characters."),
+  source_phone: z.string().trim().regex(/^\+?[6-9]\d{9,11}$/, "Valid phone number is required."),
   reporter_type: z.nativeEnum(ReporterType),
   location_id: z.string().min(1, "Location is required."),
   category_id: z.string().min(1, "Category is required."),
@@ -50,6 +51,7 @@ export async function createTicket(formData: z.infer<typeof createTicketSchema>)
         status: 'NEW',
         priority: validated.priority,
         reporter_name: validated.reporter_name,
+        source_phone: validated.source_phone,
         reporter_type: validated.reporter_type,
         location_id: validated.location_id,
         category_id: validated.category_id,

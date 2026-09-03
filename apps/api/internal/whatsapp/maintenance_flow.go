@@ -162,8 +162,10 @@ func (s *Service) handleMaintenanceAwaitImage(ctx context.Context, sess *Session
 
 	// Create the ticket!
 	name := "WhatsApp User"
+	employeeID := ""
 	if emp, _ := s.empRepo.FindByPhone(ctx, from); emp != nil {
 		name = emp.Name
+		employeeID = emp.ID
 	}
 
 	// 1. Resolve Location and Category
@@ -182,6 +184,7 @@ func (s *Service) handleMaintenanceAwaitImage(ctx context.Context, sess *Session
 	// 3. Create Ticket
 	ticketNum, err := s.maintenanceStore.CreateTicket(ctx, maintenance.TicketData{
 		ReporterName:    name, // We store the name
+		EmployeeID:      employeeID,
 		LocationID:      locID,
 		CategoryID:      catID,
 		Description:     sess.TempMaintenanceDescription,
