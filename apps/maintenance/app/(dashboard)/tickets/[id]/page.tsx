@@ -7,6 +7,7 @@ import { maintenanceTicketInclude, listMaintenanceAssignees } from '@/lib/mainte
 import { AssignmentControl, CloseTicketButton, CostForm } from '@/components/tickets/ticket-controls'
 
 export const dynamic = 'force-dynamic'
+export const preferredRegion = 'bom1'
 
 export default async function TicketDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
