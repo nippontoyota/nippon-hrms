@@ -1,34 +1,17 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import toast from 'react-hot-toast';
+import { useQuery } from '@tanstack/react-query';
 import { referralApi } from '@/api/referral';
 
 export default function ReferralsPage() {
-  const queryClient = useQueryClient();
 
   const { data: candidates, isLoading: isLoadingCandidates } = useQuery({
     queryKey: ['candidates'],
     queryFn: referralApi.listCandidates,
   });
 
-  const completionMutation = useMutation({
-    mutationFn: ({ id, technicalTestCompleted, backgroundVerificationCompleted }: { id: string; technicalTestCompleted: boolean; backgroundVerificationCompleted: boolean }) =>
-      referralApi.updateCandidateCompletion(id, { technicalTestCompleted, backgroundVerificationCompleted }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['candidates'] }),
-    onError: () => toast.error('Could not update screening completion.'),
-  });
-  const sendMutation = useMutation({
-    mutationFn: referralApi.sendCandidateToHeadOffice,
-    onSuccess: () => {
-      toast.success('Application sent to Head Office.');
-      queryClient.invalidateQueries({ queryKey: ['candidates'] });
-    },
-    onError: () => toast.error('Complete both checks before sending to Head Office.'),
-  });
-
   const handleExportCSV = () => {
     if (!candidates || candidates.length === 0) return;
     
-    const headers = ['Candidate Name', 'Designation', 'Phone', 'Resume URL', 'Referred By', 'Referrer Dept', 'Technical Test Complete', 'Background Verification Complete', 'Status', 'Date Applied'];
+    const headers = ['Candidate Name', 'Designation', 'Phone', 'Resume URL', 'Referred By', 'Referrer Dept', 'Date Applied'];
     const rows = candidates.map(c => [
       c.name,
       c.designation || 'General',
@@ -36,9 +19,6 @@ export default function ReferralsPage() {
       c.resumeUrl,
       c.referralLink?.employee?.name || 'Unknown',
       c.referralLink?.employee?.department || '',
-      c.technicalTestCompleted ? 'Yes' : 'No',
-      c.backgroundVerificationCompleted ? 'Yes' : 'No',
-      c.status,
       new Date(c.createdAt).toLocaleDateString()
     ]);
     
@@ -87,18 +67,16 @@ export default function ReferralsPage() {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Resume</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Referred By</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date Applied</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Checks</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Head Office</th>
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-100 dark:divide-slate-700/50">
                 {isLoadingCandidates ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">Loading...</td>
+                    <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">Loading...</td>
                   </tr>
                 ) : candidates?.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">No candidates found</td>
+                    <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">No candidates found</td>
                   </tr>
                 ) : (
                   candidates?.map((candidate) => (
@@ -135,26 +113,6 @@ export default function ReferralsPage() {
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {new Date(candidate.createdAt).toLocaleDateString()}
-                      </td>
-                      <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-300 space-y-1">
-                        <label className="flex items-center gap-2">
-                          <input type="checkbox" checked={candidate.technicalTestCompleted} disabled={completionMutation.isPending}
-                            onChange={(e) => completionMutation.mutate({ id: candidate.id, technicalTestCompleted: e.target.checked, backgroundVerificationCompleted: candidate.backgroundVerificationCompleted })} />
-                          Technical test complete
-                        </label>
-                        <label className="flex items-center gap-2">
-                          <input type="checkbox" checked={candidate.backgroundVerificationCompleted} disabled={completionMutation.isPending}
-                            onChange={(e) => completionMutation.mutate({ id: candidate.id, technicalTestCompleted: candidate.technicalTestCompleted, backgroundVerificationCompleted: e.target.checked })} />
-                          Background verification complete
-                        </label>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        {candidate.status === 'SENT_TO_HEAD_OFFICE' ? <span className="text-xs font-medium text-green-700 dark:text-green-400">Sent</span> : <button
-                          disabled={!candidate.technicalTestCompleted || !candidate.backgroundVerificationCompleted || sendMutation.isPending}
-                          onClick={() => sendMutation.mutate(candidate.id)}
-                          title={!candidate.technicalTestCompleted || !candidate.backgroundVerificationCompleted ? 'Complete both checks first' : 'Send to Head Office'}
-                          className="px-2.5 py-1.5 rounded-md text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >Send to Head Office</button>}
                       </td>
                     </tr>
                   ))

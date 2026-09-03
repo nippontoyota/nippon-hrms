@@ -22,8 +22,6 @@ export interface Candidate {
   resumeUrl: string;
   designation: string;
   status: string;
-  technicalTestCompleted: boolean;
-  backgroundVerificationCompleted: boolean;
   createdAt: string;
   updatedAt: string;
   referralLink?: ReferralLink;
@@ -39,10 +37,6 @@ export const referralApi = {
 
   updateCandidateStatus: (id: string, status: string) => 
     api.patch(`/candidates/${id}/status`, { status }).then((res) => res.data),
-  updateCandidateCompletion: (id: string, data: { technicalTestCompleted: boolean; backgroundVerificationCompleted: boolean }) =>
-    api.patch(`/candidates/${id}/screening`, data).then((res) => res.data),
-  sendCandidateToHeadOffice: (id: string) =>
-    api.post(`/candidates/${id}/send-to-head-office`).then((res) => res.data),
 
   // Public Routes
   getLinkDetails: (code: string) => 

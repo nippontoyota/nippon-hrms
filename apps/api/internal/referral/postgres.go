@@ -72,14 +72,14 @@ func (r *PostgresRepository) CreateCandidate(ctx context.Context, candidate *Can
 
 func (r *PostgresRepository) GetCandidateByPhone(ctx context.Context, phone string) (*Candidate, error) {
 	query := `
-		SELECT id, referral_link_id, name, phone, resume_url, designation, status, technical_test_completed, background_verification_completed, created_at, updated_at
+		SELECT id, referral_link_id, name, phone, resume_url, designation, status, created_at, updated_at
 		FROM candidates
 		WHERE phone = $1
 	`
 	var candidate Candidate
 	err := r.pool.QueryRow(ctx, query, phone).Scan(
 		&candidate.ID, &candidate.ReferralLinkID, &candidate.Name, &candidate.Phone,
-		&candidate.ResumeURL, &candidate.Designation, &candidate.Status, &candidate.TechnicalTestCompleted, &candidate.BackgroundVerificationCompleted, &candidate.CreatedAt, &candidate.UpdatedAt,
+		&candidate.ResumeURL, &candidate.Designation, &candidate.Status, &candidate.CreatedAt, &candidate.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -92,7 +92,7 @@ func (r *PostgresRepository) GetCandidateByPhone(ctx context.Context, phone stri
 
 func (r *PostgresRepository) ListCandidates(ctx context.Context) ([]Candidate, error) {
 	query := `
-		SELECT c.id, c.referral_link_id, c.name, c.phone, c.resume_url, c.designation, c.status, c.technical_test_completed, c.background_verification_completed, c.created_at, c.updated_at,
+		SELECT c.id, c.referral_link_id, c.name, c.phone, c.resume_url, c.designation, c.status, c.created_at, c.updated_at,
 		       r.id, r.employee_id, r.code, r.expires_at, r.created_at,
 		       e.id, e.name, COALESCE(e.department, ''), e.mobile_number
 		FROM candidates c
@@ -112,7 +112,7 @@ func (r *PostgresRepository) ListCandidates(ctx context.Context) ([]Candidate, e
 		var link ReferralLink
 		var emp employee.Employee
 		err := rows.Scan(
-			&c.ID, &c.ReferralLinkID, &c.Name, &c.Phone, &c.ResumeURL, &c.Designation, &c.Status, &c.TechnicalTestCompleted, &c.BackgroundVerificationCompleted, &c.CreatedAt, &c.UpdatedAt,
+			&c.ID, &c.ReferralLinkID, &c.Name, &c.Phone, &c.ResumeURL, &c.Designation, &c.Status, &c.CreatedAt, &c.UpdatedAt,
 			&link.ID, &link.EmployeeID, &link.Code, &link.ExpiresAt, &link.CreatedAt,
 			&emp.ID, &emp.Name, &emp.Department, &emp.MobileNumber,
 		)
@@ -144,33 +144,6 @@ func (r *PostgresRepository) UpdateCandidateStatus(ctx context.Context, id, stat
 	return nil
 }
 
-func (r *PostgresRepository) UpdateCandidateCompletion(ctx context.Context, id string, technicalTestCompleted, backgroundVerificationCompleted bool) error {
-	_, err := r.pool.Exec(ctx, `
-		UPDATE candidates
-		SET technical_test_completed = $1, background_verification_completed = $2, updated_at = NOW()
-		WHERE id = $3
-	`, technicalTestCompleted, backgroundVerificationCompleted, id)
-	if err != nil {
-		return fmt.Errorf("update candidate screening completion: %w", err)
-	}
-	return nil
-}
-
-func (r *PostgresRepository) SendCandidateToHeadOffice(ctx context.Context, id string) error {
-	result, err := r.pool.Exec(ctx, `
-		UPDATE candidates
-		SET status = 'SENT_TO_HEAD_OFFICE', updated_at = NOW()
-		WHERE id = $1 AND technical_test_completed = TRUE AND background_verification_completed = TRUE
-	`, id)
-	if err != nil {
-		return fmt.Errorf("send candidate to head office: %w", err)
-	}
-	if result.RowsAffected() == 0 {
-		return ErrScreeningIncomplete
-	}
-	return nil
-}
-
 func (r *PostgresRepository) GetCandidateByID(ctx context.Context, id string) (*Candidate, error) {
 	query := `
 		SELECT c.id, c.referral_link_id, c.name, c.phone, c.resume_url, c.designation, c.status, c.created_at, c.updated_at,
@@ -185,7 +158,7 @@ func (r *PostgresRepository) GetCandidateByID(ctx context.Context, id string) (*
 	var link ReferralLink
 	var emp employee.Employee
 	err := r.pool.QueryRow(ctx, query, id).Scan(
-		&candidate.ID, &candidate.ReferralLinkID, &candidate.Name, &candidate.Phone, &candidate.ResumeURL, &candidate.Designation, &candidate.Status, &candidate.TechnicalTestCompleted, &candidate.BackgroundVerificationCompleted, &candidate.CreatedAt, &candidate.UpdatedAt,
+		&candidate.ID, &candidate.ReferralLinkID, &candidate.Name, &candidate.Phone, &candidate.ResumeURL, &candidate.Designation, &candidate.Status, &candidate.CreatedAt, &candidate.UpdatedAt,
 		&link.ID, &link.EmployeeID, &link.Code, &link.ExpiresAt, &link.CreatedAt,
 		&emp.ID, &emp.Name, &emp.Department, &emp.MobileNumber,
 	)

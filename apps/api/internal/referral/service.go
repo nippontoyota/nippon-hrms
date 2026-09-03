@@ -15,12 +15,11 @@ import (
 )
 
 var (
-	ErrEmployeeNotFound    = errors.New("employee not found")
-	ErrEmployeeInactive    = errors.New("employee is inactive")
-	ErrDuplicateCandidate  = errors.New("candidate with this phone already exists")
-	ErrLinkExpired         = errors.New("referral link has expired")
-	ErrLinkNotFound        = errors.New("referral link not found")
-	ErrScreeningIncomplete = errors.New("technical test and background verification must be completed first")
+	ErrEmployeeNotFound   = errors.New("employee not found")
+	ErrEmployeeInactive   = errors.New("employee is inactive")
+	ErrDuplicateCandidate = errors.New("candidate with this phone already exists")
+	ErrLinkExpired        = errors.New("referral link has expired")
+	ErrLinkNotFound       = errors.New("referral link not found")
 )
 
 type Service struct {
@@ -32,8 +31,8 @@ type Service struct {
 }
 
 type statusUpdateTask struct {
-	CandidateID   string
-	Status        string
+	CandidateID string
+	Status      string
 	EmployeePhone string
 }
 
@@ -168,9 +167,6 @@ func (s *Service) UpdateCandidateStatus(ctx context.Context, id, status string) 
 	if candidate == nil {
 		return errors.New("candidate not found")
 	}
-	if status == "SENT_TO_HEAD_OFFICE" && (!candidate.TechnicalTestCompleted || !candidate.BackgroundVerificationCompleted) {
-		return ErrScreeningIncomplete
-	}
 
 	if err := s.repo.UpdateCandidateStatus(ctx, id, status); err != nil {
 		return fmt.Errorf("update status: %w", err)
@@ -194,7 +190,7 @@ func (s *Service) sendCandidateStatusWhatsApp(ctx context.Context, phone, candid
 	if s.dt == nil || !s.dt.Configured() {
 		return nil
 	}
-
+	
 	candidate, err := s.repo.GetCandidateByID(ctx, candidateID)
 	if err != nil || candidate == nil {
 		return err
@@ -202,37 +198,6 @@ func (s *Service) sendCandidateStatusWhatsApp(ctx context.Context, phone, candid
 
 	_, err = s.dt.SendTemplate(ctx, phone, "candidate_status_update", "en", []string{candidate.Name, status})
 	return err
-}
-
-func (s *Service) UpdateCandidateCompletion(ctx context.Context, id string, technicalTestCompleted, backgroundVerificationCompleted bool) error {
-	candidate, err := s.repo.GetCandidateByID(ctx, id)
-	if err != nil {
-		return fmt.Errorf("get candidate: %w", err)
-	}
-	if candidate == nil {
-		return errors.New("candidate not found")
-	}
-	return s.repo.UpdateCandidateCompletion(ctx, id, technicalTestCompleted, backgroundVerificationCompleted)
-}
-
-func (s *Service) SendCandidateToHeadOffice(ctx context.Context, id string) error {
-	candidate, err := s.repo.GetCandidateByID(ctx, id)
-	if err != nil {
-		return fmt.Errorf("get candidate: %w", err)
-	}
-	if candidate == nil {
-		return errors.New("candidate not found")
-	}
-	if !candidate.TechnicalTestCompleted || !candidate.BackgroundVerificationCompleted {
-		return ErrScreeningIncomplete
-	}
-	if err := s.repo.SendCandidateToHeadOffice(ctx, id); err != nil {
-		return fmt.Errorf("send candidate to head office: %w", err)
-	}
-	if candidate.ReferralLink != nil && candidate.ReferralLink.Employee != nil && candidate.ReferralLink.Employee.MobileNumber != "" {
-		s.statusQueue <- statusUpdateTask{CandidateID: id, Status: "SENT_TO_HEAD_OFFICE", EmployeePhone: candidate.ReferralLink.Employee.MobileNumber}
-	}
-	return nil
 }
 
 func (s *Service) ListCandidates(ctx context.Context) ([]Candidate, error) {
