@@ -187,6 +187,8 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 
 			r.Get("/candidates", referralH.ListCandidates)
 			r.Patch("/candidates/{id}/status", referralH.UpdateCandidateStatus)
+			r.Patch("/candidates/{id}/screening", referralH.UpdateCandidateCompletion)
+			r.Post("/candidates/{id}/send-to-head-office", referralH.SendCandidateToHeadOffice)
 			r.Get("/vehicle-referrals", vehicleReferralH.List)
 		})
 	})

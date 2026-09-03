@@ -107,9 +107,41 @@ func (h *ReferralHandler) UpdateCandidateStatus(w http.ResponseWriter, r *http.R
 	}
 
 	if err := h.svc.UpdateCandidateStatus(r.Context(), id, req.Status); err != nil {
+		if errors.Is(err, referral.ErrScreeningIncomplete) {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *ReferralHandler) UpdateCandidateCompletion(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		TechnicalTestCompleted          bool `json:"technicalTestCompleted"`
+		BackgroundVerificationCompleted bool `json:"backgroundVerificationCompleted"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if err := h.svc.UpdateCandidateCompletion(r.Context(), chi.URLParam(r, "id"), req.TechnicalTestCompleted, req.BackgroundVerificationCompleted); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *ReferralHandler) SendCandidateToHeadOffice(w http.ResponseWriter, r *http.Request) {
+	if err := h.svc.SendCandidateToHeadOffice(r.Context(), chi.URLParam(r, "id")); err != nil {
+		if errors.Is(err, referral.ErrScreeningIncomplete) {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	w.WriteHeader(http.StatusNoContent)
 }
