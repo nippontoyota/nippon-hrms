@@ -20,7 +20,7 @@ Example: Workshop Bay 3, Showroom, Main Office`
 	msgMaintenanceAwaitCategory = `Please select the *Category* of the issue.`
 
 	msgMaintenanceAwaitDescription = `Please describe the issue in detail.`
-	msgMaintenanceAwaitImage       = `Please attach one clear photo of the issue and send it here. The photo is required to submit the ticket.`
+	msgMaintenanceAwaitImage       = `Please attach a clear photo of the issue, or reply *Skip* if you do not have one.`
 
 	msgMaintenanceTicketCreated = `Your maintenance ticket (*%s*) has been submitted successfully!
 
@@ -153,7 +153,13 @@ func (s *Service) handleMaintenanceAwaitImage(ctx context.Context, sess *Session
 		s.sessions.Set(from, sess)
 		return s.handleIdle(ctx, sess, from, "Hi")
 	}
-	if !isSupportedMaintenanceImage(msgType, imageURL) {
+	skippedImage := isMaintenanceImageSkipped(input)
+	if skippedImage {
+		imageURL = ""
+		imageCaption = ""
+		msgType = ""
+	}
+	if !skippedImage && !isSupportedMaintenanceImage(msgType, imageURL) {
 		slog.Warn("rejected maintenance media", "media_type", strings.ToLower(strings.TrimSpace(msgType)), "has_media_url", strings.TrimSpace(imageURL) != "")
 		return s.sendText(ctx, from, msgMaintenanceImageInvalid)
 	}
@@ -206,6 +212,15 @@ func (s *Service) handleMaintenanceAwaitImage(ctx context.Context, sess *Session
 	return s.sendText(ctx, from, fmt.Sprintf(msgMaintenanceTicketCreated, ticketNum))
 }
 
+func isMaintenanceImageSkipped(input string) bool {
+	switch strings.ToLower(strings.TrimSpace(input)) {
+	case "skip", "no photo", "no photo available", "none", "not available", "no":
+		return true
+	default:
+		return false
+	}
+}
+
 func isSupportedMaintenanceImage(msgType, imageURL string) bool {
 	if strings.TrimSpace(imageURL) == "" {
 		return false
@@ -224,7 +239,7 @@ func isSupportedMaintenanceImage(msgType, imageURL string) bool {
 		return false
 	}
 	switch strings.ToLower(path.Ext(parsed.Path)) {
-	case ".jpg", ".jpeg", ".png", ".webp", ".gif", ".heic", ".heif":
+	case ".jpg", ".jpeg", ".png", ".webp":
 		return true
 	default:
 		return false

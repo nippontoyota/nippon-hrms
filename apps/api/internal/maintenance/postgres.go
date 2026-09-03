@@ -30,6 +30,8 @@ func NewStoreWithStorage(db *pgxpool.Pool, supabaseURL, serviceKey, doubleTickKe
 
 const maxMaintenanceImageBytes int64 = 10 * 1024 * 1024
 
+const maxMaintenanceImageURLLength = 2048
+
 const maintenanceMediaTimeout = 15 * time.Second
 
 type MediaStorage struct{ baseURL, serviceKey, doubleTickKey, bucket string }
@@ -62,7 +64,7 @@ func (m *MediaStorage) copyImage(ctx context.Context, sourceURL, sourcePhone, me
 		return "", err
 	}
 	u, err := url.Parse(sourceURL)
-	if err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" {
+	if err != nil || len(sourceURL) > maxMaintenanceImageURLLength || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" || u.User != nil {
 		return "", fmt.Errorf("invalid image URL")
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, sourceURL, nil)
@@ -89,8 +91,12 @@ func (m *MediaStorage) copyImage(ctx context.Context, sourceURL, sourcePhone, me
 	if i := strings.IndexByte(contentType, ';'); i >= 0 {
 		contentType = contentType[:i]
 	}
+	detectedType := http.DetectContentType(data)
 	if contentType == "" || contentType == "application/octet-stream" {
-		contentType = http.DetectContentType(data)
+		contentType = detectedType
+	}
+	if detectedType != "application/octet-stream" && contentType != detectedType {
+		return "", fmt.Errorf("image content type mismatch: header %q, detected %q", contentType, detectedType)
 	}
 	allowed := map[string]string{"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}
 	ext, ok := allowed[contentType]
