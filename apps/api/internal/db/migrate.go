@@ -61,6 +61,7 @@ func EnsureSchema(ctx context.Context, pool *pgxpool.Pool) error {
 			ADD COLUMN IF NOT EXISTS image_url TEXT,
 			ADD COLUMN IF NOT EXISTS image_caption TEXT,
 			ADD COLUMN IF NOT EXISTS source_phone TEXT,
+			ADD COLUMN IF NOT EXISTS employee_id TEXT,
 			ADD COLUMN IF NOT EXISTS source_message_id TEXT;
 		CREATE UNIQUE INDEX IF NOT EXISTS "Ticket_source_message_id_key"
 			ON "Ticket" (source_message_id) WHERE source_message_id IS NOT NULL;
