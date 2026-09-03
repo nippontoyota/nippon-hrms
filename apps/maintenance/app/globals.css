@@ -74,27 +74,27 @@
 /* Queue filters use color as a quick visual index; labels remain the source of truth. */
 @layer components {
   nav[aria-label="Ticket filters"] > a:nth-child(2):not([class~="bg-red-600"]) {
-    border-color: #c4b5fd;
-    background-color: #f5f3ff;
-    color: #6d28d9;
+    border-color: #c4b5fd !important;
+    background-color: #f5f3ff !important;
+    color: #6d28d9 !important;
   }
   nav[aria-label="Ticket filters"] > a:nth-child(3):not([class~="bg-red-600"]) {
-    border-color: #fcd34d;
-    background-color: #fffbeb;
-    color: #92400e;
+    border-color: #fcd34d !important;
+    background-color: #fffbeb !important;
+    color: #92400e !important;
   }
   nav[aria-label="Ticket filters"] > a:nth-child(4):not([class~="bg-red-600"]) {
-    border-color: #67e8f9;
-    background-color: #ecfeff;
-    color: #0e7490;
+    border-color: #67e8f9 !important;
+    background-color: #ecfeff !important;
+    color: #0e7490 !important;
   }
   nav[aria-label="Ticket filters"] > a:nth-child(5):not([class~="bg-red-600"]) {
-    border-color: #6ee7b7;
-    background-color: #ecfdf5;
-    color: #047857;
+    border-color: #6ee7b7 !important;
+    background-color: #ecfdf5 !important;
+    color: #047857 !important;
   }
-  nav[aria-label="Ticket filters"] > a:nth-child(2):not([class~="bg-red-600"]):hover { border-color: #8b5cf6; }
-  nav[aria-label="Ticket filters"] > a:nth-child(3):not([class~="bg-red-600"]):hover { border-color: #f59e0b; }
-  nav[aria-label="Ticket filters"] > a:nth-child(4):not([class~="bg-red-600"]):hover { border-color: #06b6d4; }
-  nav[aria-label="Ticket filters"] > a:nth-child(5):not([class~="bg-red-600"]):hover { border-color: #10b981; }
+  nav[aria-label="Ticket filters"] > a:nth-child(2):not([class~="bg-red-600"]):hover { border-color: #8b5cf6 !important; }
+  nav[aria-label="Ticket filters"] > a:nth-child(3):not([class~="bg-red-600"]):hover { border-color: #f59e0b !important; }
+  nav[aria-label="Ticket filters"] > a:nth-child(4):not([class~="bg-red-600"]):hover { border-color: #06b6d4 !important; }
+  nav[aria-label="Ticket filters"] > a:nth-child(5):not([class~="bg-red-600"]):hover { border-color: #10b981 !important; }
 }
