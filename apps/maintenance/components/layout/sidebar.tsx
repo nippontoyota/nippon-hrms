@@ -3,18 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { 
-  LayoutDashboard, 
-  Ticket, 
-  PlusCircle, 
-  Package, 
-  ArrowLeftRight, 
-  AlertTriangle,
-  Users,
-  MapPin,
-  Tag,
-  LogOut
-} from 'lucide-react'
+import { Ticket, LogOut } from 'lucide-react'
 import { logout } from '@/app/actions/auth'
 
 // Note: In a real app, these items would be filtered by user role
@@ -24,12 +13,6 @@ const navItems = [
     href: '/tickets',
     icon: Ticket,
     section: 'Maintenance'
-  },
-  {
-    title: 'Inventory',
-    href: '/inventory',
-    icon: Package,
-    section: 'Inventory'
   }
 ]
 
@@ -62,11 +45,11 @@ export function Sidebar() {
                         className={cn(
                           'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-all duration-200',
                           isActive 
-                            ? 'bg-red-600 text-foreground shadow-md shadow-red-900/20' 
-                            : 'text-slate-400 hover:bg-[#222] hover:text-foreground'
+                            ? 'bg-red-600 text-white shadow-md shadow-red-900/20'
+                            : 'text-slate-400 hover:bg-white/10 hover:text-white'
                         )}
                       >
-                        <item.icon className={cn("h-4 w-4", isActive ? "text-foreground" : "text-slate-400")} />
+                        <item.icon className={cn("h-4 w-4", isActive ? "text-white" : "text-slate-400")} />
                         {item.title}
                       </Link>
                     )

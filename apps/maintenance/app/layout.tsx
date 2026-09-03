@@ -19,9 +19,9 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: {
     template: "%s | Nippon Toyota",
-    default: "Maintenance & Inventory | Nippon Toyota",
+      default: "Maintenance operations | Nippon Toyota",
   },
-  description: "Internal maintenance ticketing and inventory system for Nippon Toyota.",
+  description: "Internal maintenance ticket queue for Nippon Toyota teams.",
   robots: {
     index: false,
     follow: false,

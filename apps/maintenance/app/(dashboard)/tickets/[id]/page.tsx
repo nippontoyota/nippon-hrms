@@ -1,196 +1,35 @@
-import prisma from '@/lib/prisma'
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { ArrowLeft, Clock3, ImageIcon, MapPin, Phone, UserRound } from 'lucide-react'
 import { format } from 'date-fns'
-import { updateTicketStatus } from '@/app/actions/tickets'
+import prisma from '@/lib/prisma'
+import { maintenanceTicketInclude, listMaintenanceAssignees } from '@/lib/maintenance'
+import { AssignmentControl, CloseTicketButton, CostForm } from '@/components/tickets/ticket-controls'
 
 export const dynamic = 'force-dynamic'
 
-export default async function TicketDetailsPage({ params }: { params: { id: string } }) {
+export default async function TicketDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  const [ticket, assignees] = await Promise.all([
+    prisma.ticket.findUnique({ where: { id }, include: maintenanceTicketInclude }),
+    listMaintenanceAssignees(),
+  ])
+  if (!ticket) notFound()
+  const materialCosts = ticket.costs.filter((cost) => cost.type === 'MATERIAL')
+  const labourCosts = ticket.costs.filter((cost) => cost.type === 'LABOUR')
+  const total = ticket.costs.reduce((sum, cost) => sum + Number(cost.amount), 0)
+  const status = ticket.status.replaceAll('_', ' ')
 
-  const ticket = await prisma.ticket.findUnique({
-    where: { id },
-    include: {
-      location: true,
-      category: true,
-      materials: {
-        include: {
-          inventory_item: true
-        }
-      },
-      status_history: {
-        orderBy: { created_at: 'desc' }
-      }
-    }
-  })
-
-  if (!ticket) {
-    notFound()
-  }
-
-  // Calculate raw material cost
-  const rawMaterialCost = ticket.materials.reduce((total, mat) => {
-    return total + (mat.quantity * Number(mat.unit_cost_at_time))
-  }, 0)
-
-  return (
-    <div className="space-y-6 p-4 md:p-6 pb-24">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight text-foreground">{ticket.ticket_number}</h2>
-          <p className="text-muted-foreground text-sm">Reported on {format(ticket.created_at, 'dd MMM yyyy, h:mm a')}</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Badge className="text-sm px-3 py-1 bg-accent text-foreground border-border" variant="outline">{ticket.status}</Badge>
-          <Badge className="text-sm px-3 py-1 border-transparent" style={{
-            backgroundColor: ticket.priority === 'EMERGENCY' ? '#ef4444' : ticket.priority === 'HIGH' ? '#f59e0b' : '#3b82f6',
-            color: 'white'
-          }}>{ticket.priority}</Badge>
-        </div>
+  return <div className="min-h-full bg-[#f4f6fa] pb-16">
+    <header className="border-b border-slate-200 bg-white px-5 py-5 sm:px-8"><div className="mx-auto max-w-7xl"><Link href="/tickets" className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-slate-500 hover:text-red-600"><ArrowLeft className="h-3.5 w-3.5" /> Back to queue</Link><div className="mt-5 flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-red-600">Maintenance ticket</p><h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-950">{ticket.ticket_number}</h1><p className="mt-1 text-sm text-slate-500">Created {format(ticket.created_at, 'dd MMM yyyy, h:mm a')}</p></div><div className="flex items-center gap-2"><span className="border border-slate-300 bg-slate-50 px-3 py-2 text-xs font-bold uppercase tracking-wide text-slate-700">{status}</span><span className="border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold uppercase tracking-wide text-red-700">{ticket.priority === 'EMERGENCY' ? 'Urgent' : ticket.priority}</span></div></div></div></header>
+    <main className="mx-auto grid max-w-7xl gap-5 px-5 py-5 lg:grid-cols-[minmax(0,1fr)_360px] sm:px-8">
+      <div className="space-y-5">
+        <section className="border border-slate-200 bg-white p-5 shadow-sm sm:p-6"><div className="flex items-start justify-between gap-4"><div><h2 className="text-lg font-bold text-slate-950">Issue details</h2><p className="mt-1 text-sm text-slate-500">Everything submitted through WhatsApp stays attached to this ticket.</p></div><Clock3 className="h-5 w-5 text-slate-400" /></div><div className="mt-6 grid gap-3 sm:grid-cols-2"><div className="border border-slate-200 bg-slate-50 p-4"><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Reporter</p><p className="mt-2 flex items-center gap-2 text-sm font-bold text-slate-900"><UserRound className="h-4 w-4 text-slate-400" />{ticket.reporter_name || 'Name not provided'}</p><p className="mt-1 flex items-center gap-2 text-sm text-slate-600"><Phone className="h-3.5 w-3.5 text-slate-400" />{ticket.source_phone || 'Phone not provided'}</p></div><div className="border border-slate-200 bg-slate-50 p-4"><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Location</p><p className="mt-2 flex items-center gap-2 text-sm font-bold text-slate-900"><MapPin className="h-4 w-4 text-slate-400" />{ticket.location.name}</p><p className="mt-1 text-sm text-slate-600">{ticket.category.name}</p></div></div><div className="mt-5"><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Description</p><p className="mt-2 whitespace-pre-wrap border border-slate-200 p-4 text-sm leading-6 text-slate-800">{ticket.description}</p></div>{ticket.image_url ? <div className="mt-5"><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Submitted photo</p><a href={ticket.image_url} target="_blank" rel="noreferrer" className="mt-2 block max-w-2xl overflow-hidden border border-slate-200 bg-slate-50"><img src={ticket.image_url} alt={ticket.image_caption || `Photo for ${ticket.ticket_number}`} className="max-h-[460px] w-full object-contain" /></a>{ticket.image_caption && <p className="mt-2 text-sm text-slate-500">{ticket.image_caption}</p>}</div> : <div className="mt-5 flex items-center gap-2 border border-dashed border-slate-300 p-4 text-sm text-slate-500"><ImageIcon className="h-4 w-4" />No photo was submitted.</div>}</section>
+        <section className="border border-slate-200 bg-white p-5 shadow-sm sm:p-6"><div className="flex items-end justify-between"><div><h2 className="text-lg font-bold text-slate-950">Costs</h2><p className="mt-1 text-sm text-slate-500">Record material and labour spend as it happens.</p></div><p className="text-xl font-bold tabular-nums text-slate-950">₹{total.toFixed(2)}</p></div><div className="mt-6 space-y-6"><div><h3 className="mb-3 text-sm font-bold text-slate-800">Materials</h3><CostList costs={materialCosts} /><div className="mt-3"><CostForm ticketId={ticket.id} type="MATERIAL" /></div></div><div className="border-t border-slate-200 pt-5"><h3 className="mb-3 text-sm font-bold text-slate-800">Labour</h3><CostList costs={labourCosts} /><div className="mt-3"><CostForm ticketId={ticket.id} type="LABOUR" /></div></div></div></section>
       </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          <Card className="bg-card border-border text-foreground">
-            <CardHeader>
-              <CardTitle className="text-lg">Issue Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                <div className="bg-accent p-3 rounded-md border border-border/50">
-                  <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Reporter</p>
-                  <p className="font-medium text-foreground">{ticket.reporter_name}</p>
-                  <p className="text-sm text-muted-foreground">{ticket.source_phone}</p>
-                  {ticket.employee_id && <p className="text-xs text-muted-foreground">Employee directory match: {ticket.employee_id}</p>}
-                </div>
-                <div className="bg-accent p-3 rounded-md border border-border/50">
-                  <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Location</p>
-                  <p className="font-medium text-foreground">{ticket.location.name}</p>
-                </div>
-                <div className="bg-accent p-3 rounded-md border border-border/50 sm:col-span-2">
-                  <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Category</p>
-                  <p className="font-medium text-foreground">{ticket.category.name}</p>
-                </div>
-              </div>
-              <div>
-                <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Description</p>
-                <div className="bg-accent p-4 rounded-md text-sm border border-border text-foreground whitespace-pre-wrap">
-                  {ticket.description}
-                </div>
-              </div>
-              {ticket.image_url && (
-                <div>
-                  <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">Submitted photo</p>
-                  <a href={ticket.image_url} target="_blank" rel="noreferrer" className="block rounded-md border border-border overflow-hidden bg-accent max-w-xl">
-                    <img src={ticket.image_url} alt={ticket.image_caption || `Photo for ${ticket.ticket_number}`} className="max-h-96 w-full object-contain" />
-                  </a>
-                  {ticket.image_caption && <p className="text-sm text-muted-foreground mt-2">{ticket.image_caption}</p>}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card border-border text-foreground overflow-hidden">
-            <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div>
-                <CardTitle className="text-lg">Required Materials</CardTitle>
-                <CardDescription className="text-muted-foreground">Inventory items assigned to fix this issue</CardDescription>
-              </div>
-              <Button size="sm" className="w-full sm:w-auto bg-muted hover:bg-zinc-700 text-foreground border-zinc-700 border">Add Material</Button>
-            </CardHeader>
-            <CardContent className="p-0 sm:p-6 sm:pt-0">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-border hover:bg-transparent">
-                      <TableHead className="text-muted-foreground whitespace-nowrap">Item</TableHead>
-                      <TableHead className="text-right text-muted-foreground whitespace-nowrap">Qty</TableHead>
-                      <TableHead className="text-right text-muted-foreground whitespace-nowrap">Unit Cost</TableHead>
-                      <TableHead className="text-right text-muted-foreground whitespace-nowrap">Total</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {ticket.materials.map((mat) => {
-                      const total = mat.quantity * Number(mat.unit_cost_at_time);
-                      return (
-                        <TableRow key={mat.id} className="border-border hover:bg-accent">
-                          <TableCell className="font-medium text-foreground whitespace-nowrap">{mat.inventory_item.name}</TableCell>
-                          <TableCell className="text-right text-foreground whitespace-nowrap">{mat.quantity} {mat.inventory_item.unit}</TableCell>
-                          <TableCell className="text-right text-foreground whitespace-nowrap">₹{Number(mat.unit_cost_at_time).toFixed(2)}</TableCell>
-                          <TableCell className="text-right font-medium text-foreground whitespace-nowrap">₹{total.toFixed(2)}</TableCell>
-                        </TableRow>
-                      )
-                    })}
-                    {ticket.materials.length === 0 && (
-                      <TableRow className="border-border hover:bg-transparent">
-                        <TableCell colSpan={4} className="text-center text-muted-foreground py-8 text-sm">
-                          No materials added yet.
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-              
-              <div className="mt-6 mx-4 sm:mx-0 flex justify-end pb-4 sm:pb-0">
-                <div className="bg-accent p-4 rounded-md w-full sm:w-auto sm:min-w-[250px] border border-border">
-                  <div className="flex justify-between font-bold text-foreground text-lg">
-                    <span>Total Cost:</span>
-                    <span className="text-red-400">₹{rawMaterialCost.toFixed(2)}</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="space-y-6">
-          <Card className="bg-card border-border text-foreground">
-            <CardHeader>
-              <CardTitle className="text-lg">Update Status</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <form action={updateTicketStatus}>
-                <input type="hidden" name="ticketId" value={ticket.id} />
-                <input type="hidden" name="status" value="IN_PROGRESS" />
-                <Button type="submit" disabled={ticket.status === 'IN_PROGRESS' || ticket.status === 'CLOSED'} className="w-full bg-blue-600 hover:bg-blue-700 text-foreground font-semibold">Mark In Progress</Button>
-              </form>
-              <form action={updateTicketStatus}>
-                <input type="hidden" name="ticketId" value={ticket.id} />
-                <input type="hidden" name="status" value="COMPLETED" />
-                <Button type="submit" disabled={ticket.status === 'COMPLETED' || ticket.status === 'CLOSED'} className="w-full bg-green-600 hover:bg-green-700 text-foreground font-semibold">Mark as Resolved</Button>
-              </form>
-              <form action={updateTicketStatus}>
-                <input type="hidden" name="ticketId" value={ticket.id} />
-                <input type="hidden" name="status" value="CLOSED" />
-                <Button type="submit" disabled={ticket.status === 'CLOSED'} className="w-full bg-muted hover:bg-zinc-700 border-zinc-700 border text-foreground">Close Ticket</Button>
-              </form>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card border-border text-foreground">
-            <CardHeader>
-              <CardTitle className="text-lg">Activity History</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {ticket.status_history.map((history) => (
-                  <div key={history.id} className="text-sm border-l-2 border-border pl-4 py-1 relative">
-                    <div className="absolute w-2 h-2 bg-zinc-700 rounded-full -left-[5px] top-2"></div>
-                    <p className="font-bold text-foreground">{history.status}</p>
-                    <p className="text-muted-foreground text-xs mt-0.5">{format(history.created_at, 'dd MMM yyyy, h:mm a')}</p>
-                    {history.notes && <p className="text-muted-foreground mt-1.5 bg-accent p-2 rounded text-xs border border-border/50">{history.notes}</p>}
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    </div>
-  )
+      <aside className="space-y-5"><section className="border border-slate-200 bg-white p-5 shadow-sm"><h2 className="text-lg font-bold text-slate-950">Ownership</h2><p className="mt-1 text-sm text-slate-500">Assign this work to a maintenance person.</p><div className="mt-5"><AssignmentControl ticketId={ticket.id} currentAssigneeId={ticket.assignee_id} assignees={assignees} /></div></section><section className="border border-slate-200 bg-white p-5 shadow-sm"><h2 className="text-lg font-bold text-slate-950">Close ticket</h2><p className="mt-1 text-sm text-slate-500">Close only when the work is complete. Closed tickets remain searchable.</p><div className="mt-5"><CloseTicketButton ticketId={ticket.id} disabled={ticket.status === 'CLOSED'} /></div></section><section className="border border-slate-200 bg-white p-5 shadow-sm"><h2 className="text-lg font-bold text-slate-950">Activity</h2><div className="mt-5 space-y-4">{ticket.activities.length === 0 && ticket.status_history.length === 0 && <p className="text-sm text-slate-500">No activity recorded yet.</p>}{[...ticket.activities.map((item) => ({ id: item.id, date: item.created_at, title: item.detail, actor: item.actor })), ...ticket.status_history.map((item) => ({ id: item.id, date: item.created_at, title: `Status: ${item.status.replaceAll('_', ' ')}`, actor: item.notes || 'System' }))].sort((a, b) => b.date.getTime() - a.date.getTime()).map((item) => <div key={item.id} className="border-l-2 border-red-200 pl-3"><p className="text-sm font-semibold text-slate-800">{item.title}</p><p className="mt-1 text-xs text-slate-500">{format(item.date, 'dd MMM, h:mm a')} · {item.actor}</p></div>)}</div></section></aside>
+    </main>
+  </div>
 }
+
+function CostList({ costs }: { costs: { id: string; description: string; amount: unknown }[] }) { return costs.length ? <div className="divide-y divide-slate-200 border-y border-slate-200">{costs.map((cost) => <div key={cost.id} className="flex items-center justify-between gap-3 py-3 text-sm"><span className="text-slate-700">{cost.description}</span><span className="font-bold tabular-nums text-slate-900">₹{Number(cost.amount).toFixed(2)}</span></div>)}</div> : <p className="border border-dashed border-slate-300 px-3 py-3 text-sm text-slate-500">Nothing recorded yet.</p> }

@@ -1,7 +1,7 @@
 {
   "name": "Nippon Toyota Maintenance",
   "short_name": "NT Maintenance",
-  "description": "Internal maintenance and inventory system",
+  "description": "Internal maintenance ticket queue",
   "start_url": "/dashboard",
   "display": "standalone",
   "background_color": "#000000",

@@ -2,13 +2,12 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Ticket, Package, UserCircle, LogOut } from 'lucide-react'
+import { Ticket, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { logout } from '@/app/actions/auth'
 
 const bottomNavItems = [
   { title: 'Tickets', href: '/tickets', icon: Ticket },
-  { title: 'Inventory', href: '/inventory', icon: Package },
 ]
 
 export function BottomNav() {
