@@ -28,8 +28,8 @@ export const metadata: Metadata = {
   },
   manifest: "/manifest.json",
   icons: {
-    icon: "/maintenance-mark.png",
-    apple: "/maintenance-mark.png",
+    icon: "/maintenance-mark-v2.png",
+    apple: "/maintenance-mark-v2.png",
   },
 };
 

@@ -24,7 +24,9 @@ export function Sidebar() {
   return (
     <div className="flex h-full w-64 flex-col bg-background text-foreground border-r border-border">
       <div className="flex h-16 items-center px-6 border-b border-border">
-        <img src="/nippon-logo.png" alt="Nippon Toyota" className="h-8 object-contain" />
+        <Link href="/tickets" aria-label="Go to maintenance tickets" className="rounded-sm focus:outline-none focus:ring-2 focus:ring-red-500">
+          <img src="/nippon-logo.png" alt="Nippon Toyota" className="h-8 object-contain" />
+        </Link>
       </div>
       <div className="flex-1 overflow-y-auto py-6">
         <nav className="space-y-8 px-3">
