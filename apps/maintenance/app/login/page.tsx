@@ -1,9 +1,6 @@
-import { Wrench } from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { PasswordInput } from '@/components/ui/password-input'
 import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 
