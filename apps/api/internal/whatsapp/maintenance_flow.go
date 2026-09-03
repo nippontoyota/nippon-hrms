@@ -20,14 +20,14 @@ Example: Workshop Bay 3, Showroom, Main Office`
 	msgMaintenanceAwaitCategory = `Please select the *Category* of the issue.`
 
 	msgMaintenanceAwaitDescription = `Please describe the issue in detail.`
-	msgMaintenanceAwaitImage       = `Please attach a clear photo of the issue, or reply *Skip* if you do not have one.`
+	msgMaintenanceAwaitImage       = `Please attach a clear photo of the issue, or reply "Skip" if you do not have one.`
 
 	msgMaintenanceTicketCreated = `Your maintenance ticket (*%s*) has been submitted successfully!
 
 Our team will review it shortly. Reply *Hi* to return to the main menu.`
 
 	msgMaintenanceError        = `There was an error creating your maintenance ticket. Please try again or contact support.\n\nReply *Hi* to return to the main menu.`
-	msgMaintenanceImageInvalid = `I need a photo for this ticket. Please attach an image and send it here.`
+	msgMaintenanceImageInvalid = `That file is not a supported photo. Please send a JPEG, PNG, or WEBP image, or reply "Skip" to submit without a photo.`
 )
 
 func maintenanceCategoryListSections() []doubletick.InteractiveListSection {
