@@ -122,6 +122,9 @@ model Ticket {
   assignments    TicketAssignment[]
   costs          TicketCost[]
   activities     TicketActivity[]
+
+  @@index([status, created_at])
+  @@index([assignee_id, status, created_at])
 }
 
 model MaintenanceAssignee {

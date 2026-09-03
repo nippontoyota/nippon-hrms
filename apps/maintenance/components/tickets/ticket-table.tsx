@@ -1,5 +1,7 @@
-import Link from 'next/link'
+import NextLink from 'next/link'
 import { ArrowDown, ArrowUp, ImageIcon, MapPin, Phone, UserRound } from 'lucide-react'
+
+const Link = (props: React.ComponentProps<typeof NextLink>) => <NextLink prefetch={false} {...props} />
 
 export type QueueTicket = {
   id: string

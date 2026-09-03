@@ -1,11 +1,13 @@
 import prisma from '@/lib/prisma'
-import Link from 'next/link'
+import NextLink from 'next/link'
 import { Search, SlidersHorizontal } from 'lucide-react'
 import { PageTransition } from '@/components/ui/page-transition'
 import { Prisma } from '@prisma/client'
 import { TicketTable, type QueueTicket } from '@/components/tickets/ticket-table'
 
 export const dynamic = 'force-dynamic'
+
+const Link = (props: React.ComponentProps<typeof NextLink>) => <NextLink prefetch={false} {...props} />
 
 type Queue = 'open' | 'assigned' | 'unattended' | 'closed'
 type TicketWithRows = Prisma.TicketGetPayload<{ include: { location: true; category: true; materials: true; assignee: true; costs: true } }> & { assignee_name?: string | null }
