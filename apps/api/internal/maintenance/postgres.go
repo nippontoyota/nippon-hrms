@@ -138,7 +138,7 @@ func (s *Store) MatchLocation(ctx context.Context, name string) (string, string,
 		LIMIT 1`,
 		"%"+name+"%", strings.TrimSpace(name)).Scan(&id, &locName)
 	if err != nil {
-		err = s.db.QueryRow(ctx, `INSERT INTO "Location" (id, name, is_active) VALUES (gen_random_uuid()::text, $1, true) RETURNING id`, strings.TrimSpace(name)).Scan(&id)
+		err = s.db.QueryRow(ctx, `INSERT INTO "Location" (id, name, is_active, updated_at) VALUES (gen_random_uuid()::text, $1, true, CURRENT_TIMESTAMP) RETURNING id`, strings.TrimSpace(name)).Scan(&id)
 		if err != nil {
 			return "", "", fmt.Errorf("location %q not found and could not be created: %w", name, err)
 		}

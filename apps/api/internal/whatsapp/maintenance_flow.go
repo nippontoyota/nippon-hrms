@@ -56,12 +56,12 @@ func maintenanceCategoryListSections() []doubletick.InteractiveListSection {
 
 func (s *Service) beginMaintenanceFlow(ctx context.Context, sess *Session, from string) error {
 	branches, err := s.maintenanceStore.ListActiveBranches(ctx)
-	if err != nil || len(branches) == 0 {
-		// Keep the ticket flow usable while branch data is being seeded in production.
-		// Branch routing is applied automatically when active branches are available.
-		sess.State = StateMaintenanceAwaitLocation
-		s.sessions.Set(from, sess)
-		return s.sendText(ctx, from, msgMaintenanceAwaitLocation)
+	if err != nil {
+		slog.Error("failed to list maintenance branches", "err", err)
+		return s.sendText(ctx, from, msgMaintenanceError)
+	}
+	if len(branches) == 0 {
+		return s.sendText(ctx, from, "No active maintenance branches are configured. Please contact support.")
 	}
 	sess.State = StateMaintenanceAwaitBranch
 	s.sessions.Set(from, sess)

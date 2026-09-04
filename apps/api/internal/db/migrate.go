@@ -68,6 +68,39 @@ func EnsureSchema(ctx context.Context, pool *pgxpool.Pool) error {
 		CREATE INDEX IF NOT EXISTS "Ticket_status_created_at_idx"
 			ON "Ticket" (status, created_at DESC);
 
+		DO $$
+		DECLARE
+			branch RECORD;
+			location_id TEXT;
+		BEGIN
+			IF to_regclass('public."MaintenanceBranch"') IS NOT NULL THEN
+				FOR branch IN
+					SELECT * FROM jsonb_to_recordset('[
+						{"code":"TL01A","location":"Thiruvalla"},
+						{"code":"PH01A","location":"Pathanamthitta"},
+						{"code":"KT01A","location":"Kottayam"},
+						{"code":"MV01A","location":"Muvattupuzha"},
+						{"code":"IR01A","location":"Irinjalakuda"},
+						{"code":"TI01A","location":"Trichur"},
+						{"code":"KL01A","location":"Kollam"},
+						{"code":"TR01A","location":"Kazhakoottam"},
+						{"code":"KY01A","location":"Kayamkulam"},
+						{"code":"CO01A","location":"Nettoor"},
+						{"code":"CO01B","location":"Kalamaserry"}
+					]'::jsonb) AS branches(code TEXT, location TEXT)
+				LOOP
+					INSERT INTO "Location" (id, name, is_active, updated_at)
+					VALUES (gen_random_uuid()::text, branch.location, true, CURRENT_TIMESTAMP)
+					ON CONFLICT (name) DO UPDATE SET is_active = true, updated_at = CURRENT_TIMESTAMP
+					RETURNING id INTO location_id;
+
+					INSERT INTO "MaintenanceBranch" (id, location_id, name, is_active)
+					VALUES (gen_random_uuid()::text, location_id, branch.code || ' - ' || branch.location, true)
+					ON CONFLICT (location_id) DO UPDATE SET name = EXCLUDED.name, is_active = true, updated_at = CURRENT_TIMESTAMP;
+				END LOOP;
+			END IF;
+		END $$;
+
 		CREATE TABLE IF NOT EXISTS employee_benefits (
 			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 			employee_id VARCHAR(50) NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
