@@ -5,28 +5,28 @@ import { Users, Buildings, Medal, Star, ArrowRight } from '@phosphor-icons/react
 function KPI({ label, value, subtext, icon: Icon, colorTheme }: { label: string; value: string | number; subtext: string; icon: any; colorTheme: 'blue' | 'emerald' | 'amber' | 'purple' }) {
   const themes = {
     blue: {
-      bg: 'bg-blue-50/30 dark:bg-blue-900/10',
+      bg: 'bg-blue-50 dark:bg-blue-900/20',
       icon: 'text-blue-600 dark:text-blue-400',
       border: 'border-blue-200/50 dark:border-blue-800/30',
-      hover: 'hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-300 dark:hover:border-blue-700',
+      hover: 'hover:bg-blue-100 dark:hover:bg-blue-900/40 hover:border-blue-300 dark:hover:border-blue-700',
     },
     emerald: {
-      bg: 'bg-emerald-50/30 dark:bg-emerald-900/10',
+      bg: 'bg-emerald-50 dark:bg-emerald-900/20',
       icon: 'text-emerald-600 dark:text-emerald-400',
       border: 'border-emerald-200/50 dark:border-emerald-800/30',
-      hover: 'hover:bg-emerald-50 dark:hover:bg-emerald-900/30 hover:border-emerald-300 dark:hover:border-emerald-700',
+      hover: 'hover:bg-emerald-100 dark:hover:bg-emerald-900/40 hover:border-emerald-300 dark:hover:border-emerald-700',
     },
     amber: {
-      bg: 'bg-amber-50/30 dark:bg-amber-900/10',
+      bg: 'bg-amber-50 dark:bg-amber-900/20',
       icon: 'text-amber-600 dark:text-amber-400',
       border: 'border-amber-200/50 dark:border-amber-800/30',
-      hover: 'hover:bg-amber-50 dark:hover:bg-amber-900/30 hover:border-amber-300 dark:hover:border-amber-700',
+      hover: 'hover:bg-amber-100 dark:hover:bg-amber-900/40 hover:border-amber-300 dark:hover:border-amber-700',
     },
     purple: {
-      bg: 'bg-purple-50/30 dark:bg-purple-900/10',
+      bg: 'bg-purple-50 dark:bg-purple-900/20',
       icon: 'text-purple-600 dark:text-purple-400',
       border: 'border-purple-200/50 dark:border-purple-800/30',
-      hover: 'hover:bg-purple-50 dark:hover:bg-purple-900/30 hover:border-purple-300 dark:hover:border-purple-700',
+      hover: 'hover:bg-purple-100 dark:hover:bg-purple-900/40 hover:border-purple-300 dark:hover:border-purple-700',
     }
   };
 
@@ -34,7 +34,7 @@ function KPI({ label, value, subtext, icon: Icon, colorTheme }: { label: string;
 
   return (
     <div 
-      className={`p-5 relative overflow-hidden transition-colors duration-200 border rounded-xl cursor-default ${theme.border} ${theme.bg} ${theme.hover}`}
+      className={`p-5 relative overflow-hidden transition-colors duration-200 border rounded-none cursor-default ${theme.border} ${theme.bg} ${theme.hover}`}
     >
       <div className="flex justify-between items-start mb-3">
         <p className="font-semibold text-[10px] uppercase tracking-widest text-slate-600 dark:text-slate-400">{label}</p>
@@ -105,7 +105,7 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 flex-1 pb-8">
         {/* Branch Distribution */}
         <div className="lg:col-span-2 relative min-h-[400px]">
-          <div className="card !p-0 overflow-hidden flex flex-col absolute inset-0">
+          <div className="card !rounded-none !p-0 overflow-hidden flex flex-col absolute inset-0">
             <div className="p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 shrink-0">
               <h2 className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest">Branch Distribution</h2>
             </div>
@@ -139,7 +139,7 @@ export default function DashboardPage() {
         {/* Right Column */}
         <div className="flex flex-col gap-8 lg:col-span-1 h-full">
           {/* Experience Breakdown */}
-          <div className="card !p-0 overflow-hidden flex flex-col self-start w-full">
+          <div className="card !rounded-none !p-0 overflow-hidden flex flex-col self-start w-full">
             <div className="p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 shrink-0">
               <h2 className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest">Experience Breakdown</h2>
             </div>
@@ -176,7 +176,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Designation Breakdown */}
-          <div className="card !p-0 overflow-hidden flex flex-col w-full flex-1 max-h-[400px]">
+          <div className="card !rounded-none !p-0 overflow-hidden flex flex-col w-full flex-1 max-h-[400px]">
             <div className="p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 shrink-0">
               <h2 className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest">Designation Breakdown</h2>
             </div>
