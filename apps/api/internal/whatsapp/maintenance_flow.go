@@ -45,12 +45,25 @@ func maintenanceBranchListSections(branches []maintenance.Branch, offset int) []
 	}
 	if end < len(branches) {
 		rows = append(rows, doubletick.InteractiveListRow{
-			ID:          "branch_more_" + strconv.Itoa(end),
-			Title:       "More branches",
-			Description: "Show the remaining branches",
+			ID:          "branch_next_" + strconv.Itoa(end),
+			Title:       "Next page",
+			Description: "Show more branches",
+		})
+	}
+	if offset > 0 {
+		rows = append(rows, doubletick.InteractiveListRow{
+			ID:          "branch_back_" + strconv.Itoa(offset-maintenanceBranchPageSize),
+			Title:       "Back",
+			Description: "Return to the previous page",
 		})
 	}
 	return []doubletick.InteractiveListSection{{Title: "Branches", Rows: rows}}
+}
+
+func maintenanceBranchPrompt(offset, total int) string {
+	pages := (total + maintenanceBranchPageSize - 1) / maintenanceBranchPageSize
+	page := offset/maintenanceBranchPageSize + 1
+	return fmt.Sprintf("%s\n\nPage %d of %d", msgMaintenanceAwaitBranch, page, pages)
 }
 
 func maintenanceCategoryListSections() []doubletick.InteractiveListSection {
@@ -79,7 +92,7 @@ func (s *Service) beginMaintenanceFlow(ctx context.Context, sess *Session, from 
 	}
 	sess.State = StateMaintenanceAwaitBranch
 	s.sessions.Set(from, sess)
-	_, err = s.dt.SendInteractiveList(ctx, from, "", msgMaintenanceAwaitBranch, "", "Select Branch", maintenanceBranchListSections(branches, 0))
+	_, err = s.dt.SendInteractiveList(ctx, from, "", maintenanceBranchPrompt(0, len(branches)), "", "Select Branch", maintenanceBranchListSections(branches, 0))
 	return err
 }
 
@@ -90,8 +103,17 @@ func (s *Service) handleMaintenanceAwaitBranch(ctx context.Context, sess *Sessio
 		return s.handleIdle(ctx, sess, from, input)
 	}
 	input = strings.TrimSpace(input)
-	if strings.HasPrefix(strings.ToLower(input), "branch_more_") {
-		offset, parseErr := strconv.Atoi(input[len("branch_more_"):])
+	pageAction := ""
+	pageActionPrefix := ""
+	if strings.HasPrefix(strings.ToLower(input), "branch_next_") {
+		pageAction = input[len("branch_next_"):]
+		pageActionPrefix = "branch_next_"
+	} else if strings.HasPrefix(strings.ToLower(input), "branch_back_") {
+		pageAction = input[len("branch_back_"):]
+		pageActionPrefix = "branch_back_"
+	}
+	if pageActionPrefix != "" {
+		offset, parseErr := strconv.Atoi(pageAction)
 		if parseErr != nil || offset < 0 {
 			return nil
 		}
@@ -99,7 +121,7 @@ func (s *Service) handleMaintenanceAwaitBranch(ctx context.Context, sess *Sessio
 		if err != nil || offset >= len(branches) {
 			return nil
 		}
-		_, err = s.dt.SendInteractiveList(ctx, from, "", msgMaintenanceAwaitBranch, "", "Select Branch", maintenanceBranchListSections(branches, offset))
+		_, err = s.dt.SendInteractiveList(ctx, from, "", maintenanceBranchPrompt(offset, len(branches)), "", "Select Branch", maintenanceBranchListSections(branches, offset))
 		return err
 	}
 	if strings.HasPrefix(strings.ToLower(input), "branch_") {
