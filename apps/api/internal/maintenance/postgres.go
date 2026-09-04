@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/nippon-toyota/hrms/pkg/phone"
 )
@@ -148,13 +149,21 @@ func (s *Store) MatchLocation(ctx context.Context, name string) (string, string,
 
 // MatchCategory attempts to find a category by partial name match.
 func (s *Store) MatchCategory(ctx context.Context, name string) (string, string, error) {
+	name = strings.TrimSpace(name)
 	var id, catName string
 	err := s.db.QueryRow(ctx, `
 		SELECT id, name FROM "Category" 
-		WHERE is_active = true AND type IN ('TICKET', 'INVENTORY') AND (name ILIKE $1 OR $1 ILIKE '%' || name || '%')
+		WHERE is_active = true AND (name ILIKE $1 OR $1 ILIKE '%' || name || '%')
 		ORDER BY CASE WHEN lower(name) = lower($2) THEN 0 ELSE 1 END, length(name)
 		LIMIT 1`,
-		"%"+name+"%", strings.TrimSpace(name)).Scan(&id, &catName)
+		"%"+name+"%", name).Scan(&id, &catName)
+	if err == pgx.ErrNoRows && name != "" {
+		err = s.db.QueryRow(ctx, `
+			INSERT INTO "Category" (id, name, type, is_active, created_at, updated_at)
+			VALUES (gen_random_uuid()::text, $1, 'TICKET', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+			ON CONFLICT (name) DO UPDATE SET is_active = true, updated_at = CURRENT_TIMESTAMP
+			RETURNING id, name`, name).Scan(&id, &catName)
+	}
 	if err != nil {
 		return "", "", fmt.Errorf("category %q not found", name)
 	}
