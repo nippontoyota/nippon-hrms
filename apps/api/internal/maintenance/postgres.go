@@ -151,7 +151,7 @@ func (s *Store) MatchCategory(ctx context.Context, name string) (string, string,
 	var id, catName string
 	err := s.db.QueryRow(ctx, `
 		SELECT id, name FROM "Category" 
-		WHERE is_active = true AND type = 'TICKET' AND (name ILIKE $1 OR $1 ILIKE '%' || name || '%')
+		WHERE is_active = true AND type IN ('TICKET', 'INVENTORY') AND (name ILIKE $1 OR $1 ILIKE '%' || name || '%')
 		ORDER BY CASE WHEN lower(name) = lower($2) THEN 0 ELSE 1 END, length(name)
 		LIMIT 1`,
 		"%"+name+"%", strings.TrimSpace(name)).Scan(&id, &catName)
