@@ -2,7 +2,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import prisma from '@/lib/prisma'
-import { loginKey, sessionTtlSeconds, verifySecret } from '@/lib/password'
+import { sessionTtlSeconds, verifySecret } from '@/lib/password'
 
 export const MAINTENANCE_COOKIE = 'maintenance_session'
 export type MaintenanceSession = { accountId: string; role: 'ADMIN' | 'BRANCH'; branchId: string | null; expiresAt: number }
@@ -75,10 +75,11 @@ export async function requireMaintenanceActor() { return (await requireMaintenan
 export async function authenticateMaintenance(identifier: string, secret: string) {
   const normalized = identifier.trim()
   const isAdminLogin = normalized.includes('@')
+  const branchCode = normalized.toUpperCase()
   const account = isAdminLogin
     ? await prisma.maintenanceAccount.findFirst({ where: { email: normalized.toLowerCase(), is_active: true }, select: { id: true, role: true, branch_id: true, secret_hash: true } })
-    : await prisma.maintenanceAccount.findFirst({ where: { branch: { name: branchNamesByCode[normalized.toUpperCase()] }, is_active: true }, select: { id: true, role: true, branch_id: true, secret_hash: true } })
-  if (!account || !(await verifySecret(isAdminLogin ? secret : normalized, account.secret_hash))) return null
+    : await prisma.maintenanceAccount.findFirst({ where: { branch: { name: branchNamesByCode[branchCode] }, is_active: true }, select: { id: true, role: true, branch_id: true, secret_hash: true } })
+  if (!account || (!isAdminLogin && !branchNamesByCode[branchCode]) || (isAdminLogin && !(await verifySecret(secret, account.secret_hash)))) return null
   await createMaintenanceSession(account)
   return { role: account.role, branchId: account.branch_id }
 }
