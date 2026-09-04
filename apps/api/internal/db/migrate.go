@@ -88,7 +88,7 @@ func EnsureSchema(ctx context.Context, pool *pgxpool.Pool) error {
 		DO $$
 		DECLARE
 			branch RECORD;
-			location_id TEXT;
+			branch_location_id TEXT;
 		BEGIN
 			FOR branch IN
 					SELECT * FROM jsonb_to_recordset('[
@@ -108,10 +108,10 @@ func EnsureSchema(ctx context.Context, pool *pgxpool.Pool) error {
 					INSERT INTO "Location" (id, name, is_active, updated_at)
 					VALUES (gen_random_uuid()::text, branch.location, true, CURRENT_TIMESTAMP)
 					ON CONFLICT (name) DO UPDATE SET is_active = true, updated_at = CURRENT_TIMESTAMP
-					RETURNING id INTO location_id;
+					RETURNING id INTO branch_location_id;
 
 					INSERT INTO "MaintenanceBranch" (id, location_id, name, is_active)
-					VALUES (gen_random_uuid()::text, location_id, branch.name, true)
+					VALUES (gen_random_uuid()::text, branch_location_id, branch.name, true)
 					ON CONFLICT (location_id) DO UPDATE SET name = EXCLUDED.name, is_active = true, updated_at = CURRENT_TIMESTAMP;
 			END LOOP;
 		END $$;
