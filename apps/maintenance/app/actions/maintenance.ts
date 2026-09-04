@@ -1,11 +1,13 @@
 'use server'
 
 import { CostType, Prisma, TicketStatus } from '@prisma/client'
+import { randomBytes } from 'node:crypto'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import prisma from '@/lib/prisma'
 import { listMaintenanceAssignees } from '@/lib/maintenance'
-import { requireMaintenanceActor } from '@/lib/maintenance-auth'
+import { requireMaintenanceActor, requireMaintenanceAdmin, requireMaintenanceBranch, requireMaintenanceSession } from '@/lib/maintenance-auth'
+import { hashSecret, loginKey } from '@/lib/password'
 
 const ticketId = z.string().trim().min(1, 'Ticket is required.')
 const assigneeId = z.string().trim().min(1, 'Assignee is required.')
@@ -22,6 +24,9 @@ const costInput = z.object({
   amount: z.preprocess((value) => typeof value === 'string' ? Number(value) : value, costAmount),
 })
 const closeInput = z.object({ ticketId })
+const transferInput = z.object({ ticketId, destinationBranchId: z.string().trim().min(1), reason: z.string().trim().min(5).max(500) })
+const transferDecisionInput = z.object({ transferId: z.string().trim().min(1), reason: z.string().trim().max(500).optional() })
+const branchAccountInput = z.object({ branchId: z.string().trim().min(1), code: z.string().trim().regex(/^[A-Za-z0-9]{6,12}$/).optional() })
 
 function revalidateTicket(ticketId: string) {
   revalidatePath('/tickets')
@@ -35,7 +40,7 @@ export async function getAssignees() {
 }
 
 export async function addAssignee(input: unknown) {
-  const actor = await requireMaintenanceActor()
+  const actor = (await requireMaintenanceAdmin()).accountId
   const { name } = assigneeInput.parse(input)
   const normalizedName = name.toLocaleLowerCase()
 
@@ -54,12 +59,13 @@ export async function addAssignee(input: unknown) {
 }
 
 export async function assignTicket(input: unknown) {
-  const actor = await requireMaintenanceActor()
+  const session = await requireMaintenanceSession()
+  const actor = session.accountId
   const parsed = assignmentInput.parse(input)
 
   try {
     await prisma.$transaction(async (tx) => {
-      const ticket = await tx.ticket.findUnique({ where: { id: parsed.ticketId }, select: { assignee_id: true, status: true } })
+      const ticket = await tx.ticket.findFirst({ where: { id: parsed.ticketId, ...(session.role === 'BRANCH' ? { branch_id: session.branchId } : {}) }, select: { assignee_id: true, status: true } })
       if (!ticket) throw new Error('Ticket not found')
       if (ticket.status === TicketStatus.CLOSED) throw new Error('Closed tickets cannot be reassigned')
 
@@ -90,12 +96,13 @@ export async function assignTicket(input: unknown) {
 }
 
 export async function addTicketCost(input: unknown) {
-  const actor = await requireMaintenanceActor()
+  const session = await requireMaintenanceSession()
+  const actor = session.accountId
   const parsed = costInput.parse(input)
 
   try {
     await prisma.$transaction(async (tx) => {
-      const ticket = await tx.ticket.findUnique({ where: { id: parsed.ticketId }, select: { status: true } })
+      const ticket = await tx.ticket.findFirst({ where: { id: parsed.ticketId, ...(session.role === 'BRANCH' ? { branch_id: session.branchId } : {}) }, select: { status: true } })
       if (!ticket) throw new Error('Ticket not found')
       if (ticket.status === TicketStatus.CLOSED) throw new Error('Closed tickets cannot receive new costs')
       const cost = await tx.ticketCost.create({ data: { ticket_id: parsed.ticketId, type: parsed.type, description: parsed.description, amount: parsed.amount, created_by: actor } })
@@ -110,12 +117,13 @@ export async function addTicketCost(input: unknown) {
 }
 
 export async function closeTicket(input: unknown) {
-  const actor = await requireMaintenanceActor()
+  const session = await requireMaintenanceSession()
+  const actor = session.accountId
   const parsed = closeInput.parse(input)
 
   try {
     await prisma.$transaction(async (tx) => {
-      const changed = await tx.ticket.updateMany({ where: { id: parsed.ticketId, status: { not: TicketStatus.CLOSED } }, data: { status: TicketStatus.CLOSED } })
+      const changed = await tx.ticket.updateMany({ where: { id: parsed.ticketId, status: { not: TicketStatus.CLOSED }, ...(session.role === 'BRANCH' ? { branch_id: session.branchId } : {}) }, data: { status: TicketStatus.CLOSED } })
       if (changed.count === 0) {
         const ticket = await tx.ticket.findUnique({ where: { id: parsed.ticketId }, select: { id: true, status: true } })
         if (!ticket) throw new Error('Ticket not found')
@@ -130,4 +138,94 @@ export async function closeTicket(input: unknown) {
     console.error('Failed to close maintenance ticket', { actor, error })
     return { success: false as const, error: error instanceof Error ? error.message : 'Unable to close the ticket.' }
   }
+}
+
+export async function listMaintenanceBranches() {
+  await requireMaintenanceSession()
+  return prisma.maintenanceBranch.findMany({ where: { is_active: true }, orderBy: { name: 'asc' }, select: { id: true, name: true } })
+}
+
+export async function listBranchAccounts() {
+  await requireMaintenanceAdmin()
+  return prisma.maintenanceBranch.findMany({ orderBy: { name: 'asc' }, include: { account: { select: { id: true, is_active: true } } } })
+}
+
+function generatedBranchCode() { return `NT${randomBytes(3).toString('hex').toUpperCase()}` }
+
+export async function createBranchAccount(input: unknown) {
+  const session = await requireMaintenanceAdmin()
+  const parsed = branchAccountInput.parse(input)
+  const code = parsed.code || generatedBranchCode()
+  try {
+    const branch = await prisma.maintenanceBranch.findFirst({ where: { id: parsed.branchId, is_active: true }, select: { id: true, name: true } })
+    if (!branch) throw new Error('Branch not found')
+    const account = await prisma.maintenanceAccount.upsert({ where: { branch_id: branch.id }, update: { login_key: loginKey(code), secret_hash: await hashSecret(code), role: 'BRANCH', is_active: true }, create: { branch_id: branch.id, login_key: loginKey(code), secret_hash: await hashSecret(code), role: 'BRANCH', is_active: true } })
+    revalidatePath('/admin/branches')
+    return { success: true as const, code, branch: account.branch_id }
+  } catch (error) { console.error('Failed to create branch account', { actor: session.accountId, error }); return { success: false as const, error: error instanceof Error ? error.message : 'Unable to create branch account.' } }
+}
+
+export async function rotateBranchCode(input: unknown) {
+  const session = await requireMaintenanceAdmin()
+  const parsed = branchAccountInput.parse(input)
+  const code = parsed.code || generatedBranchCode()
+  try {
+    const account = await prisma.maintenanceAccount.findFirst({ where: { branch_id: parsed.branchId, role: 'BRANCH' } })
+    if (!account) throw new Error('Branch account not found')
+    await prisma.maintenanceAccount.update({ where: { id: account.id }, data: { login_key: loginKey(code), secret_hash: await hashSecret(code) } })
+    revalidatePath('/admin/branches')
+    return { success: true as const, code }
+  } catch (error) { console.error('Failed to rotate branch code', { actor: session.accountId, error }); return { success: false as const, error: error instanceof Error ? error.message : 'Unable to rotate branch code.' } }
+}
+
+export async function requestTicketTransfer(input: unknown) {
+  const session = await requireMaintenanceBranch()
+  const branchId = session.branchId
+  if (!branchId) throw new Error('Branch account is not configured')
+  const parsed = transferInput.parse(input)
+  try {
+    await prisma.$transaction(async (tx) => {
+      const ticket = await tx.ticket.findFirst({ where: { id: parsed.ticketId, branch_id: branchId, status: { not: TicketStatus.CLOSED } }, select: { branch_id: true, ticket_number: true } })
+      if (!ticket) throw new Error('Ticket not found')
+      if (parsed.destinationBranchId === branchId) throw new Error('Choose another branch')
+      const destination = await tx.maintenanceBranch.findFirst({ where: { id: parsed.destinationBranchId, is_active: true }, select: { name: true } })
+      if (!destination) throw new Error('Destination branch not found')
+      const pending = await tx.ticketTransfer.findFirst({ where: { ticket_id: parsed.ticketId, status: 'PENDING' } })
+      if (pending) throw new Error('This ticket already has a pending transfer')
+      await tx.ticketTransfer.create({ data: { ticket_id: parsed.ticketId, source_branch_id: branchId, destination_branch_id: parsed.destinationBranchId, requested_by_id: session.accountId, reason: parsed.reason } })
+      await tx.ticketActivity.create({ data: { ticket_id: parsed.ticketId, actor: session.accountId, type: 'ASSIGNED', detail: `Transfer requested to ${destination.name}: ${parsed.reason}` } })
+    })
+    revalidateTicket(parsed.ticketId)
+    revalidatePath('/transfers')
+    return { success: true as const }
+  } catch (error) { return { success: false as const, error: error instanceof Error ? error.message : 'Unable to request transfer.' } }
+}
+
+export async function acceptTicketTransfer(input: unknown) {
+  const session = await requireMaintenanceSession()
+  const branchId = session.branchId
+  const parsed = transferDecisionInput.parse(input)
+  try {
+    await prisma.$transaction(async (tx) => {
+      const transfer = await tx.ticketTransfer.findFirst({ where: { id: parsed.transferId, status: 'PENDING', ...(session.role === 'BRANCH' && branchId ? { destination_branch_id: branchId } : {}) }, select: { ticket_id: true, destination_branch_id: true, source_branch_id: true } })
+      if (!transfer) throw new Error('Transfer is no longer pending')
+      await tx.ticketTransfer.update({ where: { id: parsed.transferId }, data: { status: 'ACCEPTED', response_reason: parsed.reason || null, responded_at: new Date() } })
+      await tx.ticket.update({ where: { id: transfer.ticket_id }, data: { branch_id: transfer.destination_branch_id } })
+      await tx.ticketActivity.create({ data: { ticket_id: transfer.ticket_id, actor: session.accountId, type: 'ASSIGNED', detail: 'Transfer accepted' } })
+    })
+    revalidatePath('/tickets'); revalidatePath('/transfers')
+    return { success: true as const }
+  } catch (error) { return { success: false as const, error: error instanceof Error ? error.message : 'Unable to accept transfer.' } }
+}
+
+export async function rejectTicketTransfer(input: unknown) {
+  const session = await requireMaintenanceSession()
+  const branchId = session.branchId
+  const parsed = transferDecisionInput.parse(input)
+  try {
+    const result = await prisma.ticketTransfer.updateMany({ where: { id: parsed.transferId, status: 'PENDING', ...(session.role === 'BRANCH' && branchId ? { destination_branch_id: branchId } : {}) }, data: { status: 'REJECTED', response_reason: parsed.reason || 'Rejected by destination branch', responded_at: new Date() } })
+    if (!result.count) return { success: false as const, error: 'Transfer is no longer pending.' }
+    revalidatePath('/transfers')
+    return { success: true as const }
+  } catch (error) { return { success: false as const, error: error instanceof Error ? error.message : 'Unable to reject transfer.' } }
 }

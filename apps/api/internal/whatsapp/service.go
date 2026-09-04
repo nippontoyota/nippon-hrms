@@ -212,6 +212,8 @@ func (s *Service) handleWebhookLocked(ctx context.Context, from, input, msgType,
 		err = s.handleLeaveAwaitRejectionReason(ctx, sess, from, input)
 	case StateLeaveAwaitPickRequest:
 		err = s.handleLeaveAwaitPickRequest(ctx, sess, from, input)
+	case StateMaintenanceAwaitBranch:
+		err = s.handleMaintenanceAwaitBranch(ctx, sess, from, input)
 	case StateMaintenanceAwaitLocation:
 		err = s.handleMaintenanceAwaitLocation(ctx, sess, from, input)
 	case StateMaintenanceAwaitCategory:

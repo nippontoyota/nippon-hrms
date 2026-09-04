@@ -5,6 +5,7 @@ import prisma from '@/lib/prisma'
 import { businessDayCutoff } from '@/lib/queue-state'
 import { PageTransition } from '@/components/ui/page-transition'
 import { TicketTable, type QueueTicket } from '@/components/tickets/ticket-table'
+import { requireMaintenanceSession } from '@/lib/maintenance-auth'
 
 export const dynamic = 'force-dynamic'
 export const preferredRegion = 'bom1'
@@ -55,7 +56,7 @@ function orderSql(sort: Sort, direction: Prisma.SortOrder) {
   return Prisma.sql`t.created_at ${dir}`
 }
 
-async function unattendedIds(query: string, sort: Sort, direction: Prisma.SortOrder, page: number, pageSize: number, cutoff: Date) {
+async function unattendedIds(query: string, sort: Sort, direction: Prisma.SortOrder, page: number, pageSize: number, cutoff: Date, branchId: string | null) {
   const search = unattendedSearch(query)
   return prisma.$queryRaw<{ id: string }[]>(Prisma.sql`
     SELECT t.id
@@ -64,14 +65,14 @@ async function unattendedIds(query: string, sort: Sort, direction: Prisma.SortOr
     LEFT JOIN "Category" c ON c.id = t.category_id
     LEFT JOIN "MaintenanceAssignee" a ON a.id = t.assignee_id
     ${latestUpdateJoins()}
-    WHERE t.status <> 'CLOSED'
+    WHERE t.status <> 'CLOSED' ${branchId ? Prisma.sql`AND t.branch_id = ${branchId}` : Prisma.empty}
     ${search}
     AND ${unattendedCondition(cutoff)}
     ORDER BY ${orderSql(sort, direction)}
     LIMIT ${pageSize + 1} OFFSET ${(page - 1) * pageSize}`)
 }
 
-async function queueCounts(query: string, cutoff: Date) {
+async function queueCounts(query: string, cutoff: Date, branchId: string | null) {
   const search = unattendedSearch(query)
   const result = await prisma.$queryRaw<{ open: bigint; assigned: bigint; unassigned: bigint; unattended: bigint; closed: bigint }[]>(Prisma.sql`
     SELECT
@@ -85,12 +86,13 @@ async function queueCounts(query: string, cutoff: Date) {
     LEFT JOIN "Category" c ON c.id = t.category_id
     LEFT JOIN "MaintenanceAssignee" a ON a.id = t.assignee_id
     ${latestUpdateJoins()}
-    WHERE 1 = 1 ${search}`)
+    WHERE 1 = 1 ${search} ${branchId ? Prisma.sql`AND t.branch_id = ${branchId}` : Prisma.empty}`)
   const counts = result[0]
   return { open: Number(counts?.open ?? 0), assigned: Number(counts?.assigned ?? 0), unassigned: Number(counts?.unassigned ?? 0), unattended: Number(counts?.unattended ?? 0), closed: Number(counts?.closed ?? 0) }
 }
 
 export default async function TicketsPage(props: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+  const session = await requireMaintenanceSession()
   const searchParams = await props.searchParams
   const queue = queueFor(searchParams.queue ?? searchParams.status)
   const query = typeof searchParams.q === 'string' ? searchParams.q.trim() : ''
@@ -105,18 +107,19 @@ export default async function TicketsPage(props: { searchParams: Promise<{ [key:
     { location: { name: { contains: query, mode: 'insensitive' } } }, { category: { name: { contains: query, mode: 'insensitive' } } },
     { assignee: { name: { contains: query, mode: 'insensitive' } } },
   ] } : {}
-  const baseWhere = combine(searchWhere)
+  const branchWhere: Prisma.TicketWhereInput = session.role === 'BRANCH' ? { branch_id: session.branchId } : {}
+  const baseWhere = combine(searchWhere, branchWhere)
   const selectedOrder: Prisma.TicketOrderByWithRelationInput = sort === 'created' ? { created_at: direction } : sort === 'status' ? { status: direction } : { assignee: { name: direction } }
   const cutoff = businessDayCutoff()
   const [rawTickets, counts] = await Promise.all([
     queue === 'unattended'
-      ? unattendedIds(query, sort, direction, page, pageSize, cutoff).then(async (ids) => {
+      ? unattendedIds(query, sort, direction, page, pageSize, cutoff, session.branchId).then(async (ids) => {
         const rows = await prisma.ticket.findMany({ where: { id: { in: ids.map((item) => item.id) } }, include: { location: true, category: true, materials: true, assignee: true, costs: true } })
         const byId = new Map(rows.map((row) => [row.id, row]))
         return ids.map((item) => byId.get(item.id)).filter((row): row is (typeof rows)[number] => Boolean(row))
       })
       : prisma.ticket.findMany({ where: combine(baseWhere, queueWhere(queue)), include: { location: true, category: true, materials: true, assignee: true, costs: true }, orderBy: [selectedOrder, { created_at: 'desc' }], skip: (page - 1) * pageSize, take: pageSize + 1 }),
-    queueCounts(query, cutoff),
+    queueCounts(query, cutoff, session.role === 'BRANCH' ? session.branchId : null),
   ])
   const hasNextPage = rawTickets.length > pageSize
   const pageTickets = hasNextPage ? rawTickets.slice(0, pageSize) : rawTickets

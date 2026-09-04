@@ -162,6 +162,7 @@ func (s *Store) MatchCategory(ctx context.Context, name string) (string, string,
 }
 
 type TicketData struct {
+	BranchID        string
 	ReporterName    string
 	EmployeeID      string
 	LocationID      string
@@ -172,6 +173,40 @@ type TicketData struct {
 	ImageCaption    string
 	SourcePhone     string
 	SourceMessageID string
+}
+
+type Branch struct {
+	ID   string
+	Name string
+}
+
+func (s *Store) ListActiveBranches(ctx context.Context) ([]Branch, error) {
+	rows, err := s.db.Query(ctx, `SELECT id, name FROM "MaintenanceBranch" WHERE is_active = true ORDER BY name`)
+	if err != nil {
+		return nil, fmt.Errorf("list maintenance branches: %w", err)
+	}
+	defer rows.Close()
+	branches := make([]Branch, 0, 19)
+	for rows.Next() {
+		var branch Branch
+		if err := rows.Scan(&branch.ID, &branch.Name); err != nil {
+			return nil, err
+		}
+		branches = append(branches, branch)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return branches, nil
+}
+
+func (s *Store) GetActiveBranch(ctx context.Context, id string) (Branch, error) {
+	var branch Branch
+	err := s.db.QueryRow(ctx, `SELECT id, name FROM "MaintenanceBranch" WHERE id = $1 AND is_active = true`, id).Scan(&branch.ID, &branch.Name)
+	if err != nil {
+		return Branch{}, fmt.Errorf("active maintenance branch not found: %w", err)
+	}
+	return branch, nil
 }
 
 // CreateTicket inserts a new ticket based on WhatsApp payload.
@@ -240,16 +275,16 @@ func (s *Store) CreateTicket(ctx context.Context, data TicketData) (string, erro
 		INSERT INTO "Ticket" (
 			id, ticket_number, status, priority, 
 			reporter_name, reporter_type, 
-			location_id, category_id, description, 
+			location_id, category_id, description, branch_id,
 			created_at, updated_at, image_url, image_caption, source_phone, employee_id, source_message_id
 		) VALUES (
 			gen_random_uuid()::text, $1, 'NEW', 'MEDIUM', 
 			$2, 'EMPLOYEE', 
-			$3, $4, $5, 
-			$6, $6, NULLIF($7, ''), NULLIF($8, ''), $9, NULLIF($10, ''), NULLIF($11, '')
+			$3, $4, $5, $6,
+			$7, $7, NULLIF($8, ''), NULLIF($9, ''), $10, NULLIF($11, ''), NULLIF($12, '')
 		) RETURNING id`,
 		ticketNumber, data.ReporterName,
-		data.LocationID, data.CategoryID, data.Description,
+		data.LocationID, data.CategoryID, data.Description, data.BranchID,
 		createdAt, data.ImageURL, data.ImageCaption, data.SourcePhone, data.EmployeeID, data.SourceMessageID).Scan(&ticketID)
 
 	if err != nil {

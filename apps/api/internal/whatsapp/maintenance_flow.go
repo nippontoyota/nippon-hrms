@@ -13,6 +13,7 @@ import (
 )
 
 const (
+	msgMaintenanceAwaitBranch   = `Please select your *branch* for the maintenance ticket.`
 	msgMaintenanceAwaitLocation = `Please enter the *Location* for the maintenance ticket.
 
 Example: Workshop Bay 3, Showroom, Main Office`
@@ -30,6 +31,14 @@ Our team will review it shortly. Reply *Hi* to return to the main menu.`
 	msgMaintenanceImageInvalid = `That file is not a supported photo. Please send a JPEG, PNG, or WEBP image, or reply "Skip" to submit without a photo.`
 )
 
+func maintenanceBranchListSections(branches []maintenance.Branch) []doubletick.InteractiveListSection {
+	rows := make([]doubletick.InteractiveListRow, 0, len(branches))
+	for _, branch := range branches {
+		rows = append(rows, doubletick.InteractiveListRow{ID: "branch_" + branch.ID, Title: branch.Name})
+	}
+	return []doubletick.InteractiveListSection{{Title: "Branches", Rows: rows}}
+}
+
 func maintenanceCategoryListSections() []doubletick.InteractiveListSection {
 	return []doubletick.InteractiveListSection{
 		{
@@ -46,6 +55,31 @@ func maintenanceCategoryListSections() []doubletick.InteractiveListSection {
 }
 
 func (s *Service) beginMaintenanceFlow(ctx context.Context, sess *Session, from string) error {
+	branches, err := s.maintenanceStore.ListActiveBranches(ctx)
+	if err != nil || len(branches) == 0 {
+		return s.sendText(ctx, from, msgMaintenanceError)
+	}
+	sess.State = StateMaintenanceAwaitBranch
+	s.sessions.Set(from, sess)
+	_, err = s.dt.SendInteractiveList(ctx, from, "", msgMaintenanceAwaitBranch, "", "Select Branch", maintenanceBranchListSections(branches))
+	return err
+}
+
+func (s *Service) handleMaintenanceAwaitBranch(ctx context.Context, sess *Session, from, input string) error {
+	if isGreeting(input) {
+		sess.resetFlow()
+		s.sessions.Set(from, sess)
+		return s.handleIdle(ctx, sess, from, input)
+	}
+	input = strings.TrimSpace(input)
+	if strings.HasPrefix(strings.ToLower(input), "branch_") {
+		input = input[len("branch_"):]
+	}
+	branch, err := s.maintenanceStore.GetActiveBranch(ctx, input)
+	if err != nil {
+		return nil
+	}
+	sess.TempMaintenanceBranchID = branch.ID
 	sess.State = StateMaintenanceAwaitLocation
 	s.sessions.Set(from, sess)
 	return s.sendText(ctx, from, msgMaintenanceAwaitLocation)
@@ -167,6 +201,9 @@ func (s *Service) handleMaintenanceAwaitImage(ctx context.Context, sess *Session
 	sess.TempMaintenanceImageCaption = strings.TrimSpace(imageCaption)
 
 	// Create the ticket!
+	if _, err := s.maintenanceStore.GetActiveBranch(ctx, sess.TempMaintenanceBranchID); err != nil {
+		return s.sendText(ctx, from, msgMaintenanceError)
+	}
 	name := "WhatsApp User"
 	employeeID := ""
 	if emp, _ := s.empRepo.FindByPhone(ctx, from); emp != nil {
@@ -189,6 +226,7 @@ func (s *Service) handleMaintenanceAwaitImage(ctx context.Context, sess *Session
 
 	// 3. Create Ticket
 	ticketNum, err := s.maintenanceStore.CreateTicket(ctx, maintenance.TicketData{
+		BranchID:        sess.TempMaintenanceBranchID,
 		ReporterName:    name, // We store the name
 		EmployeeID:      employeeID,
 		LocationID:      locID,

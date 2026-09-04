@@ -2,12 +2,13 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Ticket, LogOut } from 'lucide-react'
+import { Ticket, LogOut, ArrowRightLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { logout } from '@/app/actions/auth'
 
 const bottomNavItems = [
   { title: 'Tickets', href: '/tickets', icon: Ticket },
+  { title: 'Transfers', href: '/transfers', icon: ArrowRightLeft },
 ]
 
 export function BottomNav() {

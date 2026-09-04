@@ -65,6 +65,17 @@ enum ActivityType {
   CLOSED
 }
 
+enum MaintenanceRole {
+  ADMIN
+  BRANCH
+}
+
+enum TransferStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
 // Models
 
 model Location {
@@ -75,6 +86,7 @@ model Location {
   updated_at DateTime @updatedAt
 
   tickets Ticket[]
+  maintenance_branch MaintenanceBranch?
 }
 
 model Category {
@@ -101,6 +113,9 @@ model Ticket {
   location_id String
   location    Location @relation(fields: [location_id], references: [id])
 
+  branch_id String?
+  branch    MaintenanceBranch? @relation(fields: [branch_id], references: [id])
+
   category_id String
   category    Category @relation(fields: [category_id], references: [id])
 
@@ -122,9 +137,66 @@ model Ticket {
   assignments    TicketAssignment[]
   costs          TicketCost[]
   activities     TicketActivity[]
+  transfers      TicketTransfer[]
 
   @@index([status, created_at])
   @@index([assignee_id, status, created_at])
+  @@index([branch_id, status, created_at])
+}
+
+model MaintenanceBranch {
+  id          String   @id @default(cuid())
+  location_id String   @unique
+  location    Location @relation(fields: [location_id], references: [id])
+  name        String
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  account          MaintenanceAccount?
+  tickets          Ticket[]
+  outgoingTransfers TicketTransfer[] @relation("TransferSource")
+  incomingTransfers TicketTransfer[] @relation("TransferDestination")
+
+  @@index([is_active, name])
+}
+
+model MaintenanceAccount {
+  id             String          @id @default(cuid())
+  email          String?         @unique
+  login_key      String?         @unique
+  secret_hash    String
+  role           MaintenanceRole
+  branch_id      String?         @unique
+  branch         MaintenanceBranch? @relation(fields: [branch_id], references: [id])
+  is_active      Boolean         @default(true)
+  created_at     DateTime        @default(now())
+  updated_at     DateTime        @updatedAt
+
+  requestedTransfers TicketTransfer[] @relation("TransferRequester")
+
+  @@index([role, is_active])
+}
+
+model TicketTransfer {
+  id                   String         @id @default(cuid())
+  ticket_id            String
+  ticket               Ticket         @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
+  source_branch_id     String
+  source_branch        MaintenanceBranch @relation("TransferSource", fields: [source_branch_id], references: [id])
+  destination_branch_id String
+  destination_branch   MaintenanceBranch @relation("TransferDestination", fields: [destination_branch_id], references: [id])
+  requested_by_id      String
+  requested_by         MaintenanceAccount @relation("TransferRequester", fields: [requested_by_id], references: [id])
+  reason               String
+  status               TransferStatus @default(PENDING)
+  response_reason      String?
+  created_at           DateTime       @default(now())
+  responded_at         DateTime?
+
+  @@index([destination_branch_id, status, created_at])
+  @@index([source_branch_id, status, created_at])
+  @@index([ticket_id, status])
 }
 
 model MaintenanceAssignee {

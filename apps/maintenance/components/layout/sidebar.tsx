@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { Ticket, LogOut } from 'lucide-react'
+import { Ticket, LogOut, ArrowRightLeft } from 'lucide-react'
 import { logout } from '@/app/actions/auth'
 
 // Note: In a real app, these items would be filtered by user role
@@ -13,7 +13,8 @@ const navItems = [
     href: '/tickets',
     icon: Ticket,
     section: 'Maintenance'
-  }
+  },
+  { title: 'Transfers', href: '/transfers', icon: ArrowRightLeft, section: 'Maintenance' }
 ]
 
 export function Sidebar() {

@@ -38,6 +38,7 @@ const (
 	StateLeaveAwaitRejectionReason
 	StateLeaveAwaitPickRequest
 
+	StateMaintenanceAwaitBranch
 	StateMaintenanceAwaitLocation
 	StateMaintenanceAwaitCategory
 	StateMaintenanceAwaitDescription
@@ -74,6 +75,7 @@ type Session struct {
 	PendingPickLeaveIDs     []string
 	PendingTemplateApprove  *bool
 
+	TempMaintenanceBranchID     string
 	TempMaintenanceLocation     string
 	TempMaintenanceCategory     string
 	TempMaintenanceDescription  string
@@ -95,6 +97,7 @@ func (s *Session) resetFlow() {
 	s.PendingTemplateApprove = nil
 	s.LastStartMessageID = ""
 
+	s.TempMaintenanceBranchID = ""
 	s.TempMaintenanceLocation = ""
 	s.TempMaintenanceCategory = ""
 	s.TempMaintenanceDescription = ""

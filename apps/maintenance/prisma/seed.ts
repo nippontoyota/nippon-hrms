@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client'
+import { hashSecret, loginKey } from '../lib/password'
 
 const prisma = new PrismaClient()
 
@@ -88,6 +89,23 @@ async function main() {
       }
     })
   }
+
+  const locations = await prisma.location.findMany({ where: { is_active: true }, orderBy: { name: 'asc' }, select: { id: true, name: true } })
+  if (locations.length !== 19) throw new Error(`Expected 19 active maintenance locations, found ${locations.length}`)
+  for (const [index, location] of locations.entries()) {
+    const branch = await prisma.maintenanceBranch.upsert({ where: { location_id: location.id }, update: { name: location.name }, create: { location_id: location.id, name: location.name } })
+    const code = `NT${String(index + 1).padStart(4, '0')}`
+    await prisma.maintenanceAccount.upsert({
+      where: { branch_id: branch.id },
+      update: { login_key: loginKey(code), secret_hash: await hashSecret(code), role: 'BRANCH', is_active: true },
+      create: { branch_id: branch.id, login_key: loginKey(code), secret_hash: await hashSecret(code), role: 'BRANCH', is_active: true },
+    })
+  }
+  await prisma.maintenanceAccount.upsert({
+    where: { email: 'admin@nippontoyota.com' },
+    update: { secret_hash: await hashSecret('nippon2026'), role: 'ADMIN', branch_id: null, is_active: true },
+    create: { email: 'admin@nippontoyota.com', secret_hash: await hashSecret('nippon2026'), role: 'ADMIN', branch_id: null, is_active: true },
+  })
 
   console.log('Seed completed successfully.')
 }

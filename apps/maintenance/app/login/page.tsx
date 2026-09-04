@@ -1,69 +1,20 @@
+import { login } from '@/app/actions/auth'
 import { Input } from '@/components/ui/input'
 import { PasswordInput } from '@/components/ui/password-input'
 import { Button } from '@/components/ui/button'
-import { cookies } from 'next/headers'
-import { redirect } from 'next/navigation'
 
-export default function LoginPage() {
-  async function handleLogin(formData: FormData) {
-    'use server'
-    const email = formData.get('email')
-    const password = formData.get('password')
-
-    if (email === 'mntc@nippontoyota.com' && password === 'mntc123') {
-      const cookieStore = await cookies()
-      cookieStore.set('dev_session', 'true', { secure: true, path: '/' })
-      redirect('/tickets')
-    }
-    redirect('/login?error=true')
-  }
-
-  return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-      <div className="mb-10 flex flex-col items-center">
-        <img src="/nippon-logo.png" alt="Nippon Toyota Logo" className="h-20 object-contain mb-4" />
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">Maintenance Portal</h1>
-        <p className="text-muted-foreground mt-2">Sign in to manage facilities and tickets</p>
-      </div>
-
-      <div className="w-full max-w-sm">
-        <form action={handleLogin} className="space-y-4">
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-foreground">Email Address</label>
-            <Input 
-              name="email"
-              type="email" 
-              defaultValue="mntc@nippontoyota.com"
-              required
-              className="h-12 w-full rounded-md border border-border bg-card px-4 text-sm text-foreground focus-visible:ring-1 focus-visible:ring-red-500 transition-colors"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-foreground">Password</label>
-            <PasswordInput 
-              name="password"
-              defaultValue="mntc123"
-              required
-              className="h-12 w-full rounded-md border border-border bg-card px-4 text-sm text-foreground focus-visible:ring-1 focus-visible:ring-red-500 transition-colors"
-            />
-          </div>
-
-          <div className="pt-4">
-            <Button 
-              type="submit" 
-              className="w-full h-12 rounded-md border border-red-700 text-base font-semibold transition-all hover:brightness-95 active:scale-[0.98]"
-              style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
-            >
-              Sign In
-            </Button>
-          </div>
-          
-          <p className="mt-8 text-center text-xs text-muted-foreground">
-            For development, use mntc@nippontoyota.com / mntc123
-          </p>
-        </form>
-      </div>
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+  const { error } = await searchParams
+  const message = error === 'invalid' ? 'The email, password, or branch code was not accepted.' : error === 'unavailable' ? 'Login is temporarily unavailable.' : error === 'missing' ? 'Enter your login and password or branch code.' : ''
+  return <main className="flex min-h-screen items-center justify-center bg-background p-4">
+    <div className="w-full max-w-sm">
+      <div className="mb-10 flex flex-col items-center"><img src="/nippon-logo.png" alt="Nippon Toyota" className="mb-4 h-20 object-contain" /><h1 className="text-2xl font-bold tracking-tight text-foreground">Maintenance Portal</h1><p className="mt-2 text-center text-sm text-muted-foreground">Use the admin account or your branch code.</p></div>
+      <form action={login} className="space-y-4">
+        <div className="space-y-1.5"><label className="text-sm font-medium text-foreground" htmlFor="identifier">Admin email or branch code</label><Input id="identifier" name="identifier" autoCapitalize="characters" autoComplete="username" required placeholder="admin@nippontoyota.com or TKM2841" className="h-12" /></div>
+        <div className="space-y-1.5"><label className="text-sm font-medium text-foreground" htmlFor="secret">Admin password <span className="font-normal text-muted-foreground">(leave blank for branch login)</span></label><PasswordInput id="secret" name="secret" autoComplete="current-password" className="h-12" /></div>
+        {message && <p role="alert" className="text-sm text-red-600">{message}</p>}
+        <Button type="submit" className="h-12 w-full rounded-md border border-red-700 text-base font-semibold" style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}>Sign in</Button>
+      </form>
     </div>
-  )
+  </main>
 }

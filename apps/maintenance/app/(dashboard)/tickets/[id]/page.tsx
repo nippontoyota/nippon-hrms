@@ -6,13 +6,15 @@ import prisma from '@/lib/prisma'
 import { maintenanceTicketInclude, listMaintenanceAssignees } from '@/lib/maintenance'
 import { formatInr } from '@/lib/format'
 import { AssignmentControl, CloseTicketButton, CostForm } from '@/components/tickets/ticket-controls'
+import { requireMaintenanceSession } from '@/lib/maintenance-auth'
 
 export const dynamic = 'force-dynamic'
 export const preferredRegion = 'bom1'
 
 export default async function TicketDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const [ticket, assignees] = await Promise.all([prisma.ticket.findUnique({ where: { id }, include: maintenanceTicketInclude }), listMaintenanceAssignees()])
+  const session = await requireMaintenanceSession()
+  const [ticket, assignees] = await Promise.all([prisma.ticket.findFirst({ where: { id, ...(session.role === 'BRANCH' ? { branch_id: session.branchId } : {}) }, include: maintenanceTicketInclude }), listMaintenanceAssignees()])
   if (!ticket) notFound()
   const materialCosts = ticket.costs.filter((cost) => cost.type === 'MATERIAL')
   const labourCosts = ticket.costs.filter((cost) => cost.type === 'LABOUR')

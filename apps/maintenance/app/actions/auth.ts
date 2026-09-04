@@ -1,15 +1,24 @@
 'use server'
 
-import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { authenticateMaintenance, clearMaintenanceSession } from '@/lib/maintenance-auth'
+
+export async function login(formData: FormData) {
+  const identifier = String(formData.get('identifier') ?? '')
+  const secret = String(formData.get('secret') ?? '')
+  if (!identifier || (identifier.includes('@') && !secret)) redirect('/login?error=missing')
+  try {
+    const account = await authenticateMaintenance(identifier, secret)
+    if (!account) redirect('/login?error=invalid')
+    redirect('/tickets')
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith('NEXT_REDIRECT')) throw error
+    console.error('Maintenance login failed', error)
+    redirect('/login?error=unavailable')
+  }
+}
 
 export async function logout() {
-  const cookieStore = await cookies()
-  cookieStore.delete('dev_session')
-  
-  // Intelligently route to production Cloudflare app vs local Vite app
-  const isProd = process.env.NODE_ENV === 'production'
-  const hrmsUrl = isProd ? 'https://nippon-hrms.pages.dev' : 'http://localhost:5173'
-  
-  redirect(`${hrmsUrl}/login`)
+  await clearMaintenanceSession()
+  redirect('/login')
 }
