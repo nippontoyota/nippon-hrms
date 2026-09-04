@@ -7,6 +7,20 @@ import { loginKey, sessionTtlSeconds, verifySecret } from '@/lib/password'
 export const MAINTENANCE_COOKIE = 'maintenance_session'
 export type MaintenanceSession = { accountId: string; role: 'ADMIN' | 'BRANCH'; branchId: string | null; expiresAt: number }
 
+const branchNamesByCode: Record<string, string> = {
+  IR01A: 'Irinjalakuda',
+  CO01B: 'Kalamaserry',
+  KY01A: 'Kayamkulam',
+  TR01A: 'Kazhakoottam',
+  KL01A: 'Kollam',
+  KT01A: 'Kottayam',
+  MV01A: 'Muvattupuzha',
+  CO01A: 'Nettor',
+  PH01A: 'Pathanamthitta',
+  TL01A: 'Thiruvalla',
+  TI01A: 'Trichur',
+}
+
 function sessionSecret() {
   const secret = process.env.MAINTENANCE_SESSION_SECRET
   if (!secret) throw new Error('MAINTENANCE_SESSION_SECRET is not configured')
@@ -63,7 +77,7 @@ export async function authenticateMaintenance(identifier: string, secret: string
   const isAdminLogin = normalized.includes('@')
   const account = isAdminLogin
     ? await prisma.maintenanceAccount.findFirst({ where: { email: normalized.toLowerCase(), is_active: true }, select: { id: true, role: true, branch_id: true, secret_hash: true } })
-    : await prisma.maintenanceAccount.findFirst({ where: { login_key: loginKey(normalized), is_active: true }, select: { id: true, role: true, branch_id: true, secret_hash: true } })
+    : await prisma.maintenanceAccount.findFirst({ where: { branch: { name: branchNamesByCode[normalized.toUpperCase()] }, is_active: true }, select: { id: true, role: true, branch_id: true, secret_hash: true } })
   if (!account || !(await verifySecret(isAdminLogin ? secret : normalized, account.secret_hash))) return null
   await createMaintenanceSession(account)
   return { role: account.role, branchId: account.branch_id }
