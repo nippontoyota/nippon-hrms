@@ -97,12 +97,12 @@ func EnsureSchema(ctx context.Context, pool *pgxpool.Pool) error {
 						{"code":"KT01A","name":"Kottayam","location":"Kottayam"},
 						{"code":"MV01A","name":"Muvattupuzha","location":"Muvattupuzha"},
 						{"code":"IR01A","name":"Irinjalakuda","location":"Irinjalakuda"},
-						{"code":"TI01A","name":"Trichur_SM","location":"Trichur"},
+						{"code":"TI01A","name":"Trichur","location":"Trichur"},
 						{"code":"KL01A","name":"Kollam","location":"Kollam"},
-						{"code":"TR01A","name":"Kazhakoottam_SM","location":"Kazhakoottam"},
-						{"code":"KY01A","name":"Kayamkulam_SM","location":"Kayamkulam"},
-						{"code":"CO01A","name":"Nettoo_SM","location":"Nettoor"},
-						{"code":"CO01B","name":"Kalamaserry_SM","location":"Kalamaserry"}
+						{"code":"TR01A","name":"Kazhakoottam","location":"Kazhakoottam"},
+						{"code":"KY01A","name":"Kayamkulam","location":"Kayamkulam"},
+						{"code":"CO01A","name":"Nettor","location":"Nettoor"},
+						{"code":"CO01B","name":"Kalamaserry","location":"Kalamaserry"}
 					]'::jsonb) AS branches(code TEXT, name TEXT, location TEXT)
 				LOOP
 					INSERT INTO "Location" (id, name, is_active, updated_at)
