@@ -68,13 +68,29 @@ func EnsureSchema(ctx context.Context, pool *pgxpool.Pool) error {
 		CREATE INDEX IF NOT EXISTS "Ticket_status_created_at_idx"
 			ON "Ticket" (status, created_at DESC);
 
+		CREATE TABLE IF NOT EXISTS "MaintenanceBranch" (
+			"id" TEXT NOT NULL PRIMARY KEY,
+			"location_id" TEXT NOT NULL UNIQUE REFERENCES "Location"("id") ON DELETE RESTRICT,
+			"name" TEXT NOT NULL,
+			"is_active" BOOLEAN NOT NULL DEFAULT true,
+			"created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			"updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+		);
+		ALTER TABLE "Ticket" ADD COLUMN IF NOT EXISTS "branch_id" TEXT;
+		DO $$ BEGIN
+			ALTER TABLE "Ticket" ADD CONSTRAINT "Ticket_branch_id_fkey"
+				FOREIGN KEY ("branch_id") REFERENCES "MaintenanceBranch"("id") ON DELETE SET NULL;
+		EXCEPTION WHEN duplicate_object THEN NULL;
+		END $$;
+		CREATE INDEX IF NOT EXISTS "MaintenanceBranch_is_active_name_idx"
+			ON "MaintenanceBranch" ("is_active", "name");
+
 		DO $$
 		DECLARE
 			branch RECORD;
 			location_id TEXT;
 		BEGIN
-			IF to_regclass('public."MaintenanceBranch"') IS NOT NULL THEN
-				FOR branch IN
+			FOR branch IN
 					SELECT * FROM jsonb_to_recordset('[
 						{"code":"TL01A","name":"Thiruvalla","location":"Thiruvalla"},
 						{"code":"PH01A","name":"Pathanamthitta","location":"Pathanamthitta"},
@@ -97,8 +113,7 @@ func EnsureSchema(ctx context.Context, pool *pgxpool.Pool) error {
 					INSERT INTO "MaintenanceBranch" (id, location_id, name, is_active)
 					VALUES (gen_random_uuid()::text, location_id, branch.name, true)
 					ON CONFLICT (location_id) DO UPDATE SET name = EXCLUDED.name, is_active = true, updated_at = CURRENT_TIMESTAMP;
-				END LOOP;
-			END IF;
+			END LOOP;
 		END $$;
 
 		CREATE TABLE IF NOT EXISTS employee_benefits (
