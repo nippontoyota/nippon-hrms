@@ -76,18 +76,18 @@ func EnsureSchema(ctx context.Context, pool *pgxpool.Pool) error {
 			IF to_regclass('public."MaintenanceBranch"') IS NOT NULL THEN
 				FOR branch IN
 					SELECT * FROM jsonb_to_recordset('[
-						{"code":"TL01A","location":"Thiruvalla"},
-						{"code":"PH01A","location":"Pathanamthitta"},
-						{"code":"KT01A","location":"Kottayam"},
-						{"code":"MV01A","location":"Muvattupuzha"},
-						{"code":"IR01A","location":"Irinjalakuda"},
-						{"code":"TI01A","location":"Trichur"},
-						{"code":"KL01A","location":"Kollam"},
-						{"code":"TR01A","location":"Kazhakoottam"},
-						{"code":"KY01A","location":"Kayamkulam"},
-						{"code":"CO01A","location":"Nettoor"},
-						{"code":"CO01B","location":"Kalamaserry"}
-					]'::jsonb) AS branches(code TEXT, location TEXT)
+						{"code":"TL01A","name":"Thiruvalla","location":"Thiruvalla"},
+						{"code":"PH01A","name":"Pathanamthitta","location":"Pathanamthitta"},
+						{"code":"KT01A","name":"Kottayam","location":"Kottayam"},
+						{"code":"MV01A","name":"Muvattupuzha","location":"Muvattupuzha"},
+						{"code":"IR01A","name":"Irinjalakuda","location":"Irinjalakuda"},
+						{"code":"TI01A","name":"Trichur_SM","location":"Trichur"},
+						{"code":"KL01A","name":"Kollam","location":"Kollam"},
+						{"code":"TR01A","name":"Kazhakoottam_SM","location":"Kazhakoottam"},
+						{"code":"KY01A","name":"Kayamkulam_SM","location":"Kayamkulam"},
+						{"code":"CO01A","name":"Nettoo_SM","location":"Nettoor"},
+						{"code":"CO01B","name":"Kalamaserry_SM","location":"Kalamaserry"}
+					]'::jsonb) AS branches(code TEXT, name TEXT, location TEXT)
 				LOOP
 					INSERT INTO "Location" (id, name, is_active, updated_at)
 					VALUES (gen_random_uuid()::text, branch.location, true, CURRENT_TIMESTAMP)
@@ -95,7 +95,7 @@ func EnsureSchema(ctx context.Context, pool *pgxpool.Pool) error {
 					RETURNING id INTO location_id;
 
 					INSERT INTO "MaintenanceBranch" (id, location_id, name, is_active)
-					VALUES (gen_random_uuid()::text, location_id, branch.code || ' - ' || branch.location, true)
+					VALUES (gen_random_uuid()::text, location_id, branch.name, true)
 					ON CONFLICT (location_id) DO UPDATE SET name = EXCLUDED.name, is_active = true, updated_at = CURRENT_TIMESTAMP;
 				END LOOP;
 			END IF;
