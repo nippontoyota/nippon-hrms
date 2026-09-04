@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/url"
 	"path"
+	"strconv"
 	"strings"
 
 	"github.com/nippon-toyota/hrms/internal/doubletick"
@@ -31,10 +32,23 @@ Our team will review it shortly. Reply *Hi* to return to the main menu.`
 	msgMaintenanceImageInvalid = `That file is not a supported photo. Please send a JPEG, PNG, or WEBP image, or reply "Skip" to submit without a photo.`
 )
 
-func maintenanceBranchListSections(branches []maintenance.Branch) []doubletick.InteractiveListSection {
+const maintenanceBranchPageSize = 9
+
+func maintenanceBranchListSections(branches []maintenance.Branch, offset int) []doubletick.InteractiveListSection {
+	end := offset + maintenanceBranchPageSize
+	if end > len(branches) {
+		end = len(branches)
+	}
 	rows := make([]doubletick.InteractiveListRow, 0, len(branches))
-	for _, branch := range branches {
+	for _, branch := range branches[offset:end] {
 		rows = append(rows, doubletick.InteractiveListRow{ID: "branch_" + branch.ID, Title: branch.Name})
+	}
+	if end < len(branches) {
+		rows = append(rows, doubletick.InteractiveListRow{
+			ID:          "branch_more_" + strconv.Itoa(end),
+			Title:       "More branches",
+			Description: "Show the remaining branches",
+		})
 	}
 	return []doubletick.InteractiveListSection{{Title: "Branches", Rows: rows}}
 }
@@ -65,7 +79,7 @@ func (s *Service) beginMaintenanceFlow(ctx context.Context, sess *Session, from 
 	}
 	sess.State = StateMaintenanceAwaitBranch
 	s.sessions.Set(from, sess)
-	_, err = s.dt.SendInteractiveList(ctx, from, "", msgMaintenanceAwaitBranch, "", "Select Branch", maintenanceBranchListSections(branches))
+	_, err = s.dt.SendInteractiveList(ctx, from, "", msgMaintenanceAwaitBranch, "", "Select Branch", maintenanceBranchListSections(branches, 0))
 	return err
 }
 
@@ -76,6 +90,18 @@ func (s *Service) handleMaintenanceAwaitBranch(ctx context.Context, sess *Sessio
 		return s.handleIdle(ctx, sess, from, input)
 	}
 	input = strings.TrimSpace(input)
+	if strings.HasPrefix(strings.ToLower(input), "branch_more_") {
+		offset, parseErr := strconv.Atoi(input[len("branch_more_"):])
+		if parseErr != nil || offset < 0 {
+			return nil
+		}
+		branches, err := s.maintenanceStore.ListActiveBranches(ctx)
+		if err != nil || offset >= len(branches) {
+			return nil
+		}
+		_, err = s.dt.SendInteractiveList(ctx, from, "", msgMaintenanceAwaitBranch, "", "Select Branch", maintenanceBranchListSections(branches, offset))
+		return err
+	}
 	if strings.HasPrefix(strings.ToLower(input), "branch_") {
 		input = input[len("branch_"):]
 	}
