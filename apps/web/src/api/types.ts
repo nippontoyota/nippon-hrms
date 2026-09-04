@@ -238,6 +238,24 @@ export interface DispatchLogEntry {
   sentAt: string;
 }
 
+export interface BranchCount {
+  branch: string;
+  count: number;
+}
+
+export interface ExperienceDistribution {
+  under1Year: number;
+  oneTo3Years: number;
+  threeTo5Years: number;
+  fiveTo10Years: number;
+  over10Years: number;
+}
+
+export interface DesignationCount {
+  designation: string;
+  count: number;
+}
+
 export interface DashboardStats {
   employeeCount: number;
   pendingLeaveRequests: number;
@@ -245,6 +263,9 @@ export interface DashboardStats {
   attendancePeriods: number;
   latestPeriod?: SalaryPeriod;
   recentDispatchJobs?: DispatchJobSummary[];
+  branchDistribution: BranchCount[];
+  designationDistribution?: DesignationCount[];
+  experienceDistribution: ExperienceDistribution;
 }
 
 export interface ImportPreviewRow {

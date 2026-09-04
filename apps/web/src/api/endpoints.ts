@@ -117,24 +117,7 @@ export const importsApi = {
 };
 
 export const dashboardApi = {
-  get: async () => {
-    try {
-      const employees = await employeesApi.list({ page: 1, limit: 1 });
-      return {
-        employeeCount: employees.total,
-        pendingLeaveRequests: 0,
-        pendingDispatchJobs: 0,
-        attendancePeriods: 0,
-      } as DashboardStats;
-    } catch {
-      return {
-        employeeCount: 0,
-        pendingLeaveRequests: 0,
-        pendingDispatchJobs: 0,
-        attendancePeriods: 0,
-      } as DashboardStats;
-    }
-  }
+  get: () => api.get<DashboardStats>('/dashboard').then((r) => r.data),
 };
 
 export const leaveApi = {

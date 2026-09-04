@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/nippon-toyota/hrms/internal/config"
+	"github.com/nippon-toyota/hrms/internal/dashboard"
 	"github.com/nippon-toyota/hrms/internal/db"
 	"github.com/nippon-toyota/hrms/internal/dispatch"
 	"github.com/nippon-toyota/hrms/internal/doubletick"
@@ -48,6 +49,7 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 	epfRepo := epf.NewPostgresRepository(pgPool)
 	payrollRepo := payroll.NewPostgresRepository(pgPool)
 	leaveRepo := leave.NewPostgresRepository(pgPool)
+	dashboardRepo := dashboard.NewPostgresRepository(pgPool)
 
 	sessionStore := whatsapp.NewSessionStore(pgPool)
 	sessionWindow := whatsapp.NewPostgresSessionWindowStore(pgPool)
@@ -89,6 +91,7 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 	importRepo := importjob.NewRepository(pgPool)
 	importSvc := importjob.NewService(importRepo, importjob.Config{})
 	importH := handler.NewImportHandler(importSvc)
+	dashboardH := handler.NewDashboardHandler(dashboardRepo)
 
 	r.Get("/health", handler.HealthHandler)
 
@@ -106,6 +109,7 @@ func New(cfg *config.Config, pgPool *pgxpool.Pool, supaClient *db.Client, dtClie
 			r.Use(appMiddleware.RequireAuth(cfg.SupabaseURL, cfg.SupabaseAnonKey))
 
 			r.Get("/admin/me", adminH.GetMe)
+			r.Get("/dashboard", dashboardH.GetStats)
 
 			r.Route("/imports", func(r chi.Router) {
 				r.Use(appMiddleware.RequireVault(pgPool))
