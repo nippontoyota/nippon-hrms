@@ -57,7 +57,11 @@ func maintenanceCategoryListSections() []doubletick.InteractiveListSection {
 func (s *Service) beginMaintenanceFlow(ctx context.Context, sess *Session, from string) error {
 	branches, err := s.maintenanceStore.ListActiveBranches(ctx)
 	if err != nil || len(branches) == 0 {
-		return s.sendText(ctx, from, msgMaintenanceError)
+		// Keep the ticket flow usable while branch data is being seeded in production.
+		// Branch routing is applied automatically when active branches are available.
+		sess.State = StateMaintenanceAwaitLocation
+		s.sessions.Set(from, sess)
+		return s.sendText(ctx, from, msgMaintenanceAwaitLocation)
 	}
 	sess.State = StateMaintenanceAwaitBranch
 	s.sessions.Set(from, sess)
@@ -201,8 +205,10 @@ func (s *Service) handleMaintenanceAwaitImage(ctx context.Context, sess *Session
 	sess.TempMaintenanceImageCaption = strings.TrimSpace(imageCaption)
 
 	// Create the ticket!
-	if _, err := s.maintenanceStore.GetActiveBranch(ctx, sess.TempMaintenanceBranchID); err != nil {
-		return s.sendText(ctx, from, msgMaintenanceError)
+	if sess.TempMaintenanceBranchID != "" {
+		if _, err := s.maintenanceStore.GetActiveBranch(ctx, sess.TempMaintenanceBranchID); err != nil {
+			return s.sendText(ctx, from, msgMaintenanceError)
+		}
 	}
 	name := "WhatsApp User"
 	employeeID := ""
