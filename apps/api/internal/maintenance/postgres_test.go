@@ -38,6 +38,80 @@ func TestArchiveImageStoresPermanentPublicURL(t *testing.T) {
 	}
 }
 
+func TestArchiveImageAcceptsNonstandardContentTypeHeader(t *testing.T) {
+	// Real JPEG magic bytes, served with a nonstandard "image/jpg" header
+	// (missing the trailing "eg") the way some media hosts do. The archiver
+	// must trust the sniffed bytes rather than rejecting on a header mismatch.
+	imageBytes := []byte{0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 'J', 'F', 'I', 'F'}
+	var uploadedContentType string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/storage/v1/bucket":
+			w.WriteHeader(http.StatusConflict)
+		case r.Method == http.MethodGet && r.URL.Path == "/temporary-image":
+			w.Header().Set("Content-Type", "image/jpg")
+			_, _ = w.Write(imageBytes)
+		case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/storage/v1/object/maintenance-images/whatsapp/919999999999/"):
+			uploadedContentType = r.Header.Get("Content-Type")
+			w.WriteHeader(http.StatusOK)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	store := &Store{media: &MediaStorage{baseURL: server.URL, serviceKey: "service-test-key", doubleTickKey: "doubletick-test-key", bucket: "maintenance-images"}}
+	got := store.archiveImage(context.Background(), TicketData{ImageURL: server.URL + "/temporary-image", SourcePhone: "+919999999999", SourceMessageID: "message-2"})
+	if got == "" {
+		t.Fatal("expected archival to succeed for a real image served with a nonstandard Content-Type header")
+	}
+	if uploadedContentType != "image/jpeg" {
+		t.Fatalf("expected upload to use the sniffed image/jpeg content type, got %q", uploadedContentType)
+	}
+}
+
+func TestArchiveImageSupportsAllImageFormats(t *testing.T) {
+	cases := []struct {
+		name    string
+		magic   []byte
+		wantExt string
+	}{
+		{"gif", []byte("GIF89a" + strings.Repeat("x", 20)), "gif"},
+		{"bmp", append([]byte("BM"), bytes.Repeat([]byte{0}, 20)...), "bmp"},
+		{"tiff little-endian", append([]byte{'I', 'I', 0x2A, 0x00}, bytes.Repeat([]byte{0}, 20)...), "tiff"},
+		{"tiff big-endian", append([]byte{'M', 'M', 0x00, 0x2A}, bytes.Repeat([]byte{0}, 20)...), "tiff"},
+		{"heic (iPhone document)", append([]byte{0x00, 0x00, 0x00, 0x18, 'f', 't', 'y', 'p', 'h', 'e', 'i', 'c'}, bytes.Repeat([]byte{0}, 20)...), "heic"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var uploadedKey string
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				switch {
+				case r.Method == http.MethodPost && r.URL.Path == "/storage/v1/bucket":
+					w.WriteHeader(http.StatusConflict)
+				case r.Method == http.MethodGet && r.URL.Path == "/temporary-image":
+					_, _ = w.Write(tc.magic)
+				case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/storage/v1/object/maintenance-images/whatsapp/919999999999/"):
+					uploadedKey = r.URL.Path
+					w.WriteHeader(http.StatusOK)
+				default:
+					http.NotFound(w, r)
+				}
+			}))
+			defer server.Close()
+
+			store := &Store{media: &MediaStorage{baseURL: server.URL, serviceKey: "service-test-key", doubleTickKey: "doubletick-test-key", bucket: "maintenance-images"}}
+			got := store.archiveImage(context.Background(), TicketData{ImageURL: server.URL + "/temporary-image", SourcePhone: "+919999999999", SourceMessageID: "message-" + tc.name})
+			if got == "" || uploadedKey == "" {
+				t.Fatalf("expected %s to archive successfully, got url=%q uploadedKey=%q", tc.name, got, uploadedKey)
+			}
+			if !strings.HasSuffix(uploadedKey, "."+tc.wantExt) {
+				t.Fatalf("expected uploaded key to end with .%s, got %q", tc.wantExt, uploadedKey)
+			}
+		})
+	}
+}
+
 func TestArchiveImage403IsBestEffort(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost && r.URL.Path == "/storage/v1/bucket" {

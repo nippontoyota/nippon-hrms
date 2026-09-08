@@ -58,6 +58,48 @@ func (m *MediaStorage) ensureBucket(ctx context.Context) error {
 	return nil
 }
 
+// maintenanceImageExtensions lists every image type the maintenance flow will
+// store, whether sent as a WhatsApp "photo" or attached as a "document" (the
+// latter is how WhatsApp delivers formats it won't silently re-encode, e.g.
+// PNG screenshots, GIFs, and iPhone HEIC photos, and how users work around
+// WhatsApp's photo compression when detail matters).
+var maintenanceImageExtensions = map[string]string{
+	"image/jpeg": "jpg",
+	"image/png":  "png",
+	"image/webp": "webp",
+	"image/gif":  "gif",
+	"image/bmp":  "bmp",
+	"image/tiff": "tiff",
+	"image/heic": "heic",
+	"image/heif": "heif",
+}
+
+// sniffMaintenanceImageType detects the real image format from the file's
+// magic bytes. net/http.DetectContentType already recognizes JPEG, PNG,
+// WEBP, GIF, and BMP; TIFF and HEIC/HEIF (the format iPhones use for photos
+// sent as "documents") aren't in its signature table, so they're sniffed
+// here.
+func sniffMaintenanceImageType(data []byte) string {
+	if ct := http.DetectContentType(data); ct != "application/octet-stream" {
+		return ct
+	}
+	if len(data) >= 4 {
+		if (data[0] == 'I' && data[1] == 'I' && data[2] == 0x2A && data[3] == 0x00) ||
+			(data[0] == 'M' && data[1] == 'M' && data[2] == 0x00 && data[3] == 0x2A) {
+			return "image/tiff"
+		}
+	}
+	if len(data) >= 12 && string(data[4:8]) == "ftyp" {
+		switch string(data[8:12]) {
+		case "heic", "heix", "heim", "heis", "hevc", "hevx", "hevm", "hevs":
+			return "image/heic"
+		case "mif1", "msf1":
+			return "image/heif"
+		}
+	}
+	return "application/octet-stream"
+}
+
 func (m *MediaStorage) copyImage(ctx context.Context, sourceURL, sourcePhone, messageID string) (string, error) {
 	if m == nil || m.baseURL == "" || m.serviceKey == "" {
 		return "", fmt.Errorf("maintenance image storage is not configured")
@@ -89,22 +131,16 @@ func (m *MediaStorage) copyImage(ctx context.Context, sourceURL, sourcePhone, me
 	if int64(len(data)) > maxMaintenanceImageBytes {
 		return "", fmt.Errorf("maintenance image exceeds 10MB")
 	}
-	contentType := resp.Header.Get("Content-Type")
-	if i := strings.IndexByte(contentType, ';'); i >= 0 {
-		contentType = contentType[:i]
-	}
-	detectedType := http.DetectContentType(data)
-	if contentType == "" || contentType == "application/octet-stream" {
-		contentType = detectedType
-	}
-	if detectedType != "application/octet-stream" && contentType != detectedType {
-		return "", fmt.Errorf("image content type mismatch: header %q, detected %q", contentType, detectedType)
-	}
-	allowed := map[string]string{"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}
-	ext, ok := allowed[contentType]
+	// Trust the sniffed magic bytes of the actual downloaded content, not the
+	// HTTP Content-Type header: many media hosts send nonstandard or generic
+	// headers (e.g. "image/jpg", "binary/octet-stream") for genuine images,
+	// and requiring the two to match byte-for-byte silently dropped valid photos.
+	detectedType := sniffMaintenanceImageType(data)
+	ext, ok := maintenanceImageExtensions[detectedType]
 	if !ok {
-		return "", fmt.Errorf("unsupported maintenance image type %q", contentType)
+		return "", fmt.Errorf("unsupported maintenance image type %q (header %q)", detectedType, resp.Header.Get("Content-Type"))
 	}
+	contentType := detectedType
 	safePhone := strings.NewReplacer("+", "", "/", "", "\\", "").Replace(sourcePhone)
 	safeMessageID := strings.NewReplacer("/", "", "\\", "", " ", "_").Replace(messageID)
 	keyParts := []string{"whatsapp", safePhone, fmt.Sprintf("%d-%s.%s", time.Now().UnixNano(), safeMessageID, ext)}

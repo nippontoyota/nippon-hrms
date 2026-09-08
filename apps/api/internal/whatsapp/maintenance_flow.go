@@ -331,7 +331,12 @@ func isSupportedMaintenanceImage(msgType, imageURL string) bool {
 		return false
 	}
 	switch strings.ToLower(path.Ext(parsed.Path)) {
-	case ".jpg", ".jpeg", ".png", ".webp":
+	case ".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".tif", ".tiff", ".heic", ".heif":
+		return true
+	case "":
+		// WhatsApp document media URLs are often opaque (no file extension in
+		// the path). Let it through here; the actual bytes are sniffed and
+		// validated when the file is downloaded and archived.
 		return true
 	default:
 		return false
