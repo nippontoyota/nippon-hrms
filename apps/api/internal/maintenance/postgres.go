@@ -100,56 +100,60 @@ func sniffMaintenanceImageType(data []byte) string {
 	return "application/octet-stream"
 }
 
-// downloadMedia fetches sourceURL, trying without an Authorization header
-// first. Many chat platforms hand back pre-signed media URLs (auth baked
-// into the query string); attaching an unrelated Authorization header to
-// those makes the underlying storage reject the request outright with a
-// 401/403. If the unauthenticated attempt is rejected, it retries with the
-// DoubleTick API key, in case the URL genuinely requires it.
+// downloadMedia tries a sequence of auth schemes because DoubleTick's media
+// host does not consistently document (or honor) one: their own webhook
+// guide says a bare "Authorization: <key>" header, but production traffic
+// shows that scheme still rejected with an S3-style AccessDenied for some
+// media hosts. Rather than betting on a single scheme, try the plausible
+// ones in order and keep the first one that actually works.
 func (m *MediaStorage) downloadMedia(ctx context.Context, sourceURL string) ([]byte, error) {
-	fetch := func(withAuth bool) ([]byte, int, string, error) {
+	type attempt struct {
+		name  string
+		apply func(*http.Request)
+	}
+	attempts := []attempt{
+		{"none", func(r *http.Request) {}},
+	}
+	if m.doubleTickKey != "" {
+		attempts = append(attempts,
+			attempt{"authorization-raw", func(r *http.Request) { r.Header.Set("Authorization", m.doubleTickKey) }},
+			attempt{"authorization-bearer", func(r *http.Request) { r.Header.Set("Authorization", "Bearer "+m.doubleTickKey) }},
+			attempt{"apikey-header", func(r *http.Request) { r.Header.Set("apikey", m.doubleTickKey) }},
+			attempt{"x-api-key-header", func(r *http.Request) { r.Header.Set("x-api-key", m.doubleTickKey) }},
+		)
+	}
+
+	var lastStatus int
+	var lastBody, lastServer, lastTried string
+	for _, a := range attempts {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, sourceURL, nil)
 		if err != nil {
-			return nil, 0, "", err
+			return nil, err
 		}
-		if withAuth {
-			req.Header.Set("Authorization", m.doubleTickKey)
-		}
+		a.apply(req)
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
-			return nil, 0, "", fmt.Errorf("download maintenance image: %w", err)
+			return nil, fmt.Errorf("download maintenance image: %w", err)
 		}
-		defer resp.Body.Close()
-		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			body, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
-			return nil, resp.StatusCode, string(body), nil
+		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+			data, err := io.ReadAll(io.LimitReader(resp.Body, maxMaintenanceImageBytes+1))
+			resp.Body.Close()
+			if err != nil {
+				return nil, err
+			}
+			if a.name != "none" {
+				slog.Info("maintenance image download required auth", "scheme", a.name)
+			}
+			return data, nil
 		}
-		data, err := io.ReadAll(io.LimitReader(resp.Body, maxMaintenanceImageBytes+1))
-		if err != nil {
-			return nil, resp.StatusCode, "", err
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
+		resp.Body.Close()
+		lastStatus, lastBody, lastServer, lastTried = resp.StatusCode, string(body), resp.Header.Get("Server"), a.name
+		if resp.StatusCode != http.StatusUnauthorized && resp.StatusCode != http.StatusForbidden {
+			break // a non-auth error (404, 5xx, etc.) won't be fixed by trying another auth scheme
 		}
-		return data, resp.StatusCode, "", nil
 	}
-
-	data, status, body, err := fetch(false)
-	if err != nil {
-		return nil, err
-	}
-	if data != nil {
-		return data, nil
-	}
-	if status != http.StatusUnauthorized && status != http.StatusForbidden {
-		return nil, fmt.Errorf("download maintenance image: status %d, body %q", status, body)
-	}
-
-	data, status, body, err = fetch(true)
-	if err != nil {
-		return nil, err
-	}
-	if data == nil {
-		return nil, fmt.Errorf("download maintenance image: status %d after unauthenticated+authenticated attempts, body %q", status, body)
-	}
-	return data, nil
+	return nil, fmt.Errorf("download maintenance image: status %d after %q attempt, server=%q, body %q", lastStatus, lastTried, lastServer, lastBody)
 }
 
 func (m *MediaStorage) copyImage(ctx context.Context, sourceURL, sourcePhone, messageID string) (string, error) {

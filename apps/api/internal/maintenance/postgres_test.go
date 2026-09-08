@@ -77,6 +77,57 @@ func TestArchiveImageRetriesWithAuthWhenUnauthenticatedIsRejected(t *testing.T) 
 	}
 }
 
+func TestArchiveImageFallsThroughAuthSchemesUntilOneWorks(t *testing.T) {
+	// Some media hosts (observed in production against DoubleTick's
+	// data-storage.doubletick.io) reject a bare "Authorization: <key>" header
+	// with an S3-style AccessDenied even though it's documented as the
+	// correct scheme. The archiver must keep trying other plausible schemes
+	// (Bearer, apikey header, x-api-key header) rather than giving up.
+	const imageBytes = "\x89PNG\r\n\x1a\nvalid-test-image"
+	var attempts []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/storage/v1/bucket":
+			w.WriteHeader(http.StatusConflict)
+		case r.Method == http.MethodGet && r.URL.Path == "/apikey-header-only-image":
+			switch {
+			case r.Header.Get("apikey") == "doubletick-test-key":
+				attempts = append(attempts, "apikey-header")
+				w.Header().Set("Content-Type", "image/png")
+				_, _ = w.Write([]byte(imageBytes))
+			default:
+				label := "unauthenticated"
+				if auth := r.Header.Get("Authorization"); auth != "" {
+					label = "auth:" + auth
+				}
+				attempts = append(attempts, label)
+				w.Header().Set("Server", "AmazonS3")
+				w.WriteHeader(http.StatusForbidden)
+			}
+		case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/storage/v1/object/maintenance-images/whatsapp/919999999999/"):
+			w.WriteHeader(http.StatusOK)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	store := &Store{media: &MediaStorage{baseURL: server.URL, serviceKey: "service-test-key", doubleTickKey: "doubletick-test-key", bucket: "maintenance-images"}}
+	got := store.archiveImage(context.Background(), TicketData{ImageURL: server.URL + "/apikey-header-only-image", SourcePhone: "+919999999999", SourceMessageID: "message-apikey-header"})
+	if got == "" {
+		t.Fatalf("expected archival to succeed once the apikey-header scheme was tried, attempts=%v", attempts)
+	}
+	wantAttempts := []string{"unauthenticated", "auth:doubletick-test-key", "auth:Bearer doubletick-test-key", "apikey-header"}
+	if len(attempts) != len(wantAttempts) {
+		t.Fatalf("expected attempts %v, got %v", wantAttempts, attempts)
+	}
+	for i, want := range wantAttempts {
+		if attempts[i] != want {
+			t.Fatalf("attempt %d: expected %q, got %q (all attempts %v)", i, want, attempts[i], attempts)
+		}
+	}
+}
+
 func TestArchiveImageAcceptsNonstandardContentTypeHeader(t *testing.T) {
 	// Real JPEG magic bytes, served with a nonstandard "image/jpg" header
 	// (missing the trailing "eg") the way some media hosts do. The archiver
