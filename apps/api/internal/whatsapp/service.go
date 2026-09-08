@@ -219,9 +219,7 @@ func (s *Service) handleWebhookLocked(ctx context.Context, from, input, msgType,
 	case StateMaintenanceAwaitCategory:
 		err = s.handleMaintenanceAwaitCategory(ctx, sess, from, input)
 	case StateMaintenanceAwaitDescription:
-		err = s.handleMaintenanceAwaitDescription(ctx, sess, from, input)
-	case StateMaintenanceAwaitImage:
-		err = s.handleMaintenanceAwaitImage(ctx, sess, from, input, msgType, imageURL, imageCaption, timestamp, messageID, rawPayload)
+		err = s.handleMaintenanceAwaitDescription(ctx, sess, from, input, messageID, timestamp)
 	default:
 		err = s.handleIdle(ctx, sess, from, input)
 	}

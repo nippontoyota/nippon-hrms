@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"net/url"
-	"path"
 	"strconv"
 	"strings"
 
@@ -22,14 +20,12 @@ Example: Workshop Bay 3, Showroom, Main Office`
 	msgMaintenanceAwaitCategory = `Please select the *Category* of the issue.`
 
 	msgMaintenanceAwaitDescription = `Please describe the issue in detail.`
-	msgMaintenanceAwaitImage       = `Please attach a clear photo of the issue, or reply "Skip" if you do not have one.`
 
 	msgMaintenanceTicketCreated = `Your maintenance ticket (*%s*) has been submitted successfully!
 
 Our team will review it shortly. Reply *Hi* to return to the main menu.`
 
-	msgMaintenanceError        = `There was an error creating your maintenance ticket. Please try again or contact support.\n\nReply *Hi* to return to the main menu.`
-	msgMaintenanceImageInvalid = `That file is not a supported photo. Please send a JPEG, PNG, or WEBP image, or reply "Skip" to submit without a photo.`
+	msgMaintenanceError = `There was an error creating your maintenance ticket. Please try again or contact support.\n\nReply *Hi* to return to the main menu.`
 )
 
 const maintenanceBranchPageSize = 9
@@ -197,7 +193,7 @@ func (s *Service) handleMaintenanceAwaitCategory(ctx context.Context, sess *Sess
 	return s.sendText(ctx, from, msgMaintenanceAwaitDescription)
 }
 
-func (s *Service) handleMaintenanceAwaitDescription(ctx context.Context, sess *Session, from, input string) error {
+func (s *Service) handleMaintenanceAwaitDescription(ctx context.Context, sess *Session, from, input, messageID string, timestamp int64) error {
 	if isGreeting(input) {
 		sess.resetFlow()
 		s.sessions.Set(from, sess)
@@ -228,31 +224,14 @@ func (s *Service) handleMaintenanceAwaitDescription(ctx context.Context, sess *S
 	}
 
 	sess.TempMaintenanceDescription = strings.TrimSpace(input)
-	sess.State = StateMaintenanceAwaitImage
-	s.sessions.Set(from, sess)
-	return s.sendText(ctx, from, msgMaintenanceAwaitImage)
+	return s.createMaintenanceTicket(ctx, sess, from, messageID, timestamp)
 }
 
-func (s *Service) handleMaintenanceAwaitImage(ctx context.Context, sess *Session, from, input, msgType, imageURL, imageCaption string, timestamp int64, messageID, rawPayload string) error {
-	if isGreeting(input) || isGreeting(imageCaption) || isGreeting(imageURL) {
-		sess.resetFlow()
-		s.sessions.Set(from, sess)
-		return s.handleIdle(ctx, sess, from, "Hi")
-	}
-	skippedImage := isMaintenanceImageSkipped(input)
-	if skippedImage {
-		imageURL = ""
-		imageCaption = ""
-		msgType = ""
-	}
-	if !skippedImage && !isSupportedMaintenanceImage(msgType, imageURL) {
-		slog.Warn("rejected maintenance media", "media_type", strings.ToLower(strings.TrimSpace(msgType)), "has_media_url", strings.TrimSpace(imageURL) != "")
-		return s.sendText(ctx, from, msgMaintenanceImageInvalid)
-	}
-	sess.TempMaintenanceImageURL = strings.TrimSpace(imageURL)
-	sess.TempMaintenanceImageCaption = strings.TrimSpace(imageCaption)
-
-	// Create the ticket!
+// createMaintenanceTicket finishes the flow once branch, location, category,
+// and description have all been collected. Tickets no longer accept a photo:
+// WhatsApp media downloads for this flow proved unreliable in production, so
+// the image step was removed entirely rather than continuing to fight it.
+func (s *Service) createMaintenanceTicket(ctx context.Context, sess *Session, from, messageID string, timestamp int64) error {
 	if sess.TempMaintenanceBranchID != "" {
 		if _, err := s.maintenanceStore.GetActiveBranch(ctx, sess.TempMaintenanceBranchID); err != nil {
 			return s.sendText(ctx, from, msgMaintenanceError)
@@ -286,8 +265,6 @@ func (s *Service) handleMaintenanceAwaitImage(ctx context.Context, sess *Session
 		LocationID:      locID,
 		CategoryID:      catID,
 		Description:     sess.TempMaintenanceDescription,
-		ImageURL:        sess.TempMaintenanceImageURL,
-		ImageCaption:    sess.TempMaintenanceImageCaption,
 		SourcePhone:     from,
 		SourceMessageID: messageID,
 		Timestamp:       timestamp,
@@ -302,43 +279,4 @@ func (s *Service) handleMaintenanceAwaitImage(ctx context.Context, sess *Session
 	s.sessions.Set(from, sess)
 
 	return s.sendText(ctx, from, fmt.Sprintf(msgMaintenanceTicketCreated, ticketNum))
-}
-
-func isMaintenanceImageSkipped(input string) bool {
-	switch strings.ToLower(strings.TrimSpace(input)) {
-	case "skip", "no photo", "no photo available", "none", "not available", "no":
-		return true
-	default:
-		return false
-	}
-}
-
-func isSupportedMaintenanceImage(msgType, imageURL string) bool {
-	if strings.TrimSpace(imageURL) == "" {
-		return false
-	}
-
-	mediaType := strings.ToLower(strings.TrimSpace(msgType))
-	if mediaType == "image" {
-		return true
-	}
-	if mediaType != "file" && mediaType != "document" {
-		return false
-	}
-
-	parsed, err := url.Parse(strings.TrimSpace(imageURL))
-	if err != nil {
-		return false
-	}
-	switch strings.ToLower(path.Ext(parsed.Path)) {
-	case ".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".tif", ".tiff", ".heic", ".heif":
-		return true
-	case "":
-		// WhatsApp document media URLs are often opaque (no file extension in
-		// the path). Let it through here; the actual bytes are sniffed and
-		// validated when the file is downloaded and archived.
-		return true
-	default:
-		return false
-	}
 }

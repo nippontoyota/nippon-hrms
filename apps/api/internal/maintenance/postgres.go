@@ -1,13 +1,8 @@
 package maintenance
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"io"
-	"log/slog"
-	"net/http"
-	"net/url"
 	"sort"
 	"strings"
 	"time"
@@ -18,194 +13,11 @@ import (
 )
 
 type Store struct {
-	db    *pgxpool.Pool
-	media *MediaStorage
+	db *pgxpool.Pool
 }
 
 func NewStore(db *pgxpool.Pool) *Store {
 	return &Store{db: db}
-}
-
-func NewStoreWithStorage(db *pgxpool.Pool, supabaseURL, serviceKey, doubleTickKey string) *Store {
-	return &Store{db: db, media: &MediaStorage{baseURL: strings.TrimRight(supabaseURL, "/"), serviceKey: serviceKey, doubleTickKey: doubleTickKey, bucket: "maintenance-images"}}
-}
-
-const maxMaintenanceImageBytes int64 = 10 * 1024 * 1024
-
-const maxMaintenanceImageURLLength = 2048
-
-const maintenanceMediaTimeout = 15 * time.Second
-
-type MediaStorage struct{ baseURL, serviceKey, doubleTickKey, bucket string }
-
-func (m *MediaStorage) ensureBucket(ctx context.Context) error {
-	body := strings.NewReader(fmt.Sprintf(`{"id":%q,"name":%q,"public":true}`, m.bucket, m.bucket))
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, m.baseURL+"/storage/v1/bucket", body)
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Authorization", "Bearer "+m.serviceKey)
-	req.Header.Set("apikey", m.serviceKey)
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusConflict && resp.StatusCode != http.StatusBadRequest {
-		return fmt.Errorf("ensure maintenance image bucket: status %d", resp.StatusCode)
-	}
-	return nil
-}
-
-// maintenanceImageExtensions lists every image type the maintenance flow will
-// store, whether sent as a WhatsApp "photo" or attached as a "document" (the
-// latter is how WhatsApp delivers formats it won't silently re-encode, e.g.
-// PNG screenshots, GIFs, and iPhone HEIC photos, and how users work around
-// WhatsApp's photo compression when detail matters).
-var maintenanceImageExtensions = map[string]string{
-	"image/jpeg": "jpg",
-	"image/png":  "png",
-	"image/webp": "webp",
-	"image/gif":  "gif",
-	"image/bmp":  "bmp",
-	"image/tiff": "tiff",
-	"image/heic": "heic",
-	"image/heif": "heif",
-}
-
-// sniffMaintenanceImageType detects the real image format from the file's
-// magic bytes. net/http.DetectContentType already recognizes JPEG, PNG,
-// WEBP, GIF, and BMP; TIFF and HEIC/HEIF (the format iPhones use for photos
-// sent as "documents") aren't in its signature table, so they're sniffed
-// here.
-func sniffMaintenanceImageType(data []byte) string {
-	if ct := http.DetectContentType(data); ct != "application/octet-stream" {
-		return ct
-	}
-	if len(data) >= 4 {
-		if (data[0] == 'I' && data[1] == 'I' && data[2] == 0x2A && data[3] == 0x00) ||
-			(data[0] == 'M' && data[1] == 'M' && data[2] == 0x00 && data[3] == 0x2A) {
-			return "image/tiff"
-		}
-	}
-	if len(data) >= 12 && string(data[4:8]) == "ftyp" {
-		switch string(data[8:12]) {
-		case "heic", "heix", "heim", "heis", "hevc", "hevx", "hevm", "hevs":
-			return "image/heic"
-		case "mif1", "msf1":
-			return "image/heif"
-		}
-	}
-	return "application/octet-stream"
-}
-
-// downloadMedia tries a sequence of auth schemes because DoubleTick's media
-// host does not consistently document (or honor) one: their own webhook
-// guide says a bare "Authorization: <key>" header, but production traffic
-// shows that scheme still rejected with an S3-style AccessDenied for some
-// media hosts. Rather than betting on a single scheme, try the plausible
-// ones in order and keep the first one that actually works.
-func (m *MediaStorage) downloadMedia(ctx context.Context, sourceURL string) ([]byte, error) {
-	type attempt struct {
-		name  string
-		apply func(*http.Request)
-	}
-	attempts := []attempt{
-		{"none", func(r *http.Request) {}},
-	}
-	if m.doubleTickKey != "" {
-		attempts = append(attempts,
-			attempt{"authorization-raw", func(r *http.Request) { r.Header.Set("Authorization", m.doubleTickKey) }},
-			attempt{"authorization-bearer", func(r *http.Request) { r.Header.Set("Authorization", "Bearer "+m.doubleTickKey) }},
-			attempt{"apikey-header", func(r *http.Request) { r.Header.Set("apikey", m.doubleTickKey) }},
-			attempt{"x-api-key-header", func(r *http.Request) { r.Header.Set("x-api-key", m.doubleTickKey) }},
-		)
-	}
-
-	var lastStatus int
-	var lastBody, lastServer, lastTried string
-	for _, a := range attempts {
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, sourceURL, nil)
-		if err != nil {
-			return nil, err
-		}
-		a.apply(req)
-		resp, err := http.DefaultClient.Do(req)
-		if err != nil {
-			return nil, fmt.Errorf("download maintenance image: %w", err)
-		}
-		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
-			data, err := io.ReadAll(io.LimitReader(resp.Body, maxMaintenanceImageBytes+1))
-			resp.Body.Close()
-			if err != nil {
-				return nil, err
-			}
-			if a.name != "none" {
-				slog.Info("maintenance image download required auth", "scheme", a.name)
-			}
-			return data, nil
-		}
-		body, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
-		resp.Body.Close()
-		lastStatus, lastBody, lastServer, lastTried = resp.StatusCode, string(body), resp.Header.Get("Server"), a.name
-		if resp.StatusCode != http.StatusUnauthorized && resp.StatusCode != http.StatusForbidden {
-			break // a non-auth error (404, 5xx, etc.) won't be fixed by trying another auth scheme
-		}
-	}
-	return nil, fmt.Errorf("download maintenance image: status %d after %q attempt, server=%q, body %q", lastStatus, lastTried, lastServer, lastBody)
-}
-
-func (m *MediaStorage) copyImage(ctx context.Context, sourceURL, sourcePhone, messageID string) (string, error) {
-	if m == nil || m.baseURL == "" || m.serviceKey == "" {
-		return "", fmt.Errorf("maintenance image storage is not configured")
-	}
-	if err := m.ensureBucket(ctx); err != nil {
-		return "", err
-	}
-	u, err := url.Parse(sourceURL)
-	if err != nil || len(sourceURL) > maxMaintenanceImageURLLength || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" || u.User != nil {
-		return "", fmt.Errorf("invalid image URL")
-	}
-	data, err := m.downloadMedia(ctx, sourceURL)
-	if err != nil {
-		return "", err
-	}
-	if int64(len(data)) > maxMaintenanceImageBytes {
-		return "", fmt.Errorf("maintenance image exceeds 10MB")
-	}
-	// Trust the sniffed magic bytes of the actual downloaded content, not the
-	// HTTP Content-Type header: many media hosts send nonstandard or generic
-	// headers (e.g. "image/jpg", "binary/octet-stream") for genuine images,
-	// and requiring the two to match byte-for-byte silently dropped valid photos.
-	detectedType := sniffMaintenanceImageType(data)
-	ext, ok := maintenanceImageExtensions[detectedType]
-	if !ok {
-		return "", fmt.Errorf("unsupported maintenance image type %q", detectedType)
-	}
-	contentType := detectedType
-	safePhone := strings.NewReplacer("+", "", "/", "", "\\", "").Replace(sourcePhone)
-	safeMessageID := strings.NewReplacer("/", "", "\\", "", " ", "_").Replace(messageID)
-	keyParts := []string{"whatsapp", safePhone, fmt.Sprintf("%d-%s.%s", time.Now().UnixNano(), safeMessageID, ext)}
-	escapedKey := strings.Join([]string{url.PathEscape(keyParts[0]), url.PathEscape(keyParts[1]), url.PathEscape(keyParts[2])}, "/")
-	uploadURL := m.baseURL + "/storage/v1/object/" + url.PathEscape(m.bucket) + "/" + escapedKey
-	uReq, err := http.NewRequestWithContext(ctx, http.MethodPost, uploadURL, bytes.NewReader(data))
-	if err != nil {
-		return "", err
-	}
-	uReq.Header.Set("Authorization", "Bearer "+m.serviceKey)
-	uReq.Header.Set("apikey", m.serviceKey)
-	uReq.Header.Set("Content-Type", contentType)
-	uReq.Header.Set("x-upsert", "false")
-	uResp, err := http.DefaultClient.Do(uReq)
-	if err != nil {
-		return "", fmt.Errorf("upload maintenance image: %w", err)
-	}
-	defer uResp.Body.Close()
-	if uResp.StatusCode < 200 || uResp.StatusCode >= 300 {
-		return "", fmt.Errorf("upload maintenance image: status %d", uResp.StatusCode)
-	}
-	return m.baseURL + "/storage/v1/object/public/" + url.PathEscape(m.bucket) + "/" + escapedKey, nil
 }
 
 // MatchLocation attempts to find a location by partial name match.
@@ -321,9 +133,6 @@ func (s *Store) CreateTicket(ctx context.Context, data TicketData) (string, erro
 	if data.ReporterName == "" {
 		data.ReporterName = "WhatsApp User"
 	}
-	if data.ImageURL != "" {
-		data.ImageURL = s.archiveImage(ctx, data)
-	}
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
 		return "", fmt.Errorf("begin ticket transaction: %w", err)
@@ -404,15 +213,4 @@ func (s *Store) CreateTicket(ctx context.Context, data TicketData) (string, erro
 		return "", fmt.Errorf("commit ticket: %w", err)
 	}
 	return ticketNumber, nil
-}
-
-func (s *Store) archiveImage(ctx context.Context, data TicketData) string {
-	mediaCtx, cancel := context.WithTimeout(ctx, maintenanceMediaTimeout)
-	defer cancel()
-	storedURL, err := s.media.copyImage(mediaCtx, data.ImageURL, data.SourcePhone, data.SourceMessageID)
-	if err != nil {
-		slog.Warn("maintenance image archival skipped", "err", err, "sourceMessageId", data.SourceMessageID, "sourceUrl", data.ImageURL)
-		return ""
-	}
-	return storedURL
 }

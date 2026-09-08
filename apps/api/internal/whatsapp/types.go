@@ -42,7 +42,6 @@ const (
 	StateMaintenanceAwaitLocation
 	StateMaintenanceAwaitCategory
 	StateMaintenanceAwaitDescription
-	StateMaintenanceAwaitImage
 )
 
 type Session struct {
@@ -75,12 +74,10 @@ type Session struct {
 	PendingPickLeaveIDs     []string
 	PendingTemplateApprove  *bool
 
-	TempMaintenanceBranchID     string
-	TempMaintenanceLocation     string
-	TempMaintenanceCategory     string
-	TempMaintenanceDescription  string
-	TempMaintenanceImageURL     string
-	TempMaintenanceImageCaption string
+	TempMaintenanceBranchID    string
+	TempMaintenanceLocation    string
+	TempMaintenanceCategory    string
+	TempMaintenanceDescription string
 }
 
 func (s *Session) resetFlow() {
@@ -101,8 +98,6 @@ func (s *Session) resetFlow() {
 	s.TempMaintenanceLocation = ""
 	s.TempMaintenanceCategory = ""
 	s.TempMaintenanceDescription = ""
-	s.TempMaintenanceImageURL = ""
-	s.TempMaintenanceImageCaption = ""
 }
 
 func (s *Session) reset() {
