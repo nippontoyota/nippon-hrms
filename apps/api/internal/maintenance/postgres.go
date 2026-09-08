@@ -107,31 +107,31 @@ func sniffMaintenanceImageType(data []byte) string {
 // 401/403. If the unauthenticated attempt is rejected, it retries with the
 // DoubleTick API key, in case the URL genuinely requires it.
 func (m *MediaStorage) downloadMedia(ctx context.Context, sourceURL string) ([]byte, error) {
-	fetch := func(withAuth bool) ([]byte, int, error) {
+	fetch := func(withAuth bool) ([]byte, int, string, error) {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, sourceURL, nil)
 		if err != nil {
-			return nil, 0, err
+			return nil, 0, "", err
 		}
 		if withAuth {
 			req.Header.Set("Authorization", m.doubleTickKey)
 		}
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
-			return nil, 0, fmt.Errorf("download maintenance image: %w", err)
+			return nil, 0, "", fmt.Errorf("download maintenance image: %w", err)
 		}
 		defer resp.Body.Close()
 		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			io.Copy(io.Discard, io.LimitReader(resp.Body, 4096))
-			return nil, resp.StatusCode, nil
+			body, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
+			return nil, resp.StatusCode, string(body), nil
 		}
 		data, err := io.ReadAll(io.LimitReader(resp.Body, maxMaintenanceImageBytes+1))
 		if err != nil {
-			return nil, resp.StatusCode, err
+			return nil, resp.StatusCode, "", err
 		}
-		return data, resp.StatusCode, nil
+		return data, resp.StatusCode, "", nil
 	}
 
-	data, status, err := fetch(false)
+	data, status, body, err := fetch(false)
 	if err != nil {
 		return nil, err
 	}
@@ -139,15 +139,15 @@ func (m *MediaStorage) downloadMedia(ctx context.Context, sourceURL string) ([]b
 		return data, nil
 	}
 	if status != http.StatusUnauthorized && status != http.StatusForbidden {
-		return nil, fmt.Errorf("download maintenance image: status %d", status)
+		return nil, fmt.Errorf("download maintenance image: status %d, body %q", status, body)
 	}
 
-	data, status, err = fetch(true)
+	data, status, body, err = fetch(true)
 	if err != nil {
 		return nil, err
 	}
 	if data == nil {
-		return nil, fmt.Errorf("download maintenance image: status %d", status)
+		return nil, fmt.Errorf("download maintenance image: status %d after unauthenticated+authenticated attempts, body %q", status, body)
 	}
 	return data, nil
 }
@@ -407,7 +407,7 @@ func (s *Store) archiveImage(ctx context.Context, data TicketData) string {
 	defer cancel()
 	storedURL, err := s.media.copyImage(mediaCtx, data.ImageURL, data.SourcePhone, data.SourceMessageID)
 	if err != nil {
-		slog.Warn("maintenance image archival skipped", "err", err, "sourceMessageId", data.SourceMessageID)
+		slog.Warn("maintenance image archival skipped", "err", err, "sourceMessageId", data.SourceMessageID, "sourceUrl", data.ImageURL)
 		return ""
 	}
 	return storedURL
