@@ -6,7 +6,7 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import prisma from '@/lib/prisma'
 import { listMaintenanceAssignees } from '@/lib/maintenance'
-import { requireMaintenanceActor, requireMaintenanceAdmin, requireMaintenanceBranch, requireMaintenanceSession } from '@/lib/maintenance-auth'
+import { requireMaintenanceActor, requireMaintenanceAdmin, requireMaintenanceSession } from '@/lib/maintenance-auth'
 import { MAINTENANCE_BRANCHES, isCanonicalMaintenanceBranchName, normalizeMaintenanceBranchName } from '@/lib/maintenance-branches'
 import { hashMaintenanceCode, loginKey, recoverMaintenanceCode } from '@/lib/password'
 
@@ -196,20 +196,19 @@ export async function rotateBranchCode(input: unknown) {
 }
 
 export async function requestTicketTransfer(input: unknown) {
-  const session = await requireMaintenanceBranch()
-  const branchId = session.branchId
-  if (!branchId) throw new Error('Branch account is not configured')
+  const session = await requireMaintenanceSession()
   const parsed = transferInput.parse(input)
   try {
     await prisma.$transaction(async (tx) => {
-      const ticket = await tx.ticket.findFirst({ where: { id: parsed.ticketId, branch_id: branchId, status: { not: TicketStatus.CLOSED } }, select: { branch_id: true, ticket_number: true } })
+      const ticket = await tx.ticket.findFirst({ where: { id: parsed.ticketId, ...(session.role === 'BRANCH' ? { branch_id: session.branchId } : {}), status: { not: TicketStatus.CLOSED } }, select: { branch_id: true, ticket_number: true } })
       if (!ticket) throw new Error('Ticket not found')
-      if (parsed.destinationBranchId === branchId) throw new Error('Choose another branch')
+      if (!ticket.branch_id) throw new Error('This ticket has no owning branch')
+      if (parsed.destinationBranchId === ticket.branch_id) throw new Error('Choose another branch')
       const destination = await tx.maintenanceBranch.findFirst({ where: { id: parsed.destinationBranchId, is_active: true }, select: { name: true } })
       if (!destination) throw new Error('Destination branch not found')
       const pending = await tx.ticketTransfer.findFirst({ where: { ticket_id: parsed.ticketId, status: 'PENDING' } })
       if (pending) throw new Error('This ticket already has a pending transfer')
-      await tx.ticketTransfer.create({ data: { ticket_id: parsed.ticketId, source_branch_id: branchId, destination_branch_id: parsed.destinationBranchId, requested_by_id: session.accountId, reason: parsed.reason } })
+      await tx.ticketTransfer.create({ data: { ticket_id: parsed.ticketId, source_branch_id: ticket.branch_id, destination_branch_id: parsed.destinationBranchId, requested_by_id: session.accountId, reason: parsed.reason } })
       await tx.ticketActivity.create({ data: { ticket_id: parsed.ticketId, actor: session.accountId, type: 'ASSIGNED', detail: `Transfer requested to ${destination.name}: ${parsed.reason}` } })
     })
     revalidateTicket(parsed.ticketId)

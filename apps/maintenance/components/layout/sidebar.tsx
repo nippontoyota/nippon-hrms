@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { Ticket, LogOut, ArrowRightLeft, Users } from 'lucide-react'
+import Image from 'next/image'
 import { logout } from '@/app/actions/auth'
 
 const navItems = [
@@ -24,10 +25,10 @@ export function Sidebar({ role, branchName }: { role: 'ADMIN' | 'BRANCH'; branch
   const sections = Array.from(new Set(visibleItems.map(item => item.section)))
 
   return (
-    <div className="flex h-full w-64 flex-col bg-background text-foreground border-r border-border">
+    <aside className="fixed inset-y-0 left-0 z-40 flex h-dvh w-64 flex-col border-r border-border bg-background text-foreground">
       <div className="flex h-16 items-center px-6 border-b border-border">
         <Link href="/tickets" aria-label="Go to maintenance tickets" className="rounded-sm focus:outline-none focus:ring-2 focus:ring-red-500">
-          <img src="/nippon-logo.png" alt="Nippon Toyota" className="h-8 object-contain" />
+          <Image src="/nippon-logo.png" alt="Nippon Toyota" width={96} height={32} priority className="h-8 w-auto object-contain" />
         </Link>
       </div>
       <div className="border-b border-border px-6 py-4"><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">{role === 'ADMIN' ? 'Administrator' : 'Branch account'}</p>{role === 'BRANCH' && branchName && <p className="mt-1 truncate text-sm font-bold text-foreground">{branchName}</p>}</div>
@@ -74,12 +75,12 @@ export function Sidebar({ role, branchName }: { role: 'ADMIN' | 'BRANCH'; branch
               })
             })
           }}
-          className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-slate-500 hover:bg-red-50 hover:text-red-600 transition-all duration-200"
+          className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-[#374151] transition-all duration-200 hover:bg-[#fff1f2] hover:text-[#b60718]"
         >
           <LogOut className="h-4 w-4" />
           Log Out
         </button>
       </div>
-    </div>
+    </aside>
   )
 }
