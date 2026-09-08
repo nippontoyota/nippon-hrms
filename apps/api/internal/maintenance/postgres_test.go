@@ -10,6 +10,8 @@ import (
 )
 
 func TestArchiveImageStoresPermanentPublicURL(t *testing.T) {
+	// Pre-signed media URL: no Authorization header required, and none
+	// should be sent, the way a real self-authenticating URL expects.
 	const imageBytes = "\x89PNG\r\n\x1a\nvalid-test-image"
 	var uploaded bytes.Buffer
 	var gotSourceAuth, gotUploadAuth string
@@ -33,8 +35,45 @@ func TestArchiveImageStoresPermanentPublicURL(t *testing.T) {
 
 	store := &Store{media: &MediaStorage{baseURL: server.URL, serviceKey: "service-test-key", doubleTickKey: "doubletick-test-key", bucket: "maintenance-images"}}
 	got := store.archiveImage(context.Background(), TicketData{ImageURL: server.URL + "/temporary-image", SourcePhone: "+919999999999", SourceMessageID: "message-1"})
-	if got == "" || uploaded.String() != imageBytes || gotSourceAuth != "doubletick-test-key" || gotUploadAuth != "Bearer service-test-key" {
+	if got == "" || uploaded.String() != imageBytes || gotSourceAuth != "" || gotUploadAuth != "Bearer service-test-key" {
 		t.Fatalf("archive result=%q uploaded=%q sourceAuth=%q uploadAuth=%q", got, uploaded.String(), gotSourceAuth, gotUploadAuth)
+	}
+}
+
+func TestArchiveImageRetriesWithAuthWhenUnauthenticatedIsRejected(t *testing.T) {
+	// Some media URLs do require the DoubleTick API key. If the
+	// unauthenticated attempt is rejected with 401/403, the archiver must
+	// retry with the Authorization header before giving up.
+	const imageBytes = "\x89PNG\r\n\x1a\nvalid-test-image"
+	var attempts []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/storage/v1/bucket":
+			w.WriteHeader(http.StatusConflict)
+		case r.Method == http.MethodGet && r.URL.Path == "/auth-required-image":
+			auth := r.Header.Get("Authorization")
+			attempts = append(attempts, auth)
+			if auth != "doubletick-test-key" {
+				w.WriteHeader(http.StatusForbidden)
+				return
+			}
+			w.Header().Set("Content-Type", "image/png")
+			_, _ = w.Write([]byte(imageBytes))
+		case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/storage/v1/object/maintenance-images/whatsapp/919999999999/"):
+			w.WriteHeader(http.StatusOK)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	store := &Store{media: &MediaStorage{baseURL: server.URL, serviceKey: "service-test-key", doubleTickKey: "doubletick-test-key", bucket: "maintenance-images"}}
+	got := store.archiveImage(context.Background(), TicketData{ImageURL: server.URL + "/auth-required-image", SourcePhone: "+919999999999", SourceMessageID: "message-auth-retry"})
+	if got == "" {
+		t.Fatalf("expected archival to succeed after retrying with auth, attempts=%v", attempts)
+	}
+	if len(attempts) != 2 || attempts[0] != "" || attempts[1] != "doubletick-test-key" {
+		t.Fatalf("expected an unauthenticated attempt followed by an authenticated retry, got %v", attempts)
 	}
 }
 

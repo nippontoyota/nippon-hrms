@@ -100,6 +100,58 @@ func sniffMaintenanceImageType(data []byte) string {
 	return "application/octet-stream"
 }
 
+// downloadMedia fetches sourceURL, trying without an Authorization header
+// first. Many chat platforms hand back pre-signed media URLs (auth baked
+// into the query string); attaching an unrelated Authorization header to
+// those makes the underlying storage reject the request outright with a
+// 401/403. If the unauthenticated attempt is rejected, it retries with the
+// DoubleTick API key, in case the URL genuinely requires it.
+func (m *MediaStorage) downloadMedia(ctx context.Context, sourceURL string) ([]byte, error) {
+	fetch := func(withAuth bool) ([]byte, int, error) {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, sourceURL, nil)
+		if err != nil {
+			return nil, 0, err
+		}
+		if withAuth {
+			req.Header.Set("Authorization", m.doubleTickKey)
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return nil, 0, fmt.Errorf("download maintenance image: %w", err)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			io.Copy(io.Discard, io.LimitReader(resp.Body, 4096))
+			return nil, resp.StatusCode, nil
+		}
+		data, err := io.ReadAll(io.LimitReader(resp.Body, maxMaintenanceImageBytes+1))
+		if err != nil {
+			return nil, resp.StatusCode, err
+		}
+		return data, resp.StatusCode, nil
+	}
+
+	data, status, err := fetch(false)
+	if err != nil {
+		return nil, err
+	}
+	if data != nil {
+		return data, nil
+	}
+	if status != http.StatusUnauthorized && status != http.StatusForbidden {
+		return nil, fmt.Errorf("download maintenance image: status %d", status)
+	}
+
+	data, status, err = fetch(true)
+	if err != nil {
+		return nil, err
+	}
+	if data == nil {
+		return nil, fmt.Errorf("download maintenance image: status %d", status)
+	}
+	return data, nil
+}
+
 func (m *MediaStorage) copyImage(ctx context.Context, sourceURL, sourcePhone, messageID string) (string, error) {
 	if m == nil || m.baseURL == "" || m.serviceKey == "" {
 		return "", fmt.Errorf("maintenance image storage is not configured")
@@ -111,20 +163,7 @@ func (m *MediaStorage) copyImage(ctx context.Context, sourceURL, sourcePhone, me
 	if err != nil || len(sourceURL) > maxMaintenanceImageURLLength || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" || u.User != nil {
 		return "", fmt.Errorf("invalid image URL")
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, sourceURL, nil)
-	if err != nil {
-		return "", err
-	}
-	req.Header.Set("Authorization", m.doubleTickKey)
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("download maintenance image: %w", err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return "", fmt.Errorf("download maintenance image: status %d", resp.StatusCode)
-	}
-	data, err := io.ReadAll(io.LimitReader(resp.Body, maxMaintenanceImageBytes+1))
+	data, err := m.downloadMedia(ctx, sourceURL)
 	if err != nil {
 		return "", err
 	}
@@ -138,7 +177,7 @@ func (m *MediaStorage) copyImage(ctx context.Context, sourceURL, sourcePhone, me
 	detectedType := sniffMaintenanceImageType(data)
 	ext, ok := maintenanceImageExtensions[detectedType]
 	if !ok {
-		return "", fmt.Errorf("unsupported maintenance image type %q (header %q)", detectedType, resp.Header.Get("Content-Type"))
+		return "", fmt.Errorf("unsupported maintenance image type %q", detectedType)
 	}
 	contentType := detectedType
 	safePhone := strings.NewReplacer("+", "", "/", "", "\\", "").Replace(sourcePhone)
