@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Ticket, LogOut, ArrowRightLeft } from 'lucide-react'
+import { Ticket, LogOut, ArrowRightLeft, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { logout } from '@/app/actions/auth'
 
@@ -11,12 +11,13 @@ const bottomNavItems = [
   { title: 'Transfers', href: '/transfers', icon: ArrowRightLeft },
 ]
 
-export function BottomNav() {
+export function BottomNav({ role }: { role: 'ADMIN' | 'BRANCH' }) {
   const pathname = usePathname()
+  const items = role === 'ADMIN' ? [...bottomNavItems, { title: 'Branches', href: '/admin/branches', icon: Users }] : bottomNavItems
 
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 h-[84px] bg-background/95 backdrop-blur-md border-t border-border z-50 px-2 pb-[env(safe-area-inset-bottom,16px)] flex items-center justify-around">
-      {bottomNavItems.map((item) => {
+      {items.map((item) => {
         const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(`${item.href}/`))
         
         return (

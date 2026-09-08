@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import { hashSecret, loginKey } from '../lib/password'
+import { MAINTENANCE_BRANCHES, normalizeMaintenanceBranchName } from '../lib/maintenance-branches'
 
 const prisma = new PrismaClient()
 
@@ -90,11 +91,13 @@ async function main() {
     })
   }
 
-  const locations = await prisma.location.findMany({ where: { is_active: true }, orderBy: { name: 'asc' }, select: { id: true, name: true } })
-  if (locations.length !== 19) throw new Error(`Expected 19 active maintenance locations, found ${locations.length}`)
-  for (const [index, location] of locations.entries()) {
-    const branch = await prisma.maintenanceBranch.upsert({ where: { location_id: location.id }, update: { name: location.name }, create: { location_id: location.id, name: location.name } })
-    const code = `NT${String(index + 1).padStart(4, '0')}`
+  const locations = await prisma.location.findMany({ where: { is_active: true }, select: { id: true, name: true } })
+  const locationsByCanonicalName = new Map(locations.map((location) => [normalizeMaintenanceBranchName(location.name), location]))
+  for (const branchDefinition of MAINTENANCE_BRANCHES) {
+    const location = locationsByCanonicalName.get(branchDefinition.name)
+    if (!location) throw new Error(`Missing active location for maintenance branch ${branchDefinition.name}`)
+    const branch = await prisma.maintenanceBranch.upsert({ where: { location_id: location.id }, update: { name: branchDefinition.name, is_active: true }, create: { location_id: location.id, name: branchDefinition.name } })
+    const code = branchDefinition.code
     await prisma.maintenanceAccount.upsert({
       where: { branch_id: branch.id },
       update: { login_key: loginKey(code), secret_hash: await hashSecret(code), role: 'BRANCH', is_active: true },

@@ -3,10 +3,9 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { Ticket, LogOut, ArrowRightLeft } from 'lucide-react'
+import { Ticket, LogOut, ArrowRightLeft, Users } from 'lucide-react'
 import { logout } from '@/app/actions/auth'
 
-// Note: In a real app, these items would be filtered by user role
 const navItems = [
   {
     title: 'Tickets',
@@ -14,13 +13,15 @@ const navItems = [
     icon: Ticket,
     section: 'Maintenance'
   },
-  { title: 'Transfers', href: '/transfers', icon: ArrowRightLeft, section: 'Maintenance' }
+  { title: 'Transfers', href: '/transfers', icon: ArrowRightLeft, section: 'Maintenance', roles: ['ADMIN', 'BRANCH'] },
+  { title: 'Branch accounts', href: '/admin/branches', icon: Users, section: 'Administration', roles: ['ADMIN'] },
 ]
 
-export function Sidebar() {
+export function Sidebar({ role, branchName }: { role: 'ADMIN' | 'BRANCH'; branchName?: string | null }) {
   const pathname = usePathname()
 
-  const sections = Array.from(new Set(navItems.map(item => item.section)))
+  const visibleItems = navItems.filter((item) => !item.roles || item.roles.includes(role))
+  const sections = Array.from(new Set(visibleItems.map(item => item.section)))
 
   return (
     <div className="flex h-full w-64 flex-col bg-background text-foreground border-r border-border">
@@ -29,6 +30,7 @@ export function Sidebar() {
           <img src="/nippon-logo.png" alt="Nippon Toyota" className="h-8 object-contain" />
         </Link>
       </div>
+      <div className="border-b border-border px-6 py-4"><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">{role === 'ADMIN' ? 'Administrator' : 'Branch account'}</p>{role === 'BRANCH' && branchName && <p className="mt-1 truncate text-sm font-bold text-foreground">{branchName}</p>}</div>
       <div className="flex-1 overflow-y-auto py-6">
         <nav className="space-y-8 px-3">
           {sections.map(section => (
@@ -37,7 +39,7 @@ export function Sidebar() {
                 {section}
               </h4>
               <div className="space-y-1">
-                {navItems
+                {visibleItems
                   .filter(item => item.section === section)
                   .map(item => {
                     const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(`${item.href}/`))

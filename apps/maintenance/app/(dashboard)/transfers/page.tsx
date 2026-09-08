@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { requireMaintenanceSession } from '@/lib/maintenance-auth'
 import prisma from '@/lib/prisma'
 import { TransferDecision } from '@/components/transfers/transfer-controls'
+import { normalizeMaintenanceBranchName } from '@/lib/maintenance-branches'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,12 +33,12 @@ export default async function TransfersPage() {
               <div className="flex flex-col justify-between gap-3 sm:flex-row">
                 <div>
                   <Link href={`/tickets/${transfer.ticket.id}`} className="font-bold text-red-600 hover:underline">{transfer.ticket.ticket_number}</Link>
-                  <p className="mt-1 text-sm text-slate-700">{transfer.source_branch.name} to {transfer.destination_branch.name}</p>
+                  <p className="mt-1 text-sm font-semibold text-slate-700">{normalizeMaintenanceBranchName(transfer.source_branch.name)} to {normalizeMaintenanceBranchName(transfer.destination_branch.name)}</p>
                   <p className="mt-1 text-sm text-slate-500">{transfer.reason}</p>
                 </div>
                 <span className="h-fit border border-slate-200 px-2 py-1 text-xs font-bold uppercase text-slate-600">{transfer.status}</span>
               </div>
-              {transfer.status === 'PENDING' && (session.role === 'ADMIN' || transfer.destination_branch_id === session.branchId) && <div className="mt-4 max-w-sm"><TransferDecision transferId={transfer.id} /></div>}
+              {transfer.status === 'PENDING' && transfer.destination_branch_id === session.branchId && <div className="mt-4 max-w-sm"><TransferDecision transferId={transfer.id} /></div>}
             </article>
           )) : <div className="border border-dashed border-slate-300 bg-white p-12 text-center text-sm text-slate-500">No transfer requests.</div>}
         </div>

@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
 	"time"
 
@@ -195,17 +196,26 @@ func (s *Store) ListActiveBranches(ctx context.Context) ([]Branch, error) {
 		return nil, fmt.Errorf("list maintenance branches: %w", err)
 	}
 	defer rows.Close()
-	branches := make([]Branch, 0, 19)
+	branches := make([]Branch, 0, len(canonicalBranchNames))
 	for rows.Next() {
 		var branch Branch
 		if err := rows.Scan(&branch.ID, &branch.Name); err != nil {
 			return nil, err
 		}
+		if !IsCanonicalBranchName(branch.Name) {
+			continue
+		}
+		branch.Name = CanonicalBranchName(branch.Name)
 		branches = append(branches, branch)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
+	order := make(map[string]int, len(canonicalBranchNames))
+	for index, name := range canonicalBranchNames {
+		order[name] = index
+	}
+	sort.SliceStable(branches, func(i, j int) bool { return order[branches[i].Name] < order[branches[j].Name] })
 	return branches, nil
 }
 
@@ -215,6 +225,10 @@ func (s *Store) GetActiveBranch(ctx context.Context, id string) (Branch, error) 
 	if err != nil {
 		return Branch{}, fmt.Errorf("active maintenance branch not found: %w", err)
 	}
+	if !IsCanonicalBranchName(branch.Name) {
+		return Branch{}, fmt.Errorf("maintenance branch is not configured: %s", branch.ID)
+	}
+	branch.Name = CanonicalBranchName(branch.Name)
 	return branch, nil
 }
 

@@ -114,11 +114,11 @@ export default async function TicketsPage(props: { searchParams: Promise<{ [key:
   const [rawTickets, counts] = await Promise.all([
     queue === 'unattended'
       ? unattendedIds(query, sort, direction, page, pageSize, cutoff, session.branchId).then(async (ids) => {
-        const rows = await prisma.ticket.findMany({ where: { id: { in: ids.map((item) => item.id) } }, include: { location: true, category: true, materials: true, assignee: true, costs: true } })
+        const rows = await prisma.ticket.findMany({ where: { id: { in: ids.map((item) => item.id) } }, include: { location: true, category: true, branch: { select: { name: true } }, materials: true, assignee: true, costs: true } })
         const byId = new Map(rows.map((row) => [row.id, row]))
         return ids.map((item) => byId.get(item.id)).filter((row): row is (typeof rows)[number] => Boolean(row))
       })
-      : prisma.ticket.findMany({ where: combine(baseWhere, queueWhere(queue)), include: { location: true, category: true, materials: true, assignee: true, costs: true }, orderBy: [selectedOrder, { created_at: 'desc' }], skip: (page - 1) * pageSize, take: pageSize + 1 }),
+      : prisma.ticket.findMany({ where: combine(baseWhere, queueWhere(queue)), include: { location: true, category: true, branch: { select: { name: true } }, materials: true, assignee: true, costs: true }, orderBy: [selectedOrder, { created_at: 'desc' }], skip: (page - 1) * pageSize, take: pageSize + 1 }),
     queueCounts(query, cutoff, session.role === 'BRANCH' ? session.branchId : null),
   ])
   const hasNextPage = rawTickets.length > pageSize

@@ -7,6 +7,7 @@ import { z } from 'zod'
 import prisma from '@/lib/prisma'
 import { listMaintenanceAssignees } from '@/lib/maintenance'
 import { requireMaintenanceActor, requireMaintenanceAdmin, requireMaintenanceBranch, requireMaintenanceSession } from '@/lib/maintenance-auth'
+import { isCanonicalMaintenanceBranchName, normalizeMaintenanceBranchName } from '@/lib/maintenance-branches'
 import { hashSecret, loginKey } from '@/lib/password'
 
 const ticketId = z.string().trim().min(1, 'Ticket is required.')
@@ -26,7 +27,7 @@ const costInput = z.object({
 const closeInput = z.object({ ticketId })
 const transferInput = z.object({ ticketId, destinationBranchId: z.string().trim().min(1), reason: z.string().trim().min(5).max(500) })
 const transferDecisionInput = z.object({ transferId: z.string().trim().min(1), reason: z.string().trim().max(500).optional() })
-const branchAccountInput = z.object({ branchId: z.string().trim().min(1), code: z.string().trim().regex(/^[A-Za-z0-9]{6,12}$/).optional() })
+const branchAccountInput = z.object({ branchId: z.string().trim().min(1), code: z.string().trim().regex(/^[A-Za-z0-9]{5,12}$/).optional() })
 
 function revalidateTicket(ticketId: string) {
   revalidatePath('/tickets')
@@ -142,12 +143,14 @@ export async function closeTicket(input: unknown) {
 
 export async function listMaintenanceBranches() {
   await requireMaintenanceSession()
-  return prisma.maintenanceBranch.findMany({ where: { is_active: true }, orderBy: { name: 'asc' }, select: { id: true, name: true } })
+  const branches = await prisma.maintenanceBranch.findMany({ where: { is_active: true }, orderBy: { name: 'asc' }, select: { id: true, name: true } })
+  return branches.filter((branch) => isCanonicalMaintenanceBranchName(branch.name)).map((branch) => ({ ...branch, name: normalizeMaintenanceBranchName(branch.name) }))
 }
 
 export async function listBranchAccounts() {
   await requireMaintenanceAdmin()
-  return prisma.maintenanceBranch.findMany({ orderBy: { name: 'asc' }, include: { account: { select: { id: true, is_active: true } } } })
+  const branches = await prisma.maintenanceBranch.findMany({ orderBy: { name: 'asc' }, include: { account: { select: { id: true, is_active: true } } } })
+  return branches.filter((branch) => isCanonicalMaintenanceBranchName(branch.name)).map((branch) => ({ ...branch, name: normalizeMaintenanceBranchName(branch.name) }))
 }
 
 function generatedBranchCode() { return `NT${randomBytes(3).toString('hex').toUpperCase()}` }
@@ -159,10 +162,14 @@ export async function createBranchAccount(input: unknown) {
   try {
     const branch = await prisma.maintenanceBranch.findFirst({ where: { id: parsed.branchId, is_active: true }, select: { id: true, name: true } })
     if (!branch) throw new Error('Branch not found')
-    const account = await prisma.maintenanceAccount.upsert({ where: { branch_id: branch.id }, update: { login_key: loginKey(code), secret_hash: await hashSecret(code), role: 'BRANCH', is_active: true }, create: { branch_id: branch.id, login_key: loginKey(code), secret_hash: await hashSecret(code), role: 'BRANCH', is_active: true } })
+    const key = loginKey(code)
+    const account = await prisma.maintenanceAccount.upsert({ where: { branch_id: branch.id }, update: { login_key: key, secret_hash: await hashSecret(code), role: 'BRANCH', is_active: true }, create: { branch_id: branch.id, login_key: key, secret_hash: await hashSecret(code), role: 'BRANCH', is_active: true } })
     revalidatePath('/admin/branches')
     return { success: true as const, code, branch: account.branch_id }
-  } catch (error) { console.error('Failed to create branch account', { actor: session.accountId, error }); return { success: false as const, error: error instanceof Error ? error.message : 'Unable to create branch account.' } }
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') return { success: false as const, error: 'That branch code is already assigned. Choose a different code.' }
+    console.error('Failed to create branch account', { actor: session.accountId, error }); return { success: false as const, error: 'Unable to create branch account.' }
+  }
 }
 
 export async function rotateBranchCode(input: unknown) {
@@ -175,7 +182,10 @@ export async function rotateBranchCode(input: unknown) {
     await prisma.maintenanceAccount.update({ where: { id: account.id }, data: { login_key: loginKey(code), secret_hash: await hashSecret(code) } })
     revalidatePath('/admin/branches')
     return { success: true as const, code }
-  } catch (error) { console.error('Failed to rotate branch code', { actor: session.accountId, error }); return { success: false as const, error: error instanceof Error ? error.message : 'Unable to rotate branch code.' } }
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') return { success: false as const, error: 'That branch code is already assigned. Choose a different code.' }
+    console.error('Failed to rotate branch code', { actor: session.accountId, error }); return { success: false as const, error: 'Unable to rotate branch code.' }
+  }
 }
 
 export async function requestTicketTransfer(input: unknown) {
@@ -204,14 +214,15 @@ export async function requestTicketTransfer(input: unknown) {
 export async function acceptTicketTransfer(input: unknown) {
   const session = await requireMaintenanceSession()
   const branchId = session.branchId
+  if (session.role !== 'BRANCH' || !branchId) return { success: false as const, error: 'Only the destination branch can accept a transfer.' }
   const parsed = transferDecisionInput.parse(input)
   try {
     await prisma.$transaction(async (tx) => {
-      const transfer = await tx.ticketTransfer.findFirst({ where: { id: parsed.transferId, status: 'PENDING', ...(session.role === 'BRANCH' && branchId ? { destination_branch_id: branchId } : {}) }, select: { ticket_id: true, destination_branch_id: true, source_branch_id: true } })
+      const transfer = await tx.ticketTransfer.findFirst({ where: { id: parsed.transferId, status: 'PENDING', destination_branch_id: branchId }, select: { ticket_id: true, destination_branch_id: true, source_branch_id: true } })
       if (!transfer) throw new Error('Transfer is no longer pending')
       await tx.ticketTransfer.update({ where: { id: parsed.transferId }, data: { status: 'ACCEPTED', response_reason: parsed.reason || null, responded_at: new Date() } })
       await tx.ticket.update({ where: { id: transfer.ticket_id }, data: { branch_id: transfer.destination_branch_id } })
-      await tx.ticketActivity.create({ data: { ticket_id: transfer.ticket_id, actor: session.accountId, type: 'ASSIGNED', detail: 'Transfer accepted' } })
+      await tx.ticketActivity.create({ data: { ticket_id: transfer.ticket_id, actor: session.accountId, type: 'ASSIGNED', detail: 'Transfer accepted by destination branch' } })
     })
     revalidatePath('/tickets'); revalidatePath('/transfers')
     return { success: true as const }
@@ -221,11 +232,19 @@ export async function acceptTicketTransfer(input: unknown) {
 export async function rejectTicketTransfer(input: unknown) {
   const session = await requireMaintenanceSession()
   const branchId = session.branchId
+  if (session.role !== 'BRANCH' || !branchId) return { success: false as const, error: 'Only the destination branch can reject a transfer.' }
   const parsed = transferDecisionInput.parse(input)
   try {
-    const result = await prisma.ticketTransfer.updateMany({ where: { id: parsed.transferId, status: 'PENDING', ...(session.role === 'BRANCH' && branchId ? { destination_branch_id: branchId } : {}) }, data: { status: 'REJECTED', response_reason: parsed.reason || 'Rejected by destination branch', responded_at: new Date() } })
-    if (!result.count) return { success: false as const, error: 'Transfer is no longer pending.' }
-    revalidatePath('/transfers')
+    let ticketIdForRevalidation = ''
+    await prisma.$transaction(async (tx) => {
+      const transfer = await tx.ticketTransfer.findFirst({ where: { id: parsed.transferId, status: 'PENDING', destination_branch_id: branchId }, select: { ticket_id: true } })
+      if (!transfer) throw new Error('Transfer is no longer pending.')
+      ticketIdForRevalidation = transfer.ticket_id
+      await tx.ticketTransfer.update({ where: { id: parsed.transferId }, data: { status: 'REJECTED', response_reason: parsed.reason || 'Rejected by destination branch', responded_at: new Date() } })
+      await tx.ticketActivity.create({ data: { ticket_id: transfer.ticket_id, actor: session.accountId, type: 'ASSIGNED', detail: `Transfer rejected by destination branch${parsed.reason ? `: ${parsed.reason}` : ''}` } })
+    })
+    revalidateTicket(ticketIdForRevalidation)
+    revalidatePath('/tickets'); revalidatePath('/transfers')
     return { success: true as const }
   } catch (error) { return { success: false as const, error: error instanceof Error ? error.message : 'Unable to reject transfer.' } }
 }
