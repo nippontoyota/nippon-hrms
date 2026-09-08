@@ -7,8 +7,8 @@ import { z } from 'zod'
 import prisma from '@/lib/prisma'
 import { listMaintenanceAssignees } from '@/lib/maintenance'
 import { requireMaintenanceActor, requireMaintenanceAdmin, requireMaintenanceBranch, requireMaintenanceSession } from '@/lib/maintenance-auth'
-import { isCanonicalMaintenanceBranchName, normalizeMaintenanceBranchName } from '@/lib/maintenance-branches'
-import { hashSecret, loginKey } from '@/lib/password'
+import { MAINTENANCE_BRANCHES, isCanonicalMaintenanceBranchName, normalizeMaintenanceBranchName } from '@/lib/maintenance-branches'
+import { hashMaintenanceCode, loginKey, recoverMaintenanceCode } from '@/lib/password'
 
 const ticketId = z.string().trim().min(1, 'Ticket is required.')
 const assigneeId = z.string().trim().min(1, 'Assignee is required.')
@@ -149,8 +149,13 @@ export async function listMaintenanceBranches() {
 
 export async function listBranchAccounts() {
   await requireMaintenanceAdmin()
-  const branches = await prisma.maintenanceBranch.findMany({ orderBy: { name: 'asc' }, include: { account: { select: { id: true, is_active: true } } } })
-  return branches.filter((branch) => isCanonicalMaintenanceBranchName(branch.name)).map((branch) => ({ ...branch, name: normalizeMaintenanceBranchName(branch.name) }))
+  const branches = await prisma.maintenanceBranch.findMany({ orderBy: { name: 'asc' }, include: { account: { select: { id: true, is_active: true, login_key: true, secret_hash: true } } } })
+  return branches.filter((branch) => isCanonicalMaintenanceBranchName(branch.name)).map((branch) => {
+    const name = normalizeMaintenanceBranchName(branch.name)
+    const definition = MAINTENANCE_BRANCHES.find((item) => item.name === name)
+    const legacyCode = definition && branch.account?.login_key === loginKey(definition.code) ? definition.code : null
+    return { ...branch, name, account: branch.account ? { id: branch.account.id, is_active: branch.account.is_active, current_code: recoverMaintenanceCode(branch.account.secret_hash) || legacyCode } : null }
+  })
 }
 
 function generatedBranchCode() { return `NT${randomBytes(3).toString('hex').toUpperCase()}` }
@@ -158,12 +163,13 @@ function generatedBranchCode() { return `NT${randomBytes(3).toString('hex').toUp
 export async function createBranchAccount(input: unknown) {
   const session = await requireMaintenanceAdmin()
   const parsed = branchAccountInput.parse(input)
-  const code = parsed.code || generatedBranchCode()
+  const code = (parsed.code || generatedBranchCode()).trim().toUpperCase()
   try {
     const branch = await prisma.maintenanceBranch.findFirst({ where: { id: parsed.branchId, is_active: true }, select: { id: true, name: true } })
     if (!branch) throw new Error('Branch not found')
     const key = loginKey(code)
-    const account = await prisma.maintenanceAccount.upsert({ where: { branch_id: branch.id }, update: { login_key: key, secret_hash: await hashSecret(code), role: 'BRANCH', is_active: true }, create: { branch_id: branch.id, login_key: key, secret_hash: await hashSecret(code), role: 'BRANCH', is_active: true } })
+    const secretHash = await hashMaintenanceCode(code)
+    const account = await prisma.maintenanceAccount.upsert({ where: { branch_id: branch.id }, update: { login_key: key, secret_hash: secretHash, role: 'BRANCH', is_active: true }, create: { branch_id: branch.id, login_key: key, secret_hash: secretHash, role: 'BRANCH', is_active: true } })
     revalidatePath('/admin/branches')
     return { success: true as const, code, branch: account.branch_id }
   } catch (error) {
@@ -175,11 +181,12 @@ export async function createBranchAccount(input: unknown) {
 export async function rotateBranchCode(input: unknown) {
   const session = await requireMaintenanceAdmin()
   const parsed = branchAccountInput.parse(input)
-  const code = parsed.code || generatedBranchCode()
+  const code = (parsed.code || generatedBranchCode()).trim().toUpperCase()
   try {
     const account = await prisma.maintenanceAccount.findFirst({ where: { branch_id: parsed.branchId, role: 'BRANCH' } })
     if (!account) throw new Error('Branch account not found')
-    await prisma.maintenanceAccount.update({ where: { id: account.id }, data: { login_key: loginKey(code), secret_hash: await hashSecret(code) } })
+    const secretHash = await hashMaintenanceCode(code)
+    await prisma.maintenanceAccount.update({ where: { id: account.id }, data: { login_key: loginKey(code), secret_hash: secretHash } })
     revalidatePath('/admin/branches')
     return { success: true as const, code }
   } catch (error) {

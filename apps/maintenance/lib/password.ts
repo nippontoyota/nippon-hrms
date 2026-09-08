@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from 'node:crypto'
+import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 
 const HASH_VERSION = 'pbkdf2-sha256-v1'
 const ITERATIONS = 310_000
@@ -13,6 +13,37 @@ export async function hashSecret(secret: string) {
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), 'PBKDF2', false, ['deriveBits'])
   const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations: ITERATIONS, hash: 'SHA-256' }, key, KEY_LENGTH * 8)
   return `${HASH_VERSION}$${ITERATIONS}$${bytesToBase64(salt)}$${bytesToBase64(new Uint8Array(bits))}`
+}
+
+function codeEncryptionKey() {
+  const secret = process.env.MAINTENANCE_CODE_SECRET || process.env.MAINTENANCE_SESSION_SECRET
+  if (!secret) throw new Error('MAINTENANCE_CODE_SECRET or MAINTENANCE_SESSION_SECRET is not configured')
+  return createHash('sha256').update(secret).digest()
+}
+
+function encryptMaintenanceCode(code: string) {
+  const iv = randomBytes(12)
+  const cipher = createCipheriv('aes-256-gcm', codeEncryptionKey(), iv)
+  const ciphertext = Buffer.concat([cipher.update(code, 'utf8'), cipher.final()])
+  return `recovery-v1.${iv.toString('base64url')}.${cipher.getAuthTag().toString('base64url')}.${ciphertext.toString('base64url')}`
+}
+
+export function recoverMaintenanceCode(encoded: string) {
+  const recovery = encoded.split('$').find((part) => part.startsWith('recovery-v1.'))
+  if (!recovery) return null
+  const [, ivText, tagText, ciphertextText] = recovery.split('.')
+  if (!ivText || !tagText || !ciphertextText) return null
+  try {
+    const decipher = createDecipheriv('aes-256-gcm', codeEncryptionKey(), Buffer.from(ivText, 'base64url'))
+    decipher.setAuthTag(Buffer.from(tagText, 'base64url'))
+    return Buffer.concat([decipher.update(Buffer.from(ciphertextText, 'base64url')), decipher.final()]).toString('utf8')
+  } catch {
+    return null
+  }
+}
+
+export async function hashMaintenanceCode(code: string) {
+  return `${await hashSecret(code)}$${encryptMaintenanceCode(code.trim().toUpperCase())}`
 }
 
 export async function verifySecret(secret: string, encoded: string) {

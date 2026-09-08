@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client'
-import { hashSecret, loginKey } from '../lib/password'
+import { hashMaintenanceCode, hashSecret, loginKey } from '../lib/password'
 import { MAINTENANCE_BRANCHES, normalizeMaintenanceBranchName } from '../lib/maintenance-branches'
 
 const prisma = new PrismaClient()
@@ -100,8 +100,8 @@ async function main() {
     const code = branchDefinition.code
     await prisma.maintenanceAccount.upsert({
       where: { branch_id: branch.id },
-      update: { login_key: loginKey(code), secret_hash: await hashSecret(code), role: 'BRANCH', is_active: true },
-      create: { branch_id: branch.id, login_key: loginKey(code), secret_hash: await hashSecret(code), role: 'BRANCH', is_active: true },
+      update: { login_key: loginKey(code), secret_hash: await hashMaintenanceCode(code), role: 'BRANCH', is_active: true },
+      create: { branch_id: branch.id, login_key: loginKey(code), secret_hash: await hashMaintenanceCode(code), role: 'BRANCH', is_active: true },
     })
   }
   await prisma.maintenanceAccount.upsert({
