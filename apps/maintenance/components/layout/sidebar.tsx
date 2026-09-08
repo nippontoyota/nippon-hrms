@@ -25,18 +25,18 @@ export function Sidebar({ role, branchName }: { role: 'ADMIN' | 'BRANCH'; branch
   const sections = Array.from(new Set(visibleItems.map(item => item.section)))
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-40 flex h-dvh w-64 flex-col border-r border-border bg-background text-foreground">
-      <div className="flex h-16 items-center px-6 border-b border-border">
+    <aside className="fixed inset-y-0 left-0 z-40 flex h-dvh w-72 flex-col border-r border-border bg-background text-foreground">
+      <div className="flex h-20 items-center px-6 border-b border-border">
         <Link href="/tickets" aria-label="Go to maintenance tickets" className="rounded-sm focus:outline-none focus:ring-2 focus:ring-red-500">
-          <Image src="/nippon-logo.png" alt="Nippon Toyota" width={96} height={32} priority className="h-8 w-auto object-contain" />
+          <Image src="/nippon-logo.png" alt="Nippon Toyota" width={112} height={38} priority className="h-10 w-auto object-contain" />
         </Link>
       </div>
-      <div className="border-b border-border px-6 py-4"><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">{role === 'ADMIN' ? 'Administrator' : 'Branch account'}</p>{role === 'BRANCH' && branchName && <p className="mt-1 truncate text-sm font-bold text-foreground">{branchName}</p>}</div>
+      <div className="border-b border-border px-6 py-4"><p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-700">{role === 'ADMIN' ? 'Administrator' : 'Branch account'}</p>{role === 'BRANCH' && branchName && <p className="mt-1 truncate text-base font-bold text-foreground">{branchName}</p>}</div>
       <div className="flex-1 overflow-y-auto py-6">
         <nav className="space-y-8 px-3">
           {sections.map(section => (
             <div key={section}>
-              <h4 className="mb-2 px-3 text-xs font-bold uppercase tracking-wider text-slate-500">
+              <h4 className="mb-2 px-3 text-xs font-bold uppercase tracking-wider text-slate-700">
                 {section}
               </h4>
               <div className="space-y-1">
@@ -49,13 +49,13 @@ export function Sidebar({ role, branchName }: { role: 'ADMIN' | 'BRANCH'; branch
                         key={item.href}
                         href={item.href}
                         className={cn(
-                          'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-all duration-200',
-                          isActive 
+                          'flex items-center gap-3 rounded-md px-3 py-3 text-base font-semibold transition-all duration-200',
+                          isActive
                             ? 'bg-red-600 text-white shadow-md shadow-red-900/20'
-                            : 'text-slate-400 hover:bg-white/10 hover:text-white'
+                            : 'text-slate-700 hover:bg-red-50 hover:text-red-700'
                         )}
                       >
-                        <item.icon className={cn("h-4 w-4", isActive ? "text-white" : "text-slate-400")} />
+                        <item.icon className={cn("h-5 w-5", isActive ? "text-white" : "text-slate-600")} />
                         {item.title}
                       </Link>
                     )
@@ -75,9 +75,9 @@ export function Sidebar({ role, branchName }: { role: 'ADMIN' | 'BRANCH'; branch
               })
             })
           }}
-          className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-[#374151] transition-all duration-200 hover:bg-[#fff1f2] hover:text-[#b60718]"
+          className="flex w-full items-center gap-3 rounded-md px-3 py-3 text-base font-semibold text-slate-700 transition-all duration-200 hover:bg-[#fff1f2] hover:text-[#b60718]"
         >
-          <LogOut className="h-4 w-4" />
+          <LogOut className="h-5 w-5" />
           Log Out
         </button>
       </div>

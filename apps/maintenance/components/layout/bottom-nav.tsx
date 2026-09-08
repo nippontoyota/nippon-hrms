@@ -16,25 +16,25 @@ export function BottomNav({ role }: { role: 'ADMIN' | 'BRANCH' }) {
   const items = role === 'ADMIN' ? [...bottomNavItems, { title: 'Branches', href: '/admin/branches', icon: Users }] : bottomNavItems
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 h-[84px] bg-background/95 backdrop-blur-md border-t border-border z-50 px-2 pb-[env(safe-area-inset-bottom,16px)] flex items-center justify-around">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 h-[88px] bg-background/95 backdrop-blur-md border-t border-border z-50 px-2 pb-[env(safe-area-inset-bottom,16px)] flex items-center justify-around">
       {items.map((item) => {
         const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(`${item.href}/`))
-        
+
         return (
           <Link
             key={item.href}
             href={item.href}
             className={cn(
-              "flex flex-col items-center justify-center gap-1 w-16 h-full transition-colors",
-              isActive ? "text-red-500" : "text-muted-foreground hover:text-foreground"
+              "flex flex-col items-center justify-center gap-1 w-18 h-full transition-colors",
+              isActive ? "text-red-600" : "text-slate-700 hover:text-red-600"
             )}
           >
-            <item.icon className={cn("h-6 w-6", isActive ? "fill-red-500/10" : "")} />
-            <span className="text-[10px] font-medium tracking-wide">{item.title}</span>
+            <item.icon className={cn("h-7 w-7", isActive ? "fill-red-500/10" : "")} />
+            <span className="text-xs font-bold tracking-wide">{item.title}</span>
           </Link>
         )
       })}
-      
+
       <button
         onClick={() => {
           import('react').then(react => {
@@ -43,10 +43,10 @@ export function BottomNav({ role }: { role: 'ADMIN' | 'BRANCH' }) {
             })
           })
         }}
-        className="flex flex-col items-center justify-center gap-1 w-16 h-full transition-colors text-muted-foreground hover:text-red-500"
+        className="flex flex-col items-center justify-center gap-1 w-18 h-full transition-colors text-slate-700 hover:text-red-600"
       >
-        <LogOut className="h-6 w-6" />
-        <span className="text-[10px] font-medium tracking-wide">Logout</span>
+        <LogOut className="h-7 w-7" />
+        <span className="text-xs font-bold tracking-wide">Logout</span>
       </button>
     </div>
   )

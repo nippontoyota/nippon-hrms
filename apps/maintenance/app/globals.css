@@ -68,6 +68,7 @@
   }
   html {
     @apply font-sans;
+    font-size: 112.5%; /* larger base for readability on this internal tool */
   }
 }
 

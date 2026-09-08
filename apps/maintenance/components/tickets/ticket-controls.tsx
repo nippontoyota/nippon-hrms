@@ -58,7 +58,7 @@ export function ReopenTicketButton({ ticketId, canReopen }: { ticketId: string; 
     if (!window.confirm('Reopen this ticket? It will move back into the open queue.')) return
     startTransition(async () => { const result = await reopenTicket({ ticketId }); if (!result.success) setError(result.error); else router.refresh() })
   }
-  if (!canReopen) return <p className="text-sm text-slate-500">Contact your admin to reopen this ticket.</p>
+  if (!canReopen) return <p className="text-sm text-slate-700">Contact your admin to reopen this ticket.</p>
   return <div className="space-y-2">
     <button type="button" disabled={isPending} onClick={reopen} className="h-11 w-full border-2 border-slate-950 bg-white px-4 text-sm font-bold text-slate-950 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-45">{isPending ? 'Reopening…' : 'Reopen ticket'}</button>
     {error && <p role="alert" className="text-xs font-semibold text-red-700">{error}</p>}
