@@ -63,6 +63,7 @@ enum ActivityType {
   UNASSIGNED
   COST_ADDED
   CLOSED
+  REOPENED
 }
 
 enum MaintenanceRole {

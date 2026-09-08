@@ -141,6 +141,29 @@ export async function closeTicket(input: unknown) {
   }
 }
 
+export async function reopenTicket(input: unknown) {
+  const actor = (await requireMaintenanceAdmin()).accountId
+  const parsed = closeInput.parse(input)
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      const changed = await tx.ticket.updateMany({ where: { id: parsed.ticketId, status: TicketStatus.CLOSED }, data: { status: TicketStatus.NEW } })
+      if (changed.count === 0) {
+        const ticket = await tx.ticket.findUnique({ where: { id: parsed.ticketId }, select: { id: true, status: true } })
+        if (!ticket) throw new Error('Ticket not found')
+        throw new Error('Ticket is not closed')
+      }
+      await tx.ticketStatusHistory.create({ data: { ticket_id: parsed.ticketId, status: TicketStatus.NEW, notes: 'Ticket reopened by admin' } })
+      await tx.ticketActivity.create({ data: { ticket_id: parsed.ticketId, actor, type: 'REOPENED', detail: 'Ticket reopened' } })
+    })
+    revalidateTicket(parsed.ticketId)
+    return { success: true as const }
+  } catch (error) {
+    console.error('Failed to reopen maintenance ticket', { actor, error })
+    return { success: false as const, error: error instanceof Error ? error.message : 'Unable to reopen the ticket.' }
+  }
+}
+
 export async function listMaintenanceBranches() {
   await requireMaintenanceSession()
   const branches = await prisma.maintenanceBranch.findMany({ where: { is_active: true }, orderBy: { name: 'asc' }, select: { id: true, name: true } })

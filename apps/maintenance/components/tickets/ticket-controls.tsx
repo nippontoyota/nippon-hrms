@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { addAssignee, addTicketCost, assignTicket, closeTicket } from '@/app/actions/maintenance'
+import { addAssignee, addTicketCost, assignTicket, closeTicket, reopenTicket } from '@/app/actions/maintenance'
 import { formatInr } from '@/lib/format'
 
 export function AssignmentControl({ ticketId, currentAssigneeId, assignees }: { ticketId: string; currentAssigneeId: string | null; assignees: { id: string; name: string }[] }) {
@@ -49,3 +49,18 @@ export function CostForm({ ticketId, type }: { ticketId: string; type: 'MATERIAL
 }
 
 export function CloseTicketButton({ ticketId, disabled }: { ticketId: string; disabled?: boolean }) { const [isPending, startTransition] = useTransition(); const [error, setError] = useState(''); const router = useRouter(); const close = () => { if (!window.confirm('Close this ticket? You can still view it later, but new costs and assignment changes will be locked.')) return; startTransition(async () => { const result = await closeTicket({ ticketId }); if (!result.success) setError(result.error); else router.refresh() }) }; return <div className="space-y-2"><button type="button" disabled={disabled || isPending} onClick={close} className="h-11 w-full bg-slate-950 px-4 text-sm font-bold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-45">{isPending ? 'Closing…' : disabled ? 'Ticket closed' : 'Close ticket'}</button>{error && <p role="alert" className="text-xs font-semibold text-red-700">{error}</p>}</div> }
+
+export function ReopenTicketButton({ ticketId, canReopen }: { ticketId: string; canReopen: boolean }) {
+  const [isPending, startTransition] = useTransition()
+  const [error, setError] = useState('')
+  const router = useRouter()
+  const reopen = () => {
+    if (!window.confirm('Reopen this ticket? It will move back into the open queue.')) return
+    startTransition(async () => { const result = await reopenTicket({ ticketId }); if (!result.success) setError(result.error); else router.refresh() })
+  }
+  if (!canReopen) return <p className="text-sm text-slate-500">Contact your admin to reopen this ticket.</p>
+  return <div className="space-y-2">
+    <button type="button" disabled={isPending} onClick={reopen} className="h-11 w-full border-2 border-slate-950 bg-white px-4 text-sm font-bold text-slate-950 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-45">{isPending ? 'Reopening…' : 'Reopen ticket'}</button>
+    {error && <p role="alert" className="text-xs font-semibold text-red-700">{error}</p>}
+  </div>
+}
