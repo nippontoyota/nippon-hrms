@@ -8,7 +8,6 @@ import { TicketTable, type QueueTicket } from '@/components/tickets/ticket-table
 import { requireMaintenanceSession } from '@/lib/maintenance-auth'
 
 export const dynamic = 'force-dynamic'
-export const preferredRegion = 'bom1'
 
 const Link = (props: React.ComponentProps<typeof NextLink>) => <NextLink prefetch={false} {...props} />
 type Queue = 'open' | 'assigned' | 'unassigned' | 'unattended' | 'closed'

@@ -35,6 +35,10 @@ function revalidateTicket(ticketId: string) {
   revalidatePath('/dashboard')
 }
 
+function inputError(error: unknown) {
+  return error instanceof z.ZodError ? error.issues[0]?.message || 'Invalid input.' : 'Invalid input.'
+}
+
 export async function getAssignees() {
   await requireMaintenanceActor()
   return listMaintenanceAssignees()
@@ -42,7 +46,12 @@ export async function getAssignees() {
 
 export async function addAssignee(input: unknown) {
   const actor = (await requireMaintenanceAdmin()).accountId
-  const { name } = assigneeInput.parse(input)
+  let name: string
+  try {
+    name = assigneeInput.parse(input).name
+  } catch (error) {
+    return { success: false as const, error: inputError(error) }
+  }
   const normalizedName = name.toLocaleLowerCase()
 
   try {
@@ -62,7 +71,12 @@ export async function addAssignee(input: unknown) {
 export async function assignTicket(input: unknown) {
   const session = await requireMaintenanceSession()
   const actor = session.accountId
-  const parsed = assignmentInput.parse(input)
+  let parsed: z.infer<typeof assignmentInput>
+  try {
+    parsed = assignmentInput.parse(input)
+  } catch (error) {
+    return { success: false as const, error: inputError(error) }
+  }
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -99,7 +113,12 @@ export async function assignTicket(input: unknown) {
 export async function addTicketCost(input: unknown) {
   const session = await requireMaintenanceSession()
   const actor = session.accountId
-  const parsed = costInput.parse(input)
+  let parsed: z.infer<typeof costInput>
+  try {
+    parsed = costInput.parse(input)
+  } catch (error) {
+    return { success: false as const, error: inputError(error) }
+  }
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -120,7 +139,12 @@ export async function addTicketCost(input: unknown) {
 export async function closeTicket(input: unknown) {
   const session = await requireMaintenanceSession()
   const actor = session.accountId
-  const parsed = closeInput.parse(input)
+  let parsed: z.infer<typeof closeInput>
+  try {
+    parsed = closeInput.parse(input)
+  } catch (error) {
+    return { success: false as const, error: inputError(error) }
+  }
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -143,7 +167,12 @@ export async function closeTicket(input: unknown) {
 
 export async function reopenTicket(input: unknown) {
   const actor = (await requireMaintenanceAdmin()).accountId
-  const parsed = closeInput.parse(input)
+  let parsed: z.infer<typeof closeInput>
+  try {
+    parsed = closeInput.parse(input)
+  } catch (error) {
+    return { success: false as const, error: inputError(error) }
+  }
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -185,7 +214,12 @@ function generatedBranchCode() { return `NT${randomBytes(3).toString('hex').toUp
 
 export async function createBranchAccount(input: unknown) {
   const session = await requireMaintenanceAdmin()
-  const parsed = branchAccountInput.parse(input)
+  let parsed: z.infer<typeof branchAccountInput>
+  try {
+    parsed = branchAccountInput.parse(input)
+  } catch (error) {
+    return { success: false as const, error: inputError(error) }
+  }
   const code = (parsed.code || generatedBranchCode()).trim().toUpperCase()
   try {
     const branch = await prisma.maintenanceBranch.findFirst({ where: { id: parsed.branchId, is_active: true }, select: { id: true, name: true } })
@@ -203,7 +237,12 @@ export async function createBranchAccount(input: unknown) {
 
 export async function rotateBranchCode(input: unknown) {
   const session = await requireMaintenanceAdmin()
-  const parsed = branchAccountInput.parse(input)
+  let parsed: z.infer<typeof branchAccountInput>
+  try {
+    parsed = branchAccountInput.parse(input)
+  } catch (error) {
+    return { success: false as const, error: inputError(error) }
+  }
   const code = (parsed.code || generatedBranchCode()).trim().toUpperCase()
   try {
     const account = await prisma.maintenanceAccount.findFirst({ where: { branch_id: parsed.branchId, role: 'BRANCH' } })
@@ -220,7 +259,12 @@ export async function rotateBranchCode(input: unknown) {
 
 export async function requestTicketTransfer(input: unknown) {
   const session = await requireMaintenanceSession()
-  const parsed = transferInput.parse(input)
+  let parsed: z.infer<typeof transferInput>
+  try {
+    parsed = transferInput.parse(input)
+  } catch (error) {
+    return { success: false as const, error: inputError(error) }
+  }
   try {
     await prisma.$transaction(async (tx) => {
       const ticket = await tx.ticket.findFirst({ where: { id: parsed.ticketId, ...(session.role === 'BRANCH' ? { branch_id: session.branchId } : {}), status: { not: TicketStatus.CLOSED } }, select: { branch_id: true, ticket_number: true } })
@@ -244,7 +288,12 @@ export async function acceptTicketTransfer(input: unknown) {
   const session = await requireMaintenanceSession()
   const branchId = session.branchId
   if (session.role !== 'BRANCH' || !branchId) return { success: false as const, error: 'Only the destination branch can accept a transfer.' }
-  const parsed = transferDecisionInput.parse(input)
+  let parsed: z.infer<typeof transferDecisionInput>
+  try {
+    parsed = transferDecisionInput.parse(input)
+  } catch (error) {
+    return { success: false as const, error: inputError(error) }
+  }
   try {
     await prisma.$transaction(async (tx) => {
       const transfer = await tx.ticketTransfer.findFirst({ where: { id: parsed.transferId, status: 'PENDING', destination_branch_id: branchId }, select: { ticket_id: true, destination_branch_id: true, source_branch_id: true } })
@@ -262,7 +311,12 @@ export async function rejectTicketTransfer(input: unknown) {
   const session = await requireMaintenanceSession()
   const branchId = session.branchId
   if (session.role !== 'BRANCH' || !branchId) return { success: false as const, error: 'Only the destination branch can reject a transfer.' }
-  const parsed = transferDecisionInput.parse(input)
+  let parsed: z.infer<typeof transferDecisionInput>
+  try {
+    parsed = transferDecisionInput.parse(input)
+  } catch (error) {
+    return { success: false as const, error: inputError(error) }
+  }
   try {
     let ticketIdForRevalidation = ''
     await prisma.$transaction(async (tx) => {

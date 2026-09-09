@@ -55,8 +55,8 @@ export async function requireMaintenanceSession() {
   if (!session) redirect('/login')
   return session
 }
-export async function requireMaintenanceAdmin() { const session = await requireMaintenanceSession(); if (session.role !== 'ADMIN') throw new Error('Admin access required'); return session }
-export async function requireMaintenanceBranch() { const session = await requireMaintenanceSession(); if (session.role !== 'BRANCH' || !session.branchId) throw new Error('Branch access required'); return session }
+export async function requireMaintenanceAdmin() { const session = await requireMaintenanceSession(); if (session.role !== 'ADMIN') redirect('/tickets'); return session }
+export async function requireMaintenanceBranch() { const session = await requireMaintenanceSession(); if (session.role !== 'BRANCH' || !session.branchId) redirect('/tickets'); return session }
 export async function requireMaintenanceActor() { return (await requireMaintenanceSession()).accountId }
 
 export async function authenticateMaintenance(identifier: string, secret: string) {

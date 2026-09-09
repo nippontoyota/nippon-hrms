@@ -18,9 +18,13 @@ export function TransferLauncher({ tickets, branches }: { tickets: TransferTicke
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     startTransition(async () => {
-      const result = await requestTicketTransfer({ ticketId, destinationBranchId, reason })
-      setMessage(result.success ? 'Transfer request sent. The destination branch must accept it.' : result.error)
-      if (result.success) { setTicketId(''); setDestinationBranchId(''); setReason('') }
+      try {
+        const result = await requestTicketTransfer({ ticketId, destinationBranchId, reason })
+        setMessage(result.success ? 'Transfer request sent. The destination branch must accept it.' : result.error)
+        if (result.success) { setTicketId(''); setDestinationBranchId(''); setReason('') }
+      } catch (error) {
+        setMessage(error instanceof Error ? error.message : 'Unable to request transfer.')
+      }
     })
   }
 

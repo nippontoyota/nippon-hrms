@@ -33,7 +33,11 @@ function branchName(ticket: QueueTicket) {
 function SortLink({ label, sort, activeSort, direction, params }: { label: string; sort: string; activeSort: string; direction: string; params: string }) {
   const nextDirection = activeSort === sort && direction === 'asc' ? 'desc' : 'asc'
   const Icon = activeSort === sort && direction === 'desc' ? ArrowDown : ArrowUp
-  return <Link href={`?${params}&sort=${sort}&direction=${nextDirection}`} className="inline-flex items-center gap-1 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500">{label}{activeSort === sort && <Icon className="h-3 w-3" aria-hidden="true" />}</Link>
+  const query = new URLSearchParams(params)
+  query.set('sort', sort)
+  query.set('direction', nextDirection)
+  query.delete('page')
+  return <Link href={`?${query.toString()}`} className="inline-flex items-center gap-1 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500">{label}{activeSort === sort && <Icon className="h-3 w-3" aria-hidden="true" />}</Link>
 }
 
 function TicketSummary({ ticket }: { ticket: QueueTicket }) {
