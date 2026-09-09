@@ -74,25 +74,25 @@ func (r *PostgresRepository) GetStats(ctx context.Context) (*DashboardStats, err
 		return nil, err
 	}
 
-	// 4. Get designation distribution
-	stats.DesignationDistribution = []DesignationCount{}
-	desigRows, err := r.db.Query(ctx, `
-		SELECT COALESCE(designation, 'Unassigned'), COUNT(*)
+	// 4. Get department distribution
+	stats.DepartmentDistribution = []DepartmentCount{}
+	departmentRows, err := r.db.Query(ctx, `
+		SELECT COALESCE(department, 'Unassigned'), COUNT(*)
 		FROM employees
-		GROUP BY COALESCE(designation, 'Unassigned')
+		GROUP BY COALESCE(department, 'Unassigned')
 		ORDER BY COUNT(*) DESC
 	`)
 	if err != nil {
 		return nil, err
 	}
-	defer desigRows.Close()
+	defer departmentRows.Close()
 
-	for desigRows.Next() {
-		var dc DesignationCount
-		if err := desigRows.Scan(&dc.Designation, &dc.Count); err != nil {
+	for departmentRows.Next() {
+		var dc DepartmentCount
+		if err := departmentRows.Scan(&dc.Department, &dc.Count); err != nil {
 			return nil, err
 		}
-		stats.DesignationDistribution = append(stats.DesignationDistribution, dc)
+		stats.DepartmentDistribution = append(stats.DepartmentDistribution, dc)
 	}
 
 	// 5. Pending mock counts (leaving as 0 for now as they were previously mocked)

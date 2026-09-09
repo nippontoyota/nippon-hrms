@@ -251,9 +251,9 @@ export interface ExperienceDistribution {
   over10Years: number;
 }
 
-export interface DesignationCount {
-  designation: string;
-  count: number;
+export interface DepartmentCount {
+	department: string;
+	count: number;
 }
 
 export interface DashboardStats {
@@ -264,7 +264,7 @@ export interface DashboardStats {
   latestPeriod?: SalaryPeriod;
   recentDispatchJobs?: DispatchJobSummary[];
   branchDistribution: BranchCount[];
-  designationDistribution?: DesignationCount[];
+  departmentDistribution?: DepartmentCount[];
   experienceDistribution: ExperienceDistribution;
 }
 

@@ -175,25 +175,25 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Designation Breakdown */}
+          {/* Department Breakdown */}
           <div className="card !rounded-none !p-0 overflow-hidden flex flex-col w-full flex-1 max-h-[400px]">
             <div className="p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 shrink-0">
-              <h2 className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest">Designation Breakdown</h2>
+              <h2 className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest">Department Breakdown</h2>
             </div>
             <div className="overflow-y-auto flex-1 bg-white dark:bg-slate-900 custom-scrollbar">
-              {stats?.designationDistribution && stats.designationDistribution.length > 0 ? (
+              {stats?.departmentDistribution && stats.departmentDistribution.length > 0 ? (
                 <div className="table-wrapper !border-0 !rounded-none !p-0">
                   <table className="table-dense w-full !border-0">
                     <thead className="sticky top-0 bg-slate-50 dark:bg-slate-800 z-10 shadow-sm">
                       <tr>
-                        <th className="!py-3 !px-4 text-left border-t-0 border-l-0">DESIGNATION</th>
+                        <th className="!py-3 !px-4 text-left border-t-0 border-l-0">DEPARTMENT</th>
                         <th className="!py-3 !px-4 text-right border-t-0 border-r-0">HEADCOUNT</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {stats.designationDistribution.map((d) => (
-                        <tr key={d.designation} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                          <td className="!py-3 !px-4 font-medium text-slate-700 dark:text-slate-300 text-sm border-l-0">{d.designation}</td>
+                      {stats.departmentDistribution.map((d) => (
+                        <tr key={d.department} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                          <td className="!py-3 !px-4 font-medium text-slate-700 dark:text-slate-300 text-sm border-l-0">{d.department}</td>
                           <td className="!py-3 !px-4 text-right font-bold text-slate-700 dark:text-slate-200 font-mono text-sm border-r-0">{d.count}</td>
                         </tr>
                       ))}
