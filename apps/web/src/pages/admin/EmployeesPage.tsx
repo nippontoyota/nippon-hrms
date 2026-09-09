@@ -276,34 +276,6 @@ export default function EmployeesPage() {
     );
   };
 
-  const handleClearDirectory = () => {
-    if (total === 0) return;
-    openConfirm(
-      'Clear Employee Directory',
-      `You are about to permanently delete all ${total} employees. This action cannot be undone and will also remove all associated payroll, EPF, and dispatch records.`,
-      `Clear ${total} Employees`,
-      () => {
-        closeConfirm();
-        setIsDeleting(true);
-        toast.promise(
-          (async () => {
-            const result = await employeesApi.bulkDelete({ deleteAll: true });
-            qc.invalidateQueries({ queryKey: ['employees'] });
-            qc.invalidateQueries({ queryKey: ['dashboard'] });
-            setSelectedIds(new Set());
-            setSelectAllMatching(false);
-            return result;
-          })(),
-          {
-            loading: 'Clearing employee directory...',
-            success: (result) => `Cleared ${result.deleted} employee${result.deleted === 1 ? '' : 's'}.`,
-            error: 'Failed to clear employee directory',
-          }
-        ).finally(() => setIsDeleting(false));
-      }
-    );
-  };
-
   const startEdit = (e: Employee) => {
     setEditingId(e.id);
     setEditForm({ ...e });
@@ -402,15 +374,6 @@ export default function EmployeesPage() {
                   className="btn-sm !px-4 !py-2 bg-red-100 hover:bg-red-200 text-red-700 border border-red-200 cursor-pointer flex items-center gap-2 font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Trash size={16} weight="bold" /> Delete Selected ({selectedCount})
-                </button>
-              )}
-              {total > 0 && (
-                <button
-                  onClick={handleClearDirectory}
-                  disabled={isDeleting}
-                  className="btn-sm !px-4 !py-2 bg-white dark:bg-slate-800 text-red-600 hover:bg-red-50 border border-red-200 cursor-pointer flex items-center gap-2 font-bold uppercase tracking-wider transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Trash size={16} weight="bold" /> Clear Directory ({total})
                 </button>
               )}
               <button
