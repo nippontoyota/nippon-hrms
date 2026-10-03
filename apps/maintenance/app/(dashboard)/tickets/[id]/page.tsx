@@ -39,11 +39,37 @@ export default async function TicketDetailsPage({ params }: { params: Promise<{ 
     <header className="border-b border-slate-200 bg-white px-5 py-5 sm:px-8"><div className="mx-auto max-w-7xl"><Link href="/tickets" className="hidden md:inline-flex h-9 items-center justify-center gap-2 bg-red-600 px-4 text-[11px] font-bold uppercase tracking-[0.14em] text-white shadow-sm transition-colors hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 rounded-sm"><ArrowLeft className="h-3.5 w-3.5" /> Back to queue</Link><div className="mt-5 flex min-w-0 flex-col justify-between gap-4 sm:flex-row sm:items-end"><div className="min-w-0"><p className="text-xs font-bold uppercase tracking-[0.16em] text-red-600">Maintenance ticket</p><h1 className="mt-1 break-words text-3xl font-bold tracking-tight text-slate-950">{ticket.ticket_number}</h1><p className="mt-1 text-sm text-slate-700">Created {format(ticket.created_at, 'dd MMM yyyy, h:mm a')}</p></div><div className="shrink-0 flex items-center gap-3"><span className={`border px-3 py-2 text-xs font-bold uppercase tracking-wide ${getStatusColor(status)}`}>{status}</span>{ticket.status === 'CLOSED' ? <ReopenTicketButton ticketId={ticket.id} canReopen={session.role === 'ADMIN'} /> : <CloseTicketButton ticketId={ticket.id} />}</div></div></div></header>
     <main className="mx-auto grid min-w-0 max-w-7xl gap-5 px-5 py-5 xl:grid-cols-[300px_minmax(0,1fr)_300px] lg:grid-cols-[250px_minmax(0,1fr)_250px] sm:px-8">
       <aside className="min-w-0 space-y-5">
-        <section className="border border-slate-200 bg-white p-5 shadow-sm"><h2 className="text-lg font-bold text-slate-950">Activity</h2><div className="mt-5 space-y-4">{ticket.activities.length === 0 && ticket.status_history.length === 0 && <p className="text-sm text-slate-700">No activity recorded yet.</p>}{[...ticket.activities.map((item) => ({ id: item.id, date: item.created_at, title: item.detail, actor: item.actor })), ...ticket.status_history.map((item) => ({ id: item.id, date: item.created_at, title: `Status: ${item.status.replaceAll('_', ' ')}`, actor: item.notes || 'System' }))].sort((a, b) => b.date.getTime() - a.date.getTime()).map((item) => {
-          const isCuid = item.actor?.length === 25 && item.actor?.startsWith('c');
-          const displayActor = isCuid ? 'Staff Member' : (item.actor || 'System');
-          return <div key={item.id} className="border-l-2 border-red-200 pl-3"><p className="break-words text-sm font-semibold text-slate-800">{item.title}</p><p className="mt-1 break-words text-xs text-slate-700">{format(item.date, 'dd MMM, h:mm a')} · {displayActor}</p></div>
-        })}</div></section>
+        <section className="border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 className="text-lg font-bold text-slate-950">Activity Timeline</h2>
+          <div className="mt-6">
+            {ticket.activities.length === 0 && ticket.status_history.length === 0 && (
+              <p className="text-sm text-slate-700">No activity recorded yet.</p>
+            )}
+            <ul role="list" className="space-y-6">
+              {[...ticket.activities.map((item) => ({ id: item.id, date: item.created_at, title: item.detail, actor: item.actor })), ...ticket.status_history.map((item) => ({ id: item.id, date: item.created_at, title: `Status: ${item.status.replaceAll('_', ' ')}`, actor: item.notes || 'System' }))].sort((a, b) => b.date.getTime() - a.date.getTime()).map((item, index, arr) => {
+                const isCuid = item.actor?.length === 25 && item.actor?.startsWith('c');
+                const displayActor = isCuid ? 'Staff Member' : (item.actor || 'System');
+                const isLast = index === arr.length - 1;
+                return (
+                  <li key={item.id} className="relative flex gap-x-4">
+                    <div className={`absolute left-0 top-0 flex w-6 justify-center ${isLast ? 'h-6' : '-bottom-6'}`}>
+                      <div className="w-px bg-emerald-200" />
+                    </div>
+                    <div className="relative flex h-6 w-6 flex-none items-center justify-center bg-white">
+                      <div className="h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-emerald-100" />
+                    </div>
+                    <div className="flex-auto py-0.5">
+                      <p className="break-words text-sm font-semibold text-slate-800">{item.title}</p>
+                      <p className="mt-1 break-words text-xs font-medium text-slate-500">
+                        {format(item.date, 'dd MMM, h:mm a')} · {displayActor}
+                      </p>
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        </section>
       </aside>
 
       <div className="min-w-0 space-y-5">
