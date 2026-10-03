@@ -517,9 +517,7 @@ Description: ${ticket.description}`
 
 export async function deleteTicket(ticketId: string) {
   const session = await requireMaintenanceSession();
-  if (session.role !== 'ADMIN') {
-    return { success: false, error: 'Only admins can delete tickets.' };
-  }
+  
 
   try {
     await prisma.ticket.delete({
