@@ -79,9 +79,9 @@ export function TotalCostForm({ ticketId, initialAmount, disabled = false }: { t
   }
 
   return (
-    <div className="flex flex-col gap-2 rounded-sm border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="flex flex-col gap-2 px-1">
       <div className="flex items-center justify-between">
-        <label className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-700">Cost</label>
+        <label className="text-lg font-bold text-slate-950">Total Cost</label>
         {saved && <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full"><Check className="h-3 w-3" /> Saved</span>}
       </div>
       <div className="flex items-baseline gap-2 mt-1">
