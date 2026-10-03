@@ -15,7 +15,7 @@ export function BottomNav({ role }: { role: 'ADMIN' | 'BRANCH' }) {
   const items = role === 'ADMIN' ? [...bottomNavItems, { title: 'Branches', href: '/admin/branches', icon: Users }] : bottomNavItems
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 h-[60px] pb-[env(safe-area-inset-bottom)] bg-background/95 backdrop-blur-md border-t border-border z-50 px-2 flex items-center justify-around">
+    <div className="md:hidden shrink-0 w-full h-[calc(60px+env(safe-area-inset-bottom))] pb-[env(safe-area-inset-bottom)] bg-background/95 backdrop-blur-md border-t border-border z-50 px-2 flex items-center justify-around">
       {items.map((item, index) => {
         const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(`${item.href}/`))
 
