@@ -42,6 +42,7 @@ const (
 	StateMaintenanceAwaitLocation
 	StateMaintenanceAwaitCategory
 	StateMaintenanceAwaitDescription
+	StateMaintenanceAwaitImage
 )
 
 type Session struct {
@@ -78,6 +79,7 @@ type Session struct {
 	TempMaintenanceLocation    string
 	TempMaintenanceCategory    string
 	TempMaintenanceDescription string
+	TempMaintenanceImageURL    string
 }
 
 func (s *Session) resetFlow() {
@@ -98,6 +100,7 @@ func (s *Session) resetFlow() {
 	s.TempMaintenanceLocation = ""
 	s.TempMaintenanceCategory = ""
 	s.TempMaintenanceDescription = ""
+	s.TempMaintenanceImageURL = ""
 }
 
 func (s *Session) reset() {

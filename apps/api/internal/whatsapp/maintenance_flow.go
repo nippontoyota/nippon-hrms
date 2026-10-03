@@ -72,6 +72,7 @@ func maintenanceCategoryListSections() []doubletick.InteractiveListSection {
 				{ID: "cat_hvac", Title: "HVAC", Description: "Air conditioning, cooling"},
 				{ID: "cat_civil", Title: "Civil", Description: "Building, painting, structural"},
 				{ID: "cat_it", Title: "IT & Network", Description: "Computers, internet, printers"},
+				{ID: "cat_fire_safety", Title: "Fire & Safety", Description: "Fire alarms, extinguishers"},
 			},
 		},
 	}
@@ -206,7 +207,7 @@ func (s *Service) handleMaintenanceAwaitDescription(ctx context.Context, sess *S
 
 	if strings.HasPrefix(lowerInput, "cat_") ||
 		lowerInput == "electrical" || lowerInput == "plumbing" ||
-		lowerInput == "hvac" || lowerInput == "civil" || lowerInput == "it" ||
+		lowerInput == "hvac" || lowerInput == "civil" || lowerInput == "it" || lowerInput == "fire & safety" || lowerInput == "fire and safety" ||
 		strings.Contains(lowerInput, "select category") ||
 		strings.Contains(lowerInput, "category of the issue") ||
 		strings.EqualFold(input, sess.TempMaintenanceCategory) ||
@@ -215,7 +216,7 @@ func (s *Service) handleMaintenanceAwaitDescription(ctx context.Context, sess *S
 		strippedInput == "hvacairconditioning,cooling" ||
 		strippedInput == "civilbuilding,painting,structural" ||
 		strippedInput == "it&networkcomputers,internet,printers" ||
-		strippedInput == "itcomputers,internet,printers" {
+		strippedInput == "itcomputers,internet,printers" || strippedInput == "fire&safetyfirealarms,extinguishers" {
 		return nil
 	}
 
@@ -224,7 +225,9 @@ func (s *Service) handleMaintenanceAwaitDescription(ctx context.Context, sess *S
 	}
 
 	sess.TempMaintenanceDescription = strings.TrimSpace(input)
-	return s.createMaintenanceTicket(ctx, sess, from, messageID, timestamp)
+	sess.State = StateMaintenanceAwaitImage
+	s.sessions.Set(from, sess)
+	return s.sendText(ctx, from, "Would you like to attach an image? (Optional)\n\nPlease upload a photo now, or reply *Skip* to proceed.")
 }
 
 // createMaintenanceTicket finishes the flow once branch, location, category,
@@ -265,6 +268,7 @@ func (s *Service) createMaintenanceTicket(ctx context.Context, sess *Session, fr
 		LocationID:      locID,
 		CategoryID:      catID,
 		Description:     sess.TempMaintenanceDescription,
+		ImageURL:        sess.TempMaintenanceImageURL,
 		SourcePhone:     from,
 		SourceMessageID: messageID,
 		Timestamp:       timestamp,
@@ -279,4 +283,22 @@ func (s *Service) createMaintenanceTicket(ctx context.Context, sess *Session, fr
 	s.sessions.Set(from, sess)
 
 	return s.sendText(ctx, from, fmt.Sprintf(msgMaintenanceTicketCreated, ticketNum))
+}
+
+func (s *Service) handleMaintenanceAwaitImage(ctx context.Context, sess *Session, from, input, imageURL, imageCaption, messageID string, timestamp int64) error {
+	if isGreeting(input) {
+		sess.resetFlow()
+		s.sessions.Set(from, sess)
+		return s.handleIdle(ctx, sess, from, input)
+	}
+
+	if imageURL != "" {
+		sess.TempMaintenanceImageURL = imageURL
+	} else if strings.EqualFold(strings.TrimSpace(input), "skip") || strings.EqualFold(strings.TrimSpace(input), "no") {
+		sess.TempMaintenanceImageURL = ""
+	} else {
+		return s.sendText(ctx, from, "Please upload an image, or reply *Skip* to proceed without one.")
+	}
+
+	return s.createMaintenanceTicket(ctx, sess, from, messageID, timestamp)
 }

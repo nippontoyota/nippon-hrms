@@ -357,3 +357,166 @@ export async function setTotalCost(ticketId: string, amountStr: string) {
     return { success: false as const, error: error instanceof Error ? error.message : 'Unable to update total cost.' }
   }
 }
+
+export async function searchEmployees(query: string) {
+  await requireMaintenanceSession()
+  if (!query || query.length < 2) return []
+
+  try {
+    const results = await prisma.$queryRaw<{ id: string; name: string; mobile_number: string }[]>`
+      SELECT id, name, mobile_number
+      FROM employees
+      WHERE name ILIKE ${'%' + query + '%'} OR mobile_number ILIKE ${'%' + query + '%'}
+      LIMIT 10
+    `
+    return results
+  } catch (error) {
+    console.error('Failed to search employees:', error)
+    return []
+  }
+}
+
+export async function assignEmployeeToTicket(ticketId: string, employeeId?: string, employeeName?: string) {
+  const session = await requireMaintenanceSession()
+  const actor = session.accountId
+
+  try {
+    await prisma.$transaction(async (tx: any) => {
+      const ticket = await tx.ticket.findFirst({
+        where: { id: ticketId, ...(session.role === 'BRANCH' ? { branch_id: session.branchId } : {}) },
+        select: { assignee_id: true, status: true }
+      })
+      if (!ticket) throw new Error('Ticket not found')
+      if (ticket.status === 'CLOSED') throw new Error('Closed tickets cannot be reassigned')
+
+      if (!employeeId || !employeeName) {
+        if (!ticket.assignee_id) return
+        await tx.ticket.update({ where: { id: ticketId }, data: { assignee_id: null } })
+        await tx.ticketAssignment.updateMany({
+          where: { ticket_id: ticketId, assignee_id: ticket.assignee_id, cleared_at: null },
+          data: { cleared_at: new Date() }
+        })
+        await tx.ticketActivity.create({
+          data: { ticket_id: ticketId, actor, type: 'UNASSIGNED', detail: 'Ticket unassigned' }
+        })
+        return
+      }
+
+      let assignee = await tx.maintenanceAssignee.findFirst({
+        where: { normalized_name: employeeId }
+      })
+
+      if (!assignee) {
+        assignee = await tx.maintenanceAssignee.create({
+          data: { name: employeeName, normalized_name: employeeId, is_active: true }
+        })
+      }
+
+      if (ticket.assignee_id === assignee.id) return
+
+      if (ticket.assignee_id) {
+        await tx.ticketAssignment.updateMany({
+          where: { ticket_id: ticketId, assignee_id: ticket.assignee_id, cleared_at: null },
+          data: { cleared_at: new Date() }
+        })
+      }
+
+      await tx.ticket.update({
+        where: { id: ticketId },
+        data: { assignee_id: assignee.id }
+      })
+      
+      await tx.ticketAssignment.create({
+        data: { ticket_id: ticketId, assignee_id: assignee.id, assigned_by: actor }
+      })
+      
+      await tx.ticketActivity.create({
+        data: { ticket_id: ticketId, actor, type: 'ASSIGNED', detail: `Assigned to ${employeeName}` }
+      })
+    })
+
+    revalidateTicket(ticketId)
+    return { success: true as const }
+  } catch (error) {
+    console.error('Assign error:', error)
+    return { success: false as const, error: error instanceof Error ? error.message : 'Unable to assign employee' }
+  }
+}
+
+export async function notifyAssigneeViaWhatsApp(ticketId: string, assigneeId: string) {
+  await requireMaintenanceSession()
+
+  try {
+    const ticket = await prisma.ticket.findUnique({
+      where: { id: ticketId },
+      include: {
+        branch: true,
+        assignee: true
+      }
+    })
+
+    if (!ticket || !ticket.assignee) {
+      return { success: false as const, error: 'Ticket or Assignee not found' }
+    }
+
+    const employee = await prisma.$queryRaw<{ mobile_number: string }[]>`
+      SELECT mobile_number FROM employees WHERE id = ${ticket.assignee.normalized_name} LIMIT 1
+    `
+
+    if (!employee || employee.length === 0) {
+      return { success: false as const, error: 'Employee phone number not found in directory.' }
+    }
+
+    let phone = employee[0].mobile_number
+    if (!phone.startsWith('+91') && !phone.startsWith('91') && phone.length === 10) {
+      phone = '+91' + phone
+    } else if (phone.startsWith('91')) {
+      phone = '+' + phone
+    }
+
+    const messageText = `Hello ${ticket.assignee.name}, you have been assigned to Maintenance Ticket ${ticket.ticket_number} at ${ticket.branch?.name || 'Unknown Branch'}.
+    
+Description: ${ticket.description}`
+
+    const response = await fetch('https://developer.doubletick.io/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.DOUBLETICK_API_KEY}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        messages: [
+          {
+            to: phone,
+            content: {
+              text: messageText
+            }
+          }
+        ]
+      })
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('DoubleTick Error:', errorText)
+      return { success: false as const, error: 'Failed to send WhatsApp message.' }
+    }
+
+    await prisma.ticketActivity.create({
+      data: {
+        ticket_id: ticketId,
+        actor: 'System',
+        type: 'NOTIFICATION_SENT',
+        detail: `WhatsApp notification sent to ${ticket.assignee.name}`
+      }
+    })
+
+    revalidateTicket(ticketId)
+    return { success: true as const }
+
+  } catch (error) {
+    console.error('Notify Error:', error)
+    return { success: false as const, error: 'Unable to send notification.' }
+  }
+}
