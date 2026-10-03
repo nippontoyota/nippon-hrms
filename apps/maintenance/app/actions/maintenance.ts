@@ -513,3 +513,21 @@ Description: ${ticket.description}`
     return { success: false as const, error: 'Unable to send notification.' }
   }
 }
+
+
+export async function deleteTicket(ticketId: string) {
+  const session = await requireMaintenanceSession();
+  if (session.role !== 'ADMIN') {
+    return { success: false, error: 'Only admins can delete tickets.' };
+  }
+
+  try {
+    await prisma.ticket.delete({
+      where: { id: ticketId }
+    });
+    revalidatePath('/tickets');
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: 'Failed to delete ticket.' };
+  }
+}
