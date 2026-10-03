@@ -11,11 +11,11 @@ export function TotalCostForm({ ticketId, initialAmount, disabled = false }: { t
   
   const formatValue = (val: string) => {
     const raw = val.replaceAll(',', '').replace(/^₹\s*/, '').trim()
-    if (!raw || isNaN(Number(raw))) return ''
+    if (!raw || isNaN(Number(raw)) || Number(raw) === 0) return ''
     return Number(raw).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   }
 
-  const [amount, setAmount] = useState(() => formatValue(initialAmount) || '0.00')
+  const [amount, setAmount] = useState(() => formatValue(initialAmount))
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
   const [isFocused, setIsFocused] = useState(false)
@@ -31,10 +31,6 @@ export function TotalCostForm({ ticketId, initialAmount, disabled = false }: { t
 
   const handleFocus = () => {
     setIsFocused(true)
-    const raw = amount.replaceAll(',', '').trim()
-    if (raw && !isNaN(Number(raw))) {
-      setAmount(raw)
-    }
   }
 
   const handleBlur = () => {
@@ -75,7 +71,12 @@ export function TotalCostForm({ ticketId, initialAmount, disabled = false }: { t
     let val = event.target.value.replace(/[^0-9.]/g, '')
     const parts = val.split('.')
     if (parts.length > 2) val = parts[0] + '.' + parts.slice(1).join('')
-    setAmount(val)
+    
+    if (parts[0]) {
+      parts[0] = Number(parts[0]).toLocaleString('en-IN')
+    }
+    
+    setAmount(parts.join('.'))
   }
 
   return (
