@@ -331,3 +331,29 @@ export async function rejectTicketTransfer(input: unknown) {
     return { success: true as const }
   } catch (error) { return { success: false as const, error: error instanceof Error ? error.message : 'Unable to reject transfer.' } }
 }
+
+export async function setTotalCost(ticketId: string, amountStr: string) {
+  const session = await requireMaintenanceSession()
+  const actor = session.accountId
+  const amount = Number(amountStr)
+  if (isNaN(amount) || amount < 0) return { success: false as const, error: 'Invalid amount' }
+
+  try {
+    await prisma.$transaction(async (tx: any) => {
+      const ticket = await tx.ticket.findFirst({ where: { id: ticketId, ...(session.role === 'BRANCH' ? { branch_id: session.branchId } : {}) }, select: { status: true } })
+      if (!ticket) throw new Error('Ticket not found')
+      if (ticket.status === 'CLOSED') throw new Error('Closed tickets cannot be edited')
+
+      await tx.ticketCost.deleteMany({ where: { ticket_id: ticketId } })
+
+      if (amount > 0) {
+        await tx.ticketCost.create({ data: { ticket_id: ticketId, type: 'MATERIAL', description: 'Total Cost', amount, created_by: actor } })
+        await tx.ticketActivity.create({ data: { ticket_id: ticketId, actor, type: 'COST_ADDED', detail: `Set total cost to ₹${amount.toFixed(2)}` } })
+      }
+    })
+    revalidateTicket(ticketId)
+    return { success: true as const }
+  } catch (error) {
+    return { success: false as const, error: error instanceof Error ? error.message : 'Unable to update total cost.' }
+  }
+}
