@@ -1,0 +1,9 @@
+@@ -754,7 +754,7 @@
+ 
+ func (s *Service) sendMoreOptionsMenu(ctx context.Context, to string) error {
+ 	sections := moreOptionsListSections()
+-	_, err := s.dt.SendInteractiveList(ctx, to, "", " ", "", "More Options", sections)
++	_, err := s.dt.SendInteractiveList(ctx, to, "", "Or select from these additional options:", "", "More Options", sections)
+ 	if err != nil {
+ 		slog.Warn("failed to send more options menu", "err", err, "to", to)
+ 	}

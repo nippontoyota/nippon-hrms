@@ -91,9 +91,20 @@ func GenerateHealthCardPDF(emp *employee.Employee) ([]byte, error) {
 	}
 
 	drawField("Name", emp.Name, fieldsY)
-	drawField("Policy No", emp.HealthPolicyNo, fieldsY+lineHeight)
+
+	policyNo := emp.HealthPolicyNo
+	if policyNo == "" {
+		policyNo = "N/A"
+	}
+	drawField("Policy No", policyNo, fieldsY+lineHeight)
+
 	drawField("Policy Type", "Base Policy", fieldsY+lineHeight*2)
-	drawField("Card No", emp.HealthCardNo, fieldsY+lineHeight*3)
+
+	cardNo := emp.HealthCardNo
+	if cardNo == "" {
+		cardNo = "N/A"
+	}
+	drawField("Card No", cardNo, fieldsY+lineHeight*3)
 	drawField("Relationship", "Self", fieldsY+lineHeight*4)
 	drawField("Emp. ID.", emp.EmployeeID, fieldsY+lineHeight*5)
 	drawField("Age", ageStr, fieldsY+lineHeight*6)

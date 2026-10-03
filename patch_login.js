@@ -1,4 +1,8 @@
-import { login } from '@/app/actions/auth'
+const fs = require('fs');
+let file = 'apps/maintenance/components/auth-login-page.tsx';
+let code = fs.readFileSync(file, 'utf8');
+
+const newCode = `import { login } from '@/app/actions/auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { PasswordInput } from '@/components/ui/password-input'
@@ -91,3 +95,6 @@ export function AuthLoginPage({ kind, error }: { kind: LoginKind; error?: string
     </main>
   )
 }
+`
+
+fs.writeFileSync(file, newCode);

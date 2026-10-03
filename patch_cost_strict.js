@@ -1,4 +1,7 @@
+const fs = require('fs');
+let file = '/Users/shivasajay/Desktop/nippon-hrms/apps/maintenance/components/tickets/total-cost-form.tsx';
 
+let code = `
 'use client'
 
 import { useState, useTransition, useRef, useEffect } from 'react'
@@ -10,12 +13,12 @@ export function TotalCostForm({ ticketId, initialAmount, disabled = false }: { t
   const [isPending, startTransition] = useTransition()
   
   const formatValue = (val: string) => {
-    const raw = val.replaceAll(',', '').replace(/^₹\s*/, '').trim()
-    if (!raw || isNaN(Number(raw)) || Number(raw) === 0) return ''
-    return Number(raw).toLocaleString('en-IN', { maximumFractionDigits: 0 })
+    const raw = val.replaceAll(',', '').replace(/^₹\\s*/, '').trim()
+    if (!raw || isNaN(Number(raw))) return ''
+    return Number(raw).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   }
 
-  const [amount, setAmount] = useState(() => formatValue(initialAmount))
+  const [amount, setAmount] = useState(() => formatValue(initialAmount) || '0.00')
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
   const [isFocused, setIsFocused] = useState(false)
@@ -31,6 +34,10 @@ export function TotalCostForm({ ticketId, initialAmount, disabled = false }: { t
 
   const handleFocus = () => {
     setIsFocused(true)
+    const raw = amount.replaceAll(',', '').trim()
+    if (raw && !isNaN(Number(raw))) {
+      setAmount(raw)
+    }
   }
 
   const handleBlur = () => {
@@ -71,22 +78,17 @@ export function TotalCostForm({ ticketId, initialAmount, disabled = false }: { t
     let val = event.target.value.replace(/[^0-9.]/g, '')
     const parts = val.split('.')
     if (parts.length > 2) val = parts[0] + '.' + parts.slice(1).join('')
-    
-    if (parts[0]) {
-      parts[0] = Number(parts[0]).toLocaleString('en-IN')
-    }
-    
-    setAmount(parts.join('.'))
+    setAmount(val)
   }
 
   return (
-    <div className="flex flex-col gap-2 px-1">
+    <div className="flex flex-col gap-2 rounded-sm border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex items-center justify-between">
-        <label className="text-lg font-bold text-slate-950">Total Cost</label>
+        <label className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-700">Cost</label>
         {saved && <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full"><Check className="h-3 w-3" /> Saved</span>}
       </div>
       <div className="flex items-baseline gap-2 mt-1">
-        <span className={`text-3xl font-light transition-colors ${error ? 'text-red-500' : 'text-emerald-600'}`}>₹</span>
+        <span className={\`text-3xl font-light transition-colors \${error ? 'text-red-500' : 'text-emerald-600'}\`}>₹</span>
         <input
           inputMode="decimal"
           type="text"
@@ -95,12 +97,15 @@ export function TotalCostForm({ ticketId, initialAmount, disabled = false }: { t
           onChange={handleChange}
           onFocus={handleFocus}
           onBlur={handleBlur}
-          placeholder="0"
-          className={`w-full bg-transparent py-1 text-4xl font-light tracking-tighter tabular-nums outline-none transition ${error ? 'text-red-600' : 'text-emerald-600 disabled:opacity-50'}`}
+          placeholder="0.00"
+          className={\`w-full bg-transparent py-1 text-4xl font-light tracking-tighter tabular-nums outline-none transition \${error ? 'text-red-600' : 'text-emerald-600 disabled:opacity-50'}\`}
         />
       </div>
-      <div className={`h-0.5 w-full transition-colors ${error ? 'bg-red-500' : isFocused ? 'bg-emerald-500' : 'bg-slate-200'}`} />
+      <div className={\`h-0.5 w-full transition-colors \${error ? 'bg-red-500' : isFocused ? 'bg-emerald-500' : 'bg-slate-200'}\`} />
       {error && <p className="mt-1 text-xs font-semibold text-red-600">{error}</p>}
     </div>
   )
 }
+`
+
+fs.writeFileSync(file, code);
