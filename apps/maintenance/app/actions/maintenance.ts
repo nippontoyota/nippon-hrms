@@ -478,22 +478,22 @@ export async function notifyAssigneeViaWhatsApp(ticketId: string, assigneeId: st
     
 Description: ${ticket.description}`
 
-    const response = await fetch('https://developer.doubletick.io/v1/messages', {
+    const apiKey = process.env.DOUBLETICK_API_KEY || "key_nyB16JSaLrh5Ut0me6JkFlASYpmnzjt2jsDXD1eG3bnKDQsAoFcC8ZGDAmaKIIjTlqzS83sXK5z7js36yhDs24Vy7xM3gupTaLLenWuyIArTJEWptaimBXEXC3KQUZ82rebpYnvJYeggEiMaoOPau9WyuSdkF7mzbNHCZSnyZvWmJUuX4QOglEbuZhmyeP9SlIc5gwjkMUKddwOeByHtZj5z846TEXRJKLh0nJHaS8y8QwnVbFAnMzPptDRm";
+    const authHeader = apiKey.startsWith('Bearer ') ? apiKey.replace('Bearer ', '') : apiKey;
+
+    const response = await fetch('https://public.doubletick.io/whatsapp/message/text', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.DOUBLETICK_API_KEY}`,
+        'Authorization': authHeader,
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
       body: JSON.stringify({
-        messages: [
-          {
-            to: phone,
-            content: {
-              text: messageText
-            }
-          }
-        ]
+        from: '+917594086900',
+        to: phone,
+        content: {
+          text: messageText
+        }
       })
     })
 
