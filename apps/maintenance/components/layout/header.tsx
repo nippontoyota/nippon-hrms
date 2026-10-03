@@ -19,7 +19,7 @@ export function Header({ role, branchName }: { role: 'ADMIN' | 'BRANCH'; branchN
     <header className="flex h-16 shrink-0 items-center justify-between border-b border-border bg-white px-5 sticky top-0 z-40 sm:px-8">
       <div className="flex items-center gap-8">
         <Link href="/tickets" className="shrink-0 focus:outline-none focus:ring-2 focus:ring-red-500">
-          <Image src="/nippon-logo.png" alt="Nippon Toyota" width={94} height={32} priority className="h-8 w-auto object-contain" />
+          <Image src="/maintenance-logo.png" alt="Nippon Toyota" width={94} height={32} priority className="h-8 w-auto object-contain" />
         </Link>
         
         <nav className="hidden md:flex items-center gap-2">

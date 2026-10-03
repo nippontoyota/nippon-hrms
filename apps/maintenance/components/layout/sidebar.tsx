@@ -27,7 +27,7 @@ export function Sidebar({ role, branchName }: { role: 'ADMIN' | 'BRANCH'; branch
     <aside className="fixed inset-y-0 left-0 z-40 flex h-dvh w-60 flex-col border-r border-border bg-background text-foreground">
       <div className="flex h-20 items-center px-6 border-b border-border">
         <Link href="/tickets" aria-label="Go to maintenance tickets" className="rounded-sm focus:outline-none focus:ring-2 focus:ring-red-500">
-          <Image src="/nippon-logo.png" alt="Nippon Toyota" width={112} height={38} priority className="h-10 w-auto object-contain" />
+          <Image src="/maintenance-logo.png" alt="Nippon Toyota" width={112} height={38} priority className="h-10 w-auto object-contain" />
         </Link>
       </div>
       <div className="border-b border-border px-6 py-4"><p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-700">{role === 'ADMIN' ? 'Administrator' : 'Branch account'}</p>{role === 'BRANCH' && branchName && <p className="mt-1 truncate text-base font-bold text-foreground">{branchName}</p>}</div>
