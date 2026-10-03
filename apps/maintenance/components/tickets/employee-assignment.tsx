@@ -2,8 +2,7 @@
 
 import { useState, useTransition, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { MessageCircle } from 'lucide-react'
-import { searchEmployees, assignEmployeeToTicket, notifyAssigneeViaWhatsApp } from '@/app/actions/maintenance'
+import { searchEmployees, assignEmployeeToTicket } from '@/app/actions/maintenance'
 
 type Employee = { id: string; name: string; mobile_number: string }
 
@@ -20,7 +19,6 @@ export function EmployeeAssignment({
   const [results, setResults] = useState<Employee[]>([])
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState('')
-  const [notificationStatus, setNotificationStatus] = useState('')
   const router = useRouter()
 
   useEffect(() => {
@@ -49,23 +47,6 @@ export function EmployeeAssignment({
     })
   }
 
-  const handleNotify = () => {
-    if (!currentAssignee) return
-    setError('')
-    setNotificationStatus('Sending...')
-    startTransition(async () => {
-      const result = await notifyAssigneeViaWhatsApp(ticketId, currentAssignee.id)
-      if (!result.success) {
-        setError(result.error)
-        setNotificationStatus('')
-      } else {
-        setNotificationStatus('Sent!')
-        setTimeout(() => setNotificationStatus(''), 3000)
-        router.refresh()
-      }
-    })
-  }
-
   return (
     <div className="space-y-4">
       {currentAssignee ? (
@@ -76,16 +57,8 @@ export function EmployeeAssignment({
           </div>
           <div className="flex items-center gap-3">
             <button
-              onClick={handleNotify}
-              disabled={disabled || isPending || notificationStatus === 'Sent!'}
-              className="inline-flex h-9 items-center justify-center bg-emerald-600 px-4 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50"
-            >
-              <MessageCircle className="mr-2 h-3.5 w-3.5" />
-              {notificationStatus || 'Send WhatsApp'}
-            </button>
-            <button
               onClick={() => handleAssign({ id: '', name: '', mobile_number: '' })}
-              disabled={disabled || isPending || !!notificationStatus}
+              disabled={disabled || isPending}
               className="text-xs font-bold uppercase tracking-wider text-red-600 hover:underline disabled:opacity-50"
             >
               Unassign

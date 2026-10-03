@@ -102,6 +102,9 @@ export async function assignTicket(input: unknown) {
         await tx.ticketActivity.create({ data: { ticket_id: parsed.ticketId, actor, type: 'UNASSIGNED', detail: `Unassigned${current ? ` from ${current.name}` : ''}` } })
       }
     })
+    if (parsed.assigneeId) {
+      notifyAssigneeViaWhatsApp(parsed.ticketId, parsed.assigneeId).catch(err => console.error('Auto-notify failed:', err));
+    }
     revalidateTicket(parsed.ticketId)
     return { success: true as const }
   } catch (error) {
@@ -339,6 +342,7 @@ export async function setTotalCost(ticketId: string, amountStr: string) {
   if (isNaN(amount) || amount < 0) return { success: false as const, error: 'Invalid amount' }
 
   try {
+    let assignedId: string | null = null;
     await prisma.$transaction(async (tx: any) => {
       const ticket = await tx.ticket.findFirst({ where: { id: ticketId, ...(session.role === 'BRANCH' ? { branch_id: session.branchId } : {}) }, select: { status: true } })
       if (!ticket) throw new Error('Ticket not found')
@@ -381,6 +385,7 @@ export async function assignEmployeeToTicket(ticketId: string, employeeId?: stri
   const actor = session.accountId
 
   try {
+    let assignedId: string | null = null;
     await prisma.$transaction(async (tx: any) => {
       const ticket = await tx.ticket.findFirst({
         where: { id: ticketId, ...(session.role === 'BRANCH' ? { branch_id: session.branchId } : {}) },
@@ -433,8 +438,12 @@ export async function assignEmployeeToTicket(ticketId: string, employeeId?: stri
       await tx.ticketActivity.create({
         data: { ticket_id: ticketId, actor, type: 'ASSIGNED', detail: `Assigned to ${employeeName}` }
       })
+      assignedId = assignee.id;
     })
 
+    if (assignedId) {
+      notifyAssigneeViaWhatsApp(ticketId, assignedId).catch(err => console.error('Auto-notify failed:', err));
+    }
     revalidateTicket(ticketId)
     return { success: true as const }
   } catch (error) {
