@@ -16,7 +16,7 @@ export function BottomNav({ role }: { role: 'ADMIN' | 'BRANCH' }) {
 
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 h-[60px] pb-[env(safe-area-inset-bottom)] bg-background/95 backdrop-blur-md border-t border-border z-50 px-2 flex items-center justify-around">
-      {items.map((item) => {
+      {items.map((item, index) => {
         const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(`${item.href}/`))
 
         return (
@@ -33,6 +33,9 @@ export function BottomNav({ role }: { role: 'ADMIN' | 'BRANCH' }) {
           </Link>
         )
       })}
+
+      
+      <div className="h-8 w-[1px] bg-slate-300 rounded-full mx-1" />
 
       <button
         onClick={() => {
