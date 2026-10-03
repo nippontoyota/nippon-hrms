@@ -6,7 +6,6 @@ export async function GET(request: NextRequest) {
     return new NextResponse('Missing URL', { status: 400 })
   }
 
-  // Only proxy doubletick media to prevent SSRF
   if (!url.startsWith('https://data-storage.doubletick.io/') && !url.startsWith('https://api.doubletick.io/')) {
     return NextResponse.redirect(url)
   }
@@ -20,12 +19,12 @@ export async function GET(request: NextRequest) {
   try {
     const res = await fetch(url, {
       headers: {
-        'Authorization': \`Bearer \${apiKey}\`
+        'Authorization': apiKey.startsWith('Bearer ') ? apiKey : `Bearer ${apiKey}`
       }
     })
 
     if (!res.ok) {
-      console.error(\`DoubleTick API returned \${res.status} for \${url}\`)
+      console.error(`DoubleTick API returned ${res.status} for ${url}`)
       return new NextResponse('Failed to fetch media from provider', { status: res.status })
     }
 
