@@ -62,10 +62,10 @@ export function TotalCostForm({ ticketId, initialAmount, disabled = false }: { t
   }
 
   return (
-    <div className="flex flex-col gap-2 border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="flex flex-col gap-2 rounded-sm border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex items-center justify-between">
-        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-700">Cost</p>
-        {saved && <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-green-600"><Check className="h-3 w-3" /> Saved</span>}
+        <label className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-700">Cost</label>
+        {saved && <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-green-600 bg-green-50 px-2 py-1 rounded-full"><Check className="h-3 w-3" /> Saved</span>}
       </div>
       <input
         min={0}
@@ -76,9 +76,10 @@ export function TotalCostForm({ ticketId, initialAmount, disabled = false }: { t
         onChange={(event) => setAmount(event.target.value)}
         onBlur={handleBlur}
         placeholder="₹ 0.00"
-        className={`h-10 w-full min-w-0 border-b-2 bg-transparent text-lg font-bold tabular-nums outline-none transition ${error ? 'border-red-500 text-red-600' : 'border-slate-200 focus:border-red-500 disabled:opacity-50'}`}
+        className={`w-full bg-transparent py-2 text-4xl font-light tracking-tighter tabular-nums outline-none transition ${error ? 'text-red-600' : 'text-slate-900 disabled:opacity-50'}`}
       />
-      {error && <p className="text-xs font-semibold text-red-600">{error}</p>}
+      <div className={`h-0.5 w-full transition-colors ${error ? 'bg-red-500' : 'bg-slate-200'}`} />
+      {error && <p className="mt-1 text-xs font-semibold text-red-600">{error}</p>}
     </div>
   )
 }
