@@ -103,7 +103,7 @@ export function EmployeeAssignment({
             className="h-10 w-full border border-slate-300 px-3 text-sm font-semibold outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 disabled:bg-slate-100"
           />
           {results.length > 0 && (
-            <ul className="absolute left-0 right-0 top-full z-10 mt-1 max-h-60 overflow-auto rounded-md border border-slate-200 bg-white shadow-lg">
+            <ul className="absolute left-0 right-0 top-full z-10 mt-1 max-h-60 overflow-auto rounded-none border border-slate-200 bg-white shadow-lg">
               {results.map((emp) => (
                 <li
                   key={emp.id}
