@@ -20,8 +20,8 @@ export function AuthLoginPage({ kind, error }: { kind: LoginKind; error?: string
           : ''
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 p-4 text-slate-900 sm:p-6">
-      <section className="w-full max-w-[420px] rounded-2xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/50 sm:p-10">
+    <main className="flex min-h-screen items-center justify-center bg-white p-4 text-slate-900 sm:p-6">
+      <section className="w-full max-w-[420px] p-6 sm:p-10">
         <header className="mb-8 text-center">
           <Image src="/nippon-logo.png" alt="Nippon Toyota" width={120} height={40} priority className="mx-auto h-12 w-auto object-contain" />
           <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Maintenance portal</p>
