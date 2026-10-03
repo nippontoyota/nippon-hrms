@@ -12,7 +12,7 @@ export const MAINTENANCE_BRANCHES: readonly MaintenanceBranchDefinition[] = [
   { name: 'Kollam', code: 'KL01A', aliases: ['Kollam'] },
   { name: 'Kottayam', code: 'KT01A', aliases: ['Kottayam'] },
   { name: 'Muvattupuzha', code: 'MV01A', aliases: ['Muvattupuzha'] },
-  { name: 'Nettor', code: 'CO01A', aliases: ['Nettor', 'Nettor_SM', 'Nettoo', 'Nettoo_SM'] },
+  { name: 'Nettoor', code: 'CO01A', aliases: ['Nettoor', 'Nettoor_SM', 'Nettoo', 'Nettoo_SM', 'Nettor', 'Nettor_SM'] },
   { name: 'Pathanamthitta', code: 'PH01A', aliases: ['Pathanamthitta'] },
   { name: 'Thiruvalla', code: 'TL01A', aliases: ['Thiruvalla'] },
   { name: 'Thrissur', code: 'TI01A', aliases: ['Thrissur', 'Thrissur_SM', 'Trichur', 'Trichur_SM'] },
