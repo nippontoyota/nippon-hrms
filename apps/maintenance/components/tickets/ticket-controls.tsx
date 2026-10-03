@@ -52,19 +52,92 @@ export function CostForm({ ticketId, type, disabled = false }: { ticketId: strin
   return <form onSubmit={submit} className="space-y-2"><div className="grid min-w-0 gap-2 sm:flex"><input required={!disabled} disabled={disabled || isPending} value={description} onChange={(event) => setDescription(event.target.value)} placeholder={type === 'MATERIAL' ? 'Material name' : 'Labour description'} className="h-10 w-full min-w-0 flex-1 border border-slate-300 px-3 text-sm outline-none focus:border-red-600 focus:ring-2 focus:ring-red-100 disabled:bg-slate-100" /><div className="flex min-w-0 gap-2"><input required={!disabled} disabled={disabled || isPending} min="0.01" step="0.01" inputMode="decimal" type="text" value={amount} onChange={(event) => setAmount(event.target.value)} onBlur={formatAmount} placeholder="₹ amount" aria-label={`${type === 'MATERIAL' ? 'Material' : 'Labour'} amount`} className="h-10 min-w-0 flex-1 border border-slate-300 px-3 text-sm outline-none focus:border-red-600 focus:ring-2 focus:ring-red-100 sm:w-36 sm:flex-none disabled:bg-slate-100" /><button disabled={disabled || isPending} className="h-10 shrink-0 bg-red-600 px-3 text-xs font-bold text-white hover:bg-red-700 disabled:opacity-50">{disabled ? 'Closed' : 'Add'}</button></div></div>{error && <p role="alert" className="text-xs font-semibold text-red-700">{error}</p>}</form>
 }
 
-export function CloseTicketButton({ ticketId, disabled }: { ticketId: string; disabled?: boolean }) { const [isPending, startTransition] = useTransition(); const [error, setError] = useState(''); const router = useRouter(); const close = () => { if (!window.confirm('Close this ticket? You can still view it later, but new costs and assignment changes will be locked.')) return; startTransition(async () => { try { const result = await closeTicket({ ticketId }); if (!result.success) setError(result.error); else router.refresh() } catch (error) { setError(error instanceof Error ? error.message : 'Unable to close the ticket.') } }) }; return <div className="space-y-2"><button type="button" disabled={disabled || isPending} onClick={close} className="h-9 shrink-0 bg-green-600 px-4 text-xs font-bold uppercase tracking-wider text-white shadow-sm hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50">{isPending ? 'Closing…' : disabled ? 'Ticket closed' : 'Close ticket'}</button>{error && <p role="alert" className="text-xs font-semibold text-red-700">{error}</p>}</div> }
+export function CloseTicketButton({ ticketId, disabled }: { ticketId: string; disabled?: boolean }) {
+  const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState('');
+  const [showConfirm, setShowConfirm] = useState(false);
+  const router = useRouter();
+
+  const close = () => {
+    setShowConfirm(false);
+    startTransition(async () => {
+      try {
+        const result = await closeTicket({ ticketId });
+        if (!result.success) setError(result.error);
+        else router.refresh();
+      } catch (error) {
+        setError(error instanceof Error ? error.message : 'Unable to close the ticket.');
+      }
+    });
+  };
+
+  return (
+    <>
+      <div className="space-y-2">
+        <button type="button" disabled={disabled || isPending} onClick={() => setShowConfirm(true)} className="h-9 shrink-0 bg-green-600 px-4 text-xs font-bold uppercase tracking-wider text-white shadow-sm hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50">
+          {isPending ? 'Closing…' : disabled ? 'Ticket closed' : 'Close ticket'}
+        </button>
+        {error && <p role="alert" className="text-xs font-semibold text-red-700">{error}</p>}
+      </div>
+
+      {showConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm ">
+          <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl ">
+            <h3 className="text-lg font-bold text-slate-900">Close this ticket?</h3>
+            <p className="mt-2 text-sm text-slate-600">You can still view it later, but new costs and assignment changes will be locked.</p>
+            <div className="mt-6 flex justify-end gap-3">
+              <button disabled={isPending} onClick={() => setShowConfirm(false)} className="rounded-md px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100">Cancel</button>
+              <button disabled={isPending} onClick={close} className="rounded-md bg-green-600 px-4 py-2 text-sm font-bold text-white hover:bg-green-700">Yes, close ticket</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
 
 export function ReopenTicketButton({ ticketId, canReopen }: { ticketId: string; canReopen: boolean }) {
-  const [isPending, startTransition] = useTransition()
-  const [error, setError] = useState('')
-  const router = useRouter()
+  const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState('');
+  const [showConfirm, setShowConfirm] = useState(false);
+  const router = useRouter();
+
   const reopen = () => {
-    if (!window.confirm('Reopen this ticket? It will move back into the open queue.')) return
-    startTransition(async () => { try { const result = await reopenTicket({ ticketId }); if (!result.success) setError(result.error); else router.refresh() } catch (error) { setError(error instanceof Error ? error.message : 'Unable to reopen the ticket.') } })
-  }
-  if (!canReopen) return null
-  return <div className="space-y-2">
-    <button type="button" disabled={isPending} onClick={reopen} className="h-9 shrink-0 border border-slate-300 bg-white px-4 text-xs font-bold uppercase tracking-wider text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">{isPending ? 'Reopening…' : 'Reopen ticket'}</button>
-    {error && <p role="alert" className="text-xs font-semibold text-red-700">{error}</p>}
-  </div>
+    setShowConfirm(false);
+    startTransition(async () => {
+      try {
+        const result = await reopenTicket({ ticketId });
+        if (!result.success) setError(result.error);
+        else router.refresh();
+      } catch (error) {
+        setError(error instanceof Error ? error.message : 'Unable to reopen the ticket.');
+      }
+    });
+  };
+
+  if (!canReopen) return null;
+
+  return (
+    <>
+      <div className="space-y-2">
+        <button type="button" disabled={isPending} onClick={() => setShowConfirm(true)} className="h-9 shrink-0 border border-slate-300 bg-white px-4 text-xs font-bold uppercase tracking-wider text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">
+          {isPending ? 'Reopening…' : 'Reopen ticket'}
+        </button>
+        {error && <p role="alert" className="text-xs font-semibold text-red-700">{error}</p>}
+      </div>
+
+      {showConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm ">
+          <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl ">
+            <h3 className="text-lg font-bold text-slate-900">Reopen this ticket?</h3>
+            <p className="mt-2 text-sm text-slate-600">It will move back into the open queue and allow new changes.</p>
+            <div className="mt-6 flex justify-end gap-3">
+              <button disabled={isPending} onClick={() => setShowConfirm(false)} className="rounded-md px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100">Cancel</button>
+              <button disabled={isPending} onClick={reopen} className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-900 hover:bg-slate-50">Yes, reopen</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
 }
