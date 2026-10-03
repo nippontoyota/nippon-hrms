@@ -3,6 +3,7 @@ package payroll
 import (
 	_ "embed"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/johnfercher/maroto/v2"
@@ -26,12 +27,19 @@ import (
 //go:embed assets/nippon-logo.png
 var logoBytes []byte
 
+//go:embed assets/river-logo.png
+var riverLogoBytes []byte
+
 var (
-	colorBlack  = &props.Color{Red: 0, Green: 0, Blue: 0}
-	colorBeige  = &props.Color{Red: 234, Green: 232, Blue: 220}
-	colorGray   = &props.Color{Red: 132, Green: 132, Blue: 132}
-	colorBlue   = &props.Color{Red: 31, Green: 78, Blue: 140}
-	colorFooter = &props.Color{Red: 150, Green: 150, Blue: 150}
+	colorBlack       = &props.Color{Red: 0, Green: 0, Blue: 0}
+	colorBeige       = &props.Color{Red: 234, Green: 232, Blue: 220}
+	colorGray             = &props.Color{Red: 132, Green: 132, Blue: 132}
+	colorBlue             = &props.Color{Red: 31, Green: 78, Blue: 140}
+	colorFooter           = &props.Color{Red: 150, Green: 150, Blue: 150}
+	colorRiverBlue        = &props.Color{Red: 26, Green: 130, Blue: 163}
+	colorRiverYellow      = &props.Color{Red: 244, Green: 196, Blue: 48}
+	colorRiverLightYellow = &props.Color{Red: 254, Green: 250, Blue: 224} // subtle light yellow for bg
+	colorRiverLightBlue   = &props.Color{Red: 224, Green: 244, Blue: 249} // subtle light blue for headers
 )
 
 type lineItem struct {
@@ -68,6 +76,12 @@ type PayslipView struct {
 	TotalEarnings   string
 	TotalDeductions string
 	NetPay          string
+
+	LogoBytes      []byte
+	LogoPercent    float64
+	ThemePrimary   *props.Color
+	ThemeSecondary *props.Color
+	ThemeTertiary  *props.Color
 }
 
 // money renders a rupee amount as a plain integer (matching the reference payslip, no separators).
@@ -171,6 +185,22 @@ func newPayslipView(emp *employee.Employee, rec *Record, epfRec *epf.Record) Pay
 	v.TotalDeductions = moneyBlankZero(rec.TotalDeductions)
 	v.NetPay = moneyBlankZero(rec.ActualFinalAmount)
 
+	if strings.HasPrefix(v.EmployeeID, "IMR") {
+		v.CompanyName = "INCHEON MOBILITY LLP"
+		v.CompanyAddr = "Building No. 13/C, NH 544, Chengamanad, Nedumbassery P O, Ernakulam - 683 585"
+		v.LogoBytes = riverLogoBytes
+		v.LogoPercent = 65
+		v.ThemePrimary = colorRiverBlue
+		v.ThemeSecondary = colorRiverLightYellow
+		v.ThemeTertiary = colorRiverLightBlue
+	} else {
+		v.LogoBytes = logoBytes
+		v.LogoPercent = 46
+		v.ThemePrimary = colorBlue
+		v.ThemeSecondary = colorBeige
+		v.ThemeTertiary = colorGray
+	}
+
 	return v
 }
 
@@ -227,14 +257,14 @@ func addHeaderBand(m core.Maroto, v PayslipView) {
 	// Logo, centered horizontally on the page.
 	m.AddRow(11,
 		col.New(12).
-			Add(image.NewFromBytes(logoBytes, extension.Png, props.Rect{Percent: 46, Center: true})).
+			Add(image.NewFromBytes(v.LogoBytes, extension.Png, props.Rect{Percent: v.LogoPercent, Center: true})).
 			WithStyle(styleCell(nil, border.Left|border.Right)),
 	)
 
 	// Company name.
 	m.AddRow(8,
 		col.New(12).
-			Add(text.New(v.CompanyName, props.Text{Size: 16, Style: fontstyle.Bold, Align: align.Center, Color: colorBlue})).
+			Add(text.New(v.CompanyName, props.Text{Size: 16, Style: fontstyle.Bold, Align: align.Center, Color: v.ThemePrimary})).
 			WithStyle(styleCell(nil, border.Left|border.Right)),
 	)
 
@@ -284,16 +314,16 @@ func addIdentityBlock(m core.Maroto, v PayslipView) {
 		m.AddAutoRow(
 			col.New(3).
 				Add(text.New(r.left[0], labelProp)).
-				WithStyle(styleCell(colorBeige, leftBorder)),
+				WithStyle(styleCell(v.ThemeSecondary, leftBorder)),
 			col.New(3).
 				Add(text.New(r.left[1], valueProp)).
-				WithStyle(styleCell(colorBeige, bottom)),
+				WithStyle(styleCell(v.ThemeSecondary, bottom)),
 			col.New(3).
 				Add(text.New(r.right[0], labelProp)).
-				WithStyle(styleCell(colorBeige, bottom)),
+				WithStyle(styleCell(v.ThemeSecondary, bottom)),
 			col.New(3).
 				Add(text.New(r.right[1], valueProp)).
-				WithStyle(styleCell(colorBeige, rightBorder)),
+				WithStyle(styleCell(v.ThemeSecondary, rightBorder)),
 		)
 	}
 }
@@ -304,10 +334,10 @@ func addEarningsDeductions(m core.Maroto, v PayslipView) {
 	headAmt := props.Text{Size: 11, Style: fontstyle.Bold, Align: align.Right, Top: 1.5, Right: 1, Bottom: 1.5}
 
 	m.AddAutoRow(
-		col.New(4).Add(text.New("Earnings", headLabel)).WithStyle(styleCell(colorGray, border.Left|border.Top|border.Bottom)),
-		col.New(2).Add(text.New("Amount", headAmt)).WithStyle(styleCell(colorGray, border.Top|border.Bottom|border.Right)),
-		col.New(4).Add(text.New("Deduction", headLabel)).WithStyle(styleCell(colorGray, border.Top|border.Bottom)),
-		col.New(2).Add(text.New("Amount", headAmt)).WithStyle(styleCell(colorGray, border.Top|border.Bottom|border.Right)),
+		col.New(4).Add(text.New("Earnings", headLabel)).WithStyle(styleCell(v.ThemeTertiary, border.Left|border.Top|border.Bottom)),
+		col.New(2).Add(text.New("Amount", headAmt)).WithStyle(styleCell(v.ThemeTertiary, border.Top|border.Bottom|border.Right)),
+		col.New(4).Add(text.New("Deduction", headLabel)).WithStyle(styleCell(v.ThemeTertiary, border.Top|border.Bottom)),
+		col.New(2).Add(text.New("Amount", headAmt)).WithStyle(styleCell(v.ThemeTertiary, border.Top|border.Bottom|border.Right)),
 	)
 
 	descProp := props.Text{Size: 10, Align: align.Left, Top: 1, Left: 1, Bottom: 1}
