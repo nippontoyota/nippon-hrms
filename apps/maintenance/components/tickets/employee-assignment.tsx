@@ -50,7 +50,7 @@ export function EmployeeAssignment({
   return (
     <div className="space-y-4">
       {currentAssignee ? (
-        <div className="flex flex-col gap-4 border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-4 border border-slate-200 bg-white p-4">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Assigned to</p>
             <p className="mt-1 text-sm font-bold text-slate-900">{currentAssignee.name}</p>
