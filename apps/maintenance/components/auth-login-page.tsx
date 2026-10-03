@@ -5,6 +5,7 @@ import { PasswordInput } from '@/components/ui/password-input'
 import { TriangleAlert } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { BranchCodeInput } from '@/components/ui/branch-code-input'
 
 type LoginKind = 'admin' | 'branch'
 
@@ -20,7 +21,7 @@ export function AuthLoginPage({ kind, error }: { kind: LoginKind; error?: string
           : ''
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-white p-4 text-slate-900 sm:p-6">
+    <main className="flex h-[100dvh] overflow-hidden items-center justify-center bg-white p-4 text-slate-900 sm:p-6">
       <section className="w-full max-w-[420px] p-6 sm:p-10">
         <header className="mb-8 text-center">
           <Image src="/maintenance-logo.png" alt="Nippon Toyota" width={120} height={40} priority className="mx-auto h-12 w-auto object-contain" />
@@ -39,20 +40,24 @@ export function AuthLoginPage({ kind, error }: { kind: LoginKind; error?: string
 
           <div className="space-y-2">
             <label className="text-sm font-semibold text-slate-900" htmlFor="identifier">{admin ? 'Admin email' : 'Branch code'}</label>
-            <Input
-              id="identifier"
-              name="identifier"
-              type={admin ? 'email' : 'text'}
-              autoCapitalize={admin ? 'none' : 'characters'}
-              autoComplete="username"
-              autoFocus
-              inputMode={admin ? 'email' : 'text'}
-              maxLength={admin ? 120 : 32}
-              spellCheck={false}
-              required
-              placeholder={admin ? 'admin@nippontoyota.com' : 'Enter branch code'}
-              className="h-11 rounded-lg border-slate-300 bg-white px-3 text-sm shadow-sm transition-colors placeholder:text-slate-400 focus-visible:border-red-500 focus-visible:ring-1 focus-visible:ring-red-500"
-            />
+            {admin ? (
+              <Input
+                id="identifier"
+                name="identifier"
+                type="email"
+                autoCapitalize="none"
+                autoComplete="username"
+                autoFocus
+                inputMode="email"
+                maxLength={120}
+                spellCheck={false}
+                required
+                placeholder="admin@nippontoyota.com"
+                className="h-11 rounded-lg border-slate-300 bg-white px-3 text-sm shadow-sm transition-colors placeholder:text-slate-400 focus-visible:border-red-500 focus-visible:ring-1 focus-visible:ring-red-500"
+              />
+            ) : (
+              <BranchCodeInput />
+            )}
           </div>
 
           {admin && (
