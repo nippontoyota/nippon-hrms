@@ -32,7 +32,7 @@ export default async function TransfersPage() {
   ])
 
   return (
-    <div className="min-h-full bg-[#f4f6fa] p-5 sm:p-8">
+    <div className="min-h-full bg-white p-5 sm:p-8">
       <div className="mx-auto max-w-5xl">
         <h1 className="text-2xl font-bold text-slate-950">Ticket transfers</h1>
         <p className="mt-1 text-sm text-slate-700">Send tickets to another branch and review transfer requests.</p>
