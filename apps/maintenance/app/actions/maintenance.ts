@@ -503,14 +503,7 @@ Description: ${ticket.description}`
       return { success: false as const, error: 'Failed to send WhatsApp message.' }
     }
 
-    await prisma.ticketActivity.create({
-      data: {
-        ticket_id: ticketId,
-        actor: 'System',
-        type: 'NOTIFICATION_SENT',
-        detail: `WhatsApp notification sent to ${ticket.assignee.name}`
-      }
-    })
+
 
     revalidateTicket(ticketId)
     return { success: true as const }
