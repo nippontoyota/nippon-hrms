@@ -11,7 +11,7 @@ export default async function DashboardLayout({
   return (
     <div className="flex min-h-[100dvh] flex-col overflow-hidden bg-background text-foreground">
       <Header role={session.role} branchName={session.branchName} />
-      <main className="flex-1 overflow-y-auto pb-[84px] md:pb-0 bg-[#f4f6fa]">
+      <main className="flex-1 overflow-y-auto pb-[84px] md:pb-0 bg-white">
         {children}
       </main>
       <BottomNav role={session.role} />
