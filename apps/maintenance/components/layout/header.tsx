@@ -46,7 +46,7 @@ export function Header({ role, branchName }: { role: 'ADMIN' | 'BRANCH'; branchN
 
       <div className="flex items-center gap-5">
         {pathname.startsWith('/tickets/') && pathname.length > 9 && (
-           <Link href="/tickets" className="md:hidden flex h-8 items-center justify-center rounded-sm bg-red-600 px-3 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm transition-colors hover:bg-red-700">
+           <Link href="/tickets" className="md:hidden flex h-8 items-center justify-center rounded-none bg-red-600 px-3 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm transition-colors hover:bg-red-700">
              Back to queue
            </Link>
         )}
