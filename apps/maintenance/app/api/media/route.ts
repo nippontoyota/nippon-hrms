@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  const apiKey = process.env.DOUBLETICK_API_KEY || "key_nyB16JSaLrh5Ut0me6JkFlASYpmnzjt2jsDXD1eG3bnKDQsAoFcC8ZGDAmaKIIjTlqzS83sXK5z7js36yhDs24Vy7xM3gupTaLLenWuyIArTJEWptaimBXEXC3KQUZ82rebpYnvJYeggEiMaoOPau9WyuSdkF7mzbNHCZSnyZvWmJUuX4QOglEbuZhmyeP9SlIc5gwjkMUKddwOeByHtZj5z846TEXRJKLh0nJHaS8y8QwnVbFAnMzPptDRm"
+  const apiKey = process.env.DOUBLETICK_API_KEY || "key_HHesvuW6tVbYxOkgfcD3KrROqjTfq8bK6RXQ6F1HZWqCAXVSIHsbOeTDdSd6VDnS9uzQDCOsBgoXxjFinuf2BXIyQfkjJrSwCUvwmXx6CAOPRW8J9Y00TVQQF6HIaRBa3OczdbOlrg4zTo1vJnC9KT5NB0I29n0v7NNwsiBBxuZnoRUjirC0GNMp7UASX89zwlJBMk17lrXz4orVhJogoUgOlXDkFtxnahe3P3ooVuDX3oEI0KWfs7nS64Mt"
   if (!apiKey) {
     console.error('Missing DOUBLETICK_API_KEY in environment variables')
     return new NextResponse('Server configuration error', { status: 500 })
