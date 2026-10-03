@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { cache } from 'react'
 import prisma from '@/lib/prisma'
 import { loginKey, sessionTtlSeconds, verifySecret } from '@/lib/password'
+import { branchDefinitionForCode } from '@/lib/maintenance-branches'
 
 export const MAINTENANCE_COOKIE = 'maintenance_session'
 export type MaintenanceSession = { accountId: string; role: 'ADMIN' | 'BRANCH'; branchId: string | null; branchName?: string | null; expiresAt: number }
@@ -63,9 +64,20 @@ export async function authenticateMaintenance(identifier: string, secret: string
   const normalized = identifier.trim()
   const isAdminLogin = normalized.includes('@')
   const branchCode = normalized.toUpperCase()
-  const account = isAdminLogin
-    ? await prisma.maintenanceAccount.findFirst({ where: { email: normalized.toLowerCase(), is_active: true }, select: { id: true, role: true, branch_id: true, secret_hash: true } })
-    : await prisma.maintenanceAccount.findFirst({ where: { login_key: loginKey(branchCode), role: 'BRANCH', is_active: true }, select: { id: true, role: true, branch_id: true, secret_hash: true } })
+  let account: { id: string, role: 'ADMIN' | 'BRANCH', branch_id: string | null, secret_hash: string } | null = null
+
+  if (isAdminLogin) {
+    account = await prisma.maintenanceAccount.findFirst({ where: { email: normalized.toLowerCase(), is_active: true }, select: { id: true, role: true, branch_id: true, secret_hash: true } })
+  } else {
+    const def = branchDefinitionForCode(branchCode)
+    if (def) {
+      const branch = await prisma.maintenanceBranch.findFirst({ where: { name: def.name } })
+      if (branch) {
+        account = await prisma.maintenanceAccount.findFirst({ where: { branch_id: branch.id, role: 'BRANCH', is_active: true }, select: { id: true, role: true, branch_id: true, secret_hash: true } })
+      }
+    }
+  }
+
   if (!account || !(await verifySecret(isAdminLogin ? secret : branchCode, account.secret_hash))) return null
   await createMaintenanceSession(account)
   return { role: account.role, branchId: account.branch_id }
