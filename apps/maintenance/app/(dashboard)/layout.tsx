@@ -1,4 +1,3 @@
-import { Sidebar } from '@/components/layout/sidebar'
 import { Header } from '@/components/layout/header'
 import { BottomNav } from '@/components/layout/bottom-nav'
 import { requireMaintenanceSession } from '@/lib/maintenance-auth'
@@ -10,16 +9,11 @@ export default async function DashboardLayout({
 }) {
   const session = await requireMaintenanceSession()
   return (
-    <div className="flex min-h-[100dvh] overflow-hidden bg-background text-foreground">
-      <div className="hidden md:block">
-        <Sidebar role={session.role} branchName={session.branchName} />
-      </div>
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden pb-[84px] md:ml-60 md:pb-0">
-        <Header role={session.role} branchName={session.branchName} />
-        <main className="flex-1 overflow-y-auto">
-          {children}
-        </main>
-      </div>
+    <div className="flex min-h-[100dvh] flex-col overflow-hidden bg-background text-foreground">
+      <Header role={session.role} branchName={session.branchName} />
+      <main className="flex-1 overflow-y-auto pb-[84px] md:pb-0 bg-[#f4f6fa]">
+        {children}
+      </main>
       <BottomNav role={session.role} />
     </div>
   )
