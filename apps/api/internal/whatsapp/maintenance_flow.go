@@ -179,6 +179,8 @@ func (s *Service) handleMaintenanceAwaitCategory(ctx context.Context, sess *Sess
 		catName = "Civil"
 	case "cat_it", "it", "it & network":
 		catName = "IT"
+	case "cat_fire_safety", "fire & safety", "fire and safety", "fire":
+		catName = "Fire & Safety"
 	}
 
 	if catName == "" {
