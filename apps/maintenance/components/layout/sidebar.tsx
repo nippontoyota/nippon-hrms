@@ -14,7 +14,6 @@ const navItems = [
     icon: Ticket,
     section: 'Maintenance'
   },
-  { title: 'Transfers', href: '/transfers', icon: ArrowRightLeft, section: 'Maintenance', roles: ['ADMIN', 'BRANCH'] },
   { title: 'Branch accounts', href: '/admin/branches', icon: Users, section: 'Administration', roles: ['ADMIN'] },
 ]
 
@@ -25,7 +24,7 @@ export function Sidebar({ role, branchName }: { role: 'ADMIN' | 'BRANCH'; branch
   const sections = Array.from(new Set(visibleItems.map(item => item.section)))
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-40 flex h-dvh w-72 flex-col border-r border-border bg-background text-foreground">
+    <aside className="fixed inset-y-0 left-0 z-40 flex h-dvh w-60 flex-col border-r border-border bg-background text-foreground">
       <div className="flex h-20 items-center px-6 border-b border-border">
         <Link href="/tickets" aria-label="Go to maintenance tickets" className="rounded-sm focus:outline-none focus:ring-2 focus:ring-red-500">
           <Image src="/nippon-logo.png" alt="Nippon Toyota" width={112} height={38} priority className="h-10 w-auto object-contain" />

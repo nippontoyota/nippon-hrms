@@ -8,7 +8,6 @@ import { logout } from '@/app/actions/auth'
 
 const bottomNavItems = [
   { title: 'Tickets', href: '/tickets', icon: Ticket },
-  { title: 'Transfers', href: '/transfers', icon: ArrowRightLeft },
 ]
 
 export function BottomNav({ role }: { role: 'ADMIN' | 'BRANCH' }) {
