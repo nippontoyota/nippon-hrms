@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  const apiKey = process.env.DOUBLETICK_API_KEY
+  const apiKey = process.env.DOUBLETICK_API_KEY || "key_nyB16JSaLrh5Ut0me6JkFlASYpmnzjt2jsDXD1eG3bnKDQsAoFcC8ZGDAmaKIIjTlqzS83sXK5z7js36yhDs24Vy7xM3gupTaLLenWuyIArTJEWptaimBXEXC3KQUZ82rebpYnvJYeggEiMaoOPau9WyuSdkF7mzbNHCZSnyZvWmJUuX4QOglEbuZhmyeP9SlIc5gwjkMUKddwOeByHtZj5z846TEXRJKLh0nJHaS8y8QwnVbFAnMzPptDRm"
   if (!apiKey) {
     console.error('Missing DOUBLETICK_API_KEY in environment variables')
     return new NextResponse('Server configuration error', { status: 500 })
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
   try {
     const res = await fetch(url, {
       headers: {
-        'Authorization': apiKey.startsWith('Bearer ') ? apiKey : `Bearer ${apiKey}`
+        'Authorization': apiKey.startsWith('Bearer ') ? apiKey.replace('Bearer ', '') : apiKey
       }
     })
 
