@@ -78,14 +78,14 @@ export function EmployeeAssignment({
             <button
               onClick={handleNotify}
               disabled={disabled || isPending || notificationStatus === 'Sent!'}
-              className="inline-flex h-9 items-center justify-center bg-[#25D366] px-4 text-xs font-bold text-white transition hover:bg-[#20bd5a] disabled:opacity-50"
+              className="inline-flex h-9 items-center justify-center bg-emerald-600 px-4 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50"
             >
               <MessageCircle className="mr-2 h-3.5 w-3.5" />
               {notificationStatus || 'Send WhatsApp'}
             </button>
             <button
               onClick={() => handleAssign({ id: '', name: '', mobile_number: '' })}
-              disabled={disabled || isPending}
+              disabled={disabled || isPending || !!notificationStatus}
               className="text-xs font-bold uppercase tracking-wider text-red-600 hover:underline disabled:opacity-50"
             >
               Unassign

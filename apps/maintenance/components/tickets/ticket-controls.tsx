@@ -74,7 +74,7 @@ export function CloseTicketButton({ ticketId, disabled }: { ticketId: string; di
   return (
     <>
       <div className="space-y-2">
-        <button type="button" disabled={disabled || isPending} onClick={() => setShowConfirm(true)} className="h-9 shrink-0 bg-green-600 px-4 text-xs font-bold uppercase tracking-wider text-white shadow-sm hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50">
+        <button type="button" disabled={disabled || isPending} onClick={() => setShowConfirm(true)} className="h-9 shrink-0 bg-emerald-600 px-4 text-xs font-bold uppercase tracking-wider text-white shadow-sm hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50">
           {isPending ? 'Closing…' : disabled ? 'Ticket closed' : 'Close ticket'}
         </button>
         {error && <p role="alert" className="text-xs font-semibold text-red-700">{error}</p>}
@@ -87,7 +87,7 @@ export function CloseTicketButton({ ticketId, disabled }: { ticketId: string; di
             <p className="mt-2 text-sm text-slate-600">You can still view it later, but new costs and assignment changes will be locked.</p>
             <div className="mt-6 flex justify-end gap-3">
               <button disabled={isPending} onClick={() => setShowConfirm(false)} className="rounded-md px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100">Cancel</button>
-              <button disabled={isPending} onClick={close} className="rounded-md bg-green-600 px-4 py-2 text-sm font-bold text-white hover:bg-green-700">Yes, close ticket</button>
+              <button disabled={isPending} onClick={close} className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-700">Yes, close ticket</button>
             </div>
           </div>
         </div>
