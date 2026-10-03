@@ -24,7 +24,7 @@ export type QueueTicket = {
 }
 
 const statusLabels: Record<string, string> = { NEW: 'New', UNDER_REVIEW: 'Under review', PENDING_INFORMATION: 'Pending information', MATERIALS_ADDED: 'Materials added', PENDING_APPROVAL: 'Pending approval', IN_PROGRESS: 'In progress', COMPLETED: 'Completed', CLOSED: 'Closed' }
-const statusStyles: Record<string, string> = { CLOSED: 'border-slate-300 bg-slate-100 text-slate-700', COMPLETED: 'border-emerald-200 bg-emerald-50 text-emerald-700', IN_PROGRESS: 'border-blue-200 bg-blue-50 text-blue-700' }
+const statusStyles: Record<string, string> = { NEW: 'border-emerald-200 bg-emerald-50 text-emerald-700', IN_PROGRESS: 'border-amber-200 bg-amber-50 text-amber-700', COMPLETED: 'border-blue-200 bg-blue-50 text-blue-700', CLOSED: 'border-red-200 bg-red-50 text-red-700' }
 
 function branchName(ticket: QueueTicket) {
   return ticket.branch ? normalizeMaintenanceBranchName(ticket.branch.name) : 'Unassigned branch'

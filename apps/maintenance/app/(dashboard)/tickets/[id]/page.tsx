@@ -3,9 +3,10 @@ import { notFound } from 'next/navigation'
 
 function getStatusColor(status: string) {
   switch (status) {
-    case 'NEW': return 'border-blue-200 bg-blue-50 text-blue-700'
-    case 'CLOSED': return 'border-slate-200 bg-slate-100 text-slate-700'
-    case 'IN PROGRESS': return 'border-orange-200 bg-orange-50 text-orange-700'
+    case 'NEW': return 'border-emerald-200 bg-emerald-50 text-emerald-700'
+    case 'IN PROGRESS': return 'border-amber-200 bg-amber-50 text-amber-700'
+    case 'COMPLETED': return 'border-blue-200 bg-blue-50 text-blue-700'
+    case 'CLOSED': return 'border-red-200 bg-red-50 text-red-700'
     case 'REJECTED': return 'border-red-200 bg-red-50 text-red-700'
     case 'APPROVED': return 'border-emerald-200 bg-emerald-50 text-emerald-700'
     case 'UNDER REVIEW': return 'border-purple-200 bg-purple-50 text-purple-700'
