@@ -1,60 +1,84 @@
+
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { setTotalCost } from '@/app/actions/maintenance'
+import { Check } from 'lucide-react'
 
 export function TotalCostForm({ ticketId, initialAmount, disabled = false }: { ticketId: string; initialAmount: string; disabled?: boolean }) {
   const [isPending, startTransition] = useTransition()
-  const [amount, setAmount] = useState(initialAmount)
-  const [error, setError] = useState('')
-  const router = useRouter()
+  
+  const formatValue = (val: string) => {
+    const raw = val.replaceAll(',', '').replace(/^₹\s*/, '').trim()
+    if (!raw || isNaN(Number(raw))) return ''
+    return `₹ ${Number(raw).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  }
 
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
+  const [amount, setAmount] = useState(() => formatValue(initialAmount) || '₹ 0.00')
+  const [error, setError] = useState('')
+  const [saved, setSaved] = useState(false)
+  const router = useRouter()
+  const previousSaved = useRef(amount)
+
+  useEffect(() => {
+    if (saved) {
+      const timer = setTimeout(() => setSaved(false), 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [saved])
+
+  const handleBlur = () => {
+    const raw = amount.replaceAll(',', '').replace(/^₹\s*/, '').trim()
+    if (!raw || isNaN(Number(raw))) {
+      setAmount(previousSaved.current)
+      return
+    }
+    
+    const formatted = formatValue(raw) || previousSaved.current
+    setAmount(formatted)
+
+    if (raw === previousSaved.current.replaceAll(',', '').replace(/^₹\s*/, '').trim()) {
+      return
+    }
+
     setError('')
-    const normalizedAmount = amount.replaceAll(',', '').replace(/^₹\s*/, '').trim()
     startTransition(async () => {
       try {
-        const result = await setTotalCost(ticketId, normalizedAmount)
-        if (!result.success) setError(result.error)
-        else router.refresh()
+        const result = await setTotalCost(ticketId, raw)
+        if (!result.success) {
+           setError(result.error)
+           setAmount(previousSaved.current)
+        } else {
+           previousSaved.current = formatted
+           setSaved(true)
+           router.refresh()
+        }
       } catch (error) {
         setError(error instanceof Error ? error.message : 'Unable to save the cost.')
+        setAmount(previousSaved.current)
       }
     })
   }
 
-  const formatAmount = () => {
-    const raw = amount.replaceAll(',', '').replace(/^₹\s*/, '').trim()
-    if (!raw || isNaN(Number(raw))) return
-    setAmount(`₹ ${Number(raw).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
-  }
-
   return (
-    <form onSubmit={submit} className="flex min-w-0 flex-col gap-2">
-      <div className="flex min-w-0 items-center gap-2">
-        <input
-          required
-          min={0}
-          step="0.01"
-          type="text"
-          disabled={disabled || isPending}
-          value={amount}
-          onChange={(event) => setAmount(event.target.value)}
-          onBlur={formatAmount}
-          placeholder="₹ amount"
-          className="h-10 w-full min-w-0 border border-slate-300 px-3 text-sm font-semibold tabular-nums outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 disabled:bg-slate-100 disabled:text-slate-500"
-        />
-        <button
-          type="submit"
-          disabled={disabled || isPending}
-          className="h-10 shrink-0 bg-red-600 px-5 text-sm font-bold text-white transition hover:bg-red-700 disabled:opacity-50"
-        >
-          {isPending ? 'Saving...' : 'Save'}
-        </button>
+    <div className="flex flex-col gap-2 border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-700">Cost</p>
+        {saved && <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-green-600"><Check className="h-3 w-3" /> Saved</span>}
       </div>
-      {error && <p className="text-sm font-semibold text-red-600">{error}</p>}
-    </form>
+      <input
+        min={0}
+        step="0.01"
+        type="text"
+        disabled={disabled || isPending}
+        value={amount}
+        onChange={(event) => setAmount(event.target.value)}
+        onBlur={handleBlur}
+        placeholder="₹ 0.00"
+        className={`h-10 w-full min-w-0 border-b-2 bg-transparent text-lg font-bold tabular-nums outline-none transition ${error ? 'border-red-500 text-red-600' : 'border-slate-200 focus:border-red-500 disabled:opacity-50'}`}
+      />
+      {error && <p className="text-xs font-semibold text-red-600">{error}</p>}
+    </div>
   )
 }
