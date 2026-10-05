@@ -368,11 +368,24 @@ func addIdentityBlock(m core.Maroto, v PayslipView) {
 			rightBorder |= border.Bottom
 		}
 
-		m.AddRow(5,
-			col.New(3).Add(text.New(r.left[0], labelProp)).WithStyle(styleCell(colorRiverLightYellow, leftBorder)),
-			col.New(3).Add(text.New(r.left[1], valueProp)).WithStyle(styleCell(colorRiverLightYellow, border.None)),
-			col.New(3).Add(text.New(r.right[0], labelProp)).WithStyle(styleCell(colorRiverLightYellow, border.None)),
-			col.New(3).Add(text.New(r.right[1], valueProp)).WithStyle(styleCell(colorRiverLightYellow, rightBorder)),
+		bottom := border.None
+		if i == len(rows)-1 {
+			bottom = border.Bottom
+		}
+
+		m.AddAutoRow(
+			col.New(3).
+				Add(text.New(r.left[0], labelProp)).
+				WithStyle(styleCell(v.ThemeSecondary, leftBorder)),
+			col.New(3).
+				Add(text.New(r.left[1], valueProp)).
+				WithStyle(styleCell(v.ThemeSecondary, bottom)),
+			col.New(3).
+				Add(text.New(r.right[0], labelProp)).
+				WithStyle(styleCell(v.ThemeSecondary, bottom)),
+			col.New(3).
+				Add(text.New(r.right[1], valueProp)).
+				WithStyle(styleCell(v.ThemeSecondary, rightBorder)),
 		)
 	}
 }
