@@ -302,15 +302,59 @@ func addHeaderBand(m core.Maroto, v PayslipView) {
 }
 
 func addIdentityBlock(m core.Maroto, v PayslipView) {
+	type field struct{ label, value string }
+
+	rawLeft := []field{
+		{"Employee ID :", v.EmployeeID},
+		{"Employee Name :", v.EmployeeName},
+		{"Designation :", v.Designation},
+		{"Department :", v.Department},
+		{"Bank Account Number :", v.AccountNumber},
+		{"Bank Name :", v.BankName},
+		{"Bank IFSC Code :", v.IFSCCode},
+	}
+
+	rawRight := []field{
+		{"PF Number :", v.PFNumber},
+		{"UAN :", v.UAN},
+		{"ESIC IP Number :", v.ESICIP},
+		{"Working Days :", v.WorkingDays},
+		{"Paid Days :", v.PaidDays},
+		{"LOP Days :", v.LOPDays},
+		{"Employee Location", v.Location},
+	}
+
+	var leftFields, rightFields []field
+	for _, f := range rawLeft {
+		v := strings.TrimSpace(f.value)
+		if v != "" && v != "N/A" && v != "0" && v != "0.0" {
+			leftFields = append(leftFields, f)
+		}
+	}
+	for _, f := range rawRight {
+		v := strings.TrimSpace(f.value)
+		if v != "" && v != "N/A" && v != "0" && v != "0.0" {
+			rightFields = append(rightFields, f)
+		}
+	}
+
+	maxLen := len(leftFields)
+	if len(rightFields) > maxLen {
+		maxLen = len(rightFields)
+	}
+
 	type kv struct{ left, right [2]string }
-	rows := []kv{
-		{[2]string{"Employee ID :", v.EmployeeID}, [2]string{"PF Number :", v.PFNumber}},
-		{[2]string{"Employee Name :", v.EmployeeName}, [2]string{"UAN :", v.UAN}},
-		{[2]string{"Designation :", v.Designation}, [2]string{"ESIC IP Number :", v.ESICIP}},
-		{[2]string{"Department :", v.Department}, [2]string{"Working Days :", v.WorkingDays}},
-		{[2]string{"Bank Account Number :", v.AccountNumber}, [2]string{"Paid Days :", v.PaidDays}},
-		{[2]string{"Bank Name :", v.BankName}, [2]string{"LOP Days :", v.LOPDays}},
-		{[2]string{"Bank IFSC Code :", v.IFSCCode}, [2]string{"Employee Location", v.Location}},
+	var rows []kv
+
+	for i := 0; i < maxLen; i++ {
+		var row kv
+		if i < len(leftFields) {
+			row.left = [2]string{leftFields[i].label, leftFields[i].value}
+		}
+		if i < len(rightFields) {
+			row.right = [2]string{rightFields[i].label, rightFields[i].value}
+		}
+		rows = append(rows, row)
 	}
 
 	labelProp := props.Text{Size: 10, Align: align.Left, Top: 1.5, Left: 1, Bottom: 1.5}
@@ -324,24 +368,11 @@ func addIdentityBlock(m core.Maroto, v PayslipView) {
 			rightBorder |= border.Bottom
 		}
 
-		bottom := border.None
-		if i == len(rows)-1 {
-			bottom = border.Bottom
-		}
-
-		m.AddAutoRow(
-			col.New(3).
-				Add(text.New(r.left[0], labelProp)).
-				WithStyle(styleCell(v.ThemeSecondary, leftBorder)),
-			col.New(3).
-				Add(text.New(r.left[1], valueProp)).
-				WithStyle(styleCell(v.ThemeSecondary, bottom)),
-			col.New(3).
-				Add(text.New(r.right[0], labelProp)).
-				WithStyle(styleCell(v.ThemeSecondary, bottom)),
-			col.New(3).
-				Add(text.New(r.right[1], valueProp)).
-				WithStyle(styleCell(v.ThemeSecondary, rightBorder)),
+		m.AddRow(5,
+			col.New(3).Add(text.New(r.left[0], labelProp)).WithStyle(styleCell(colorRiverLightYellow, leftBorder)),
+			col.New(3).Add(text.New(r.left[1], valueProp)).WithStyle(styleCell(colorRiverLightYellow, border.None)),
+			col.New(3).Add(text.New(r.right[0], labelProp)).WithStyle(styleCell(colorRiverLightYellow, border.None)),
+			col.New(3).Add(text.New(r.right[1], valueProp)).WithStyle(styleCell(colorRiverLightYellow, rightBorder)),
 		)
 	}
 }
