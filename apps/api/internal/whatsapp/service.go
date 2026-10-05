@@ -728,26 +728,7 @@ func (s *Service) sendMainMenu(ctx context.Context, to, name string) error {
 	body := msgWelcome(name) + "\n\n" + msgMainMenuBody
 	buttons := mainMenuButtons()
 
-	if mediaURL, err := s.menuImageMediaURL(ctx); err == nil {
-		_, err = s.dt.SendInteractiveMedia(ctx, to, body, "", mediaURL, "image/png", buttons)
-		if err == nil {
-			slog.Info("whatsapp menu sent", "to", to, "type", "interactive_media")
-			s.recordOutbound(to)
-
-			// Add a delay to ensure the heavier image message is delivered first
-			// before the lightweight text list message. WhatsApp doesn't guarantee order.
-			// Run in a goroutine to avoid blocking the webhook response.
-			go func(bgCtx context.Context, phone string) {
-				time.Sleep(3500 * time.Millisecond)
-				_ = s.sendMoreOptionsMenu(bgCtx, phone)
-			}(context.WithoutCancel(ctx), to)
-
-			return nil
-		}
-		slog.Warn("interactive media send failed, falling back to buttons", "err", err)
-	} else {
-		slog.Warn("menu image upload failed, falling back to buttons", "err", err)
-	}
+	
 
 	_, err := s.dt.SendInteractiveButtons(ctx, to, "", body, "", buttons)
 	if err != nil {
