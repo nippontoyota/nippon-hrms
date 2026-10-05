@@ -30,6 +30,8 @@ type Employee struct {
 	Conveyance                float64   `json:"conveyance"`
 	PerformanceAllowance      float64   `json:"performanceAllowance"`
 	BranchAllowance           float64   `json:"branchAllowance"`
+	WashAllowance             float64   `json:"washAllowance"`
+	FixedIncentive            float64   `json:"fixedIncentive"`
 	SpecialAllowance          float64   `json:"specialAllowance"`
 	Training                  float64   `json:"training"`
 	TotalAllowances           float64   `json:"totalAllowances"`

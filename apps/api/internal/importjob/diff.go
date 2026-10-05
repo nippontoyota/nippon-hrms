@@ -21,7 +21,7 @@ func EmployeeRowHash(
 	id, name, department, mobile, level, branch, designation, zone, managerID string,
 	doj, birthday string, yearsExp float64,
 	basic, da, revisedBasicDA, hra, travel, hostel, children, totalSalary float64,
-	mobileAllow, conveyance, wash, branchAllow, special, training, totalAllow, totalWithAllow float64,
+	mobileAllow, conveyance, wash, branchAllow, washingAllow, fixedIncentive, special, training, totalAllow, totalWithAllow float64,
 	bankName, accountNumber, bankBranch, ifsc string,
 ) string {
 	return hashParts(
@@ -29,7 +29,7 @@ func EmployeeRowHash(
 		doj, birthday, fmtFloat(yearsExp),
 		fmtFloat(basic), fmtFloat(da), fmtFloat(revisedBasicDA), fmtFloat(hra), fmtFloat(travel),
 		fmtFloat(hostel), fmtFloat(children), fmtFloat(totalSalary), fmtFloat(mobileAllow),
-		fmtFloat(conveyance), fmtFloat(wash), fmtFloat(branchAllow), fmtFloat(special),
+		fmtFloat(conveyance), fmtFloat(wash), fmtFloat(branchAllow), fmtFloat(washingAllow), fmtFloat(fixedIncentive), fmtFloat(special),
 		fmtFloat(training), fmtFloat(totalAllow), fmtFloat(totalWithAllow),
 		bankName, accountNumber, bankBranch, ifsc,
 	)
@@ -51,7 +51,7 @@ func PayrollRowHash(
 	employeeID string, month, year int, name string,
 	leaves, lop, days, absents float64,
 	basic, da, basicDA, hra, travel, childrenHostel, childrenEducation float64,
-	mobile, conveyance, branchAllow, wash, special, training, incentive float64,
+	mobile, conveyance, branchAllow, wash, washingAllow, fixedIncentive, special, training, incentive float64,
 	totalEar, grossWithout, grossPT, pf, pf367, pf833, esi075, esi325 float64,
 	tds, salAdv, addDed, loan, advance, lopDed, companyStat float64,
 	reimbMed, reimbLTA, zeta, reimbTravel, totalReimb, epfER, netInc, totalDed, actual float64,
@@ -61,7 +61,7 @@ func PayrollRowHash(
 		fmtFloat(leaves), fmtFloat(lop), fmtFloat(days), fmtFloat(absents),
 		fmtFloat(basic), fmtFloat(da), fmtFloat(basicDA), fmtFloat(hra), fmtFloat(travel),
 		fmtFloat(childrenHostel), fmtFloat(childrenEducation), fmtFloat(mobile),
-		fmtFloat(conveyance), fmtFloat(branchAllow), fmtFloat(wash), fmtFloat(special),
+		fmtFloat(conveyance), fmtFloat(branchAllow), fmtFloat(wash), fmtFloat(washingAllow), fmtFloat(fixedIncentive), fmtFloat(special),
 		fmtFloat(training), fmtFloat(incentive), fmtFloat(totalEar), fmtFloat(grossWithout),
 		fmtFloat(grossPT), fmtFloat(pf), fmtFloat(pf367), fmtFloat(pf833),
 		fmtFloat(esi075), fmtFloat(esi325), fmtFloat(tds), fmtFloat(salAdv),

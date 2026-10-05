@@ -170,7 +170,17 @@ func newPayslipView(emp *employee.Employee, rec *Record, epfRec *epf.Record) Pay
 		{"Special Allowances", money(rec.SpecialAllowance)},
 		{"Training Allowances", money(rec.Training)},
 		{"Others", money(rec.Incentive)},
+		{"Washing Allowances", money(rec.WashAllowance)},
+		{"Fixed Incentive", money(rec.FixedIncentive)},
 	}
+
+	var filteredEarnings []lineItem
+	for _, e := range v.Earnings {
+		if e.Amount != "0" {
+			filteredEarnings = append(filteredEarnings, e)
+		}
+	}
+	v.Earnings = filteredEarnings
 
 	v.Deductions = []lineItem{
 		{"PF", money(rec.PF)},
@@ -180,6 +190,14 @@ func newPayslipView(emp *employee.Employee, rec *Record, epfRec *epf.Record) Pay
 		{"Additional Deduction", money(rec.AdditionalDeduction)},
 		{"Loan", money(rec.Loan)},
 	}
+
+	var filteredDeductions []lineItem
+	for _, d := range v.Deductions {
+		if d.Amount != "0" {
+			filteredDeductions = append(filteredDeductions, d)
+		}
+	}
+	v.Deductions = filteredDeductions
 
 	v.TotalEarnings = money(rec.TotalEarWithIncen)
 	v.TotalDeductions = moneyBlankZero(rec.TotalDeductions)

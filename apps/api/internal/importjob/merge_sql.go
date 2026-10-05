@@ -4,7 +4,7 @@ func employeeCols() string {
 	return `id, name, department, mobile_number, emp_level, doj, birthday, years_experience,
 		branch, designation, zone, manager_id, basic, da, revised_basic_da, hra, travel,
 		hostel, children, total_salary, mobile, conveyance, wash_allowance,
-		branch_allowance, special_allowance, training, total_allowances,
+		branch_allowance, washing_allowance, fixed_incentive, special_allowance, training, total_allowances,
 		total_salary_with_allowances, bank_name, account_number, bank_branch, ifsc_code`
 }
 
@@ -12,7 +12,7 @@ func employeeStagingCols(alias string) string {
 	return alias + `.id, ` + alias + `.name, ` + alias + `.department, ` + alias + `.mobile_number, ` + alias + `.emp_level, ` + alias + `.doj, ` + alias + `.birthday, ` + alias + `.years_experience,
 		` + alias + `.branch, ` + alias + `.designation, ` + alias + `.zone, ` + alias + `.manager_id, ` + alias + `.basic, ` + alias + `.da, ` + alias + `.revised_basic_da, ` + alias + `.hra, ` + alias + `.travel,
 		` + alias + `.hostel, ` + alias + `.children, ` + alias + `.total_salary, ` + alias + `.mobile, ` + alias + `.conveyance, ` + alias + `.wash_allowance,
-		` + alias + `.branch_allowance, ` + alias + `.special_allowance, ` + alias + `.training, ` + alias + `.total_allowances,
+		` + alias + `.branch_allowance, ` + alias + `.washing_allowance, ` + alias + `.fixed_incentive, ` + alias + `.special_allowance, ` + alias + `.training, ` + alias + `.total_allowances,
 		` + alias + `.total_salary_with_allowances, ` + alias + `.bank_name, ` + alias + `.account_number, ` + alias + `.bank_branch, ` + alias + `.ifsc_code`
 }
 
@@ -25,7 +25,7 @@ func employeeInsertFromStagingSQL() string {
 func payrollCols() string {
 	return `employee_id, month, year, emp_name_snapshot, leaves, lop, days, absents,
 		basic, da, basic_da, hra, travel, children_hostel, children_education,
-		mobile, conveyance, branch_allowance, wash_allowance, special_allowance,
+		mobile, conveyance, branch_allowance, wash_allowance, washing_allowance, fixed_incentive, special_allowance,
 		training, incentive, total_ear_with_incen, gross_sal_without_incentives,
 		gross_for_pt, pf, pf_3_67, pf_8_33, esi_0_75, esi_3_25, tds, sal_adv,
 		additional_deduction, loan, advance, lop_deduction,
@@ -39,7 +39,7 @@ func payrollStagingCols(alias string) string {
 		` + alias + `.leaves, ` + alias + `.lop, ` + alias + `.days, ` + alias + `.absents,
 		` + alias + `.basic, ` + alias + `.da, ` + alias + `.basic_da, ` + alias + `.hra, ` + alias + `.travel,
 		` + alias + `.children_hostel, ` + alias + `.children_education, ` + alias + `.mobile, ` + alias + `.conveyance,
-		` + alias + `.branch_allowance, ` + alias + `.wash_allowance, ` + alias + `.special_allowance,
+		` + alias + `.branch_allowance, ` + alias + `.wash_allowance, ` + alias + `.washing_allowance, ` + alias + `.fixed_incentive, ` + alias + `.special_allowance,
 		` + alias + `.training, ` + alias + `.incentive, ` + alias + `.total_ear_with_incen,
 		` + alias + `.gross_sal_without_incentives, ` + alias + `.gross_for_pt, ` + alias + `.pf,
 		` + alias + `.pf_3_67, ` + alias + `.pf_8_33, ` + alias + `.esi_0_75, ` + alias + `.esi_3_25,
@@ -61,7 +61,7 @@ func payrollUpsertFromStagingSQL() string {
 			hra = EXCLUDED.hra, travel = EXCLUDED.travel,
 			children_hostel = EXCLUDED.children_hostel, children_education = EXCLUDED.children_education,
 			mobile = EXCLUDED.mobile, conveyance = EXCLUDED.conveyance,
-			branch_allowance = EXCLUDED.branch_allowance, wash_allowance = EXCLUDED.wash_allowance,
+			branch_allowance = EXCLUDED.branch_allowance, wash_allowance = EXCLUDED.wash_allowance, washing_allowance = EXCLUDED.washing_allowance, fixed_incentive = EXCLUDED.fixed_incentive,
 			special_allowance = EXCLUDED.special_allowance, training = EXCLUDED.training,
 			incentive = EXCLUDED.incentive, total_ear_with_incen = EXCLUDED.total_ear_with_incen,
 			gross_sal_without_incentives = EXCLUDED.gross_sal_without_incentives,

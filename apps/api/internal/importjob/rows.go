@@ -89,6 +89,8 @@ type StagingEmployee struct {
 	Conveyance                float64
 	PerformanceAllowance      float64
 	BranchAllowance           float64
+	WashAllowance             float64
+	FixedIncentive            float64
 	SpecialAllowance          float64
 	Training                  float64
 	TotalAllowances           float64
@@ -143,6 +145,8 @@ func parseEmployeeRow(rowNum int, row []string, headerMap map[string]int) (*Stag
 		Conveyance:                parseFloat(getValue(row, headerMap, "convy", "conveyance")),
 		PerformanceAllowance:      parseFloat(getValue(row, headerMap, "performanceallowance", "performanceallowance")),
 		BranchAllowance:           parseFloat(getValue(row, headerMap, "branallo", "branchallowance")),
+		WashAllowance:             parseFloat(getValue(row, headerMap, "washingallowances", "washingallowance", "washallowance")),
+		FixedIncentive:            parseFloat(getValue(row, headerMap, "fixedincentive", "fixedincentives")),
 		SpecialAllowance:          parseFloat(getValue(row, headerMap, "splall", "specialallowance")),
 		Training:                  parseFloat(getValue(row, headerMap, "training", "trainingallowance")),
 		TotalAllowances:           parseFloat(getValue(row, headerMap, "totalallow", "totalallowances")),
@@ -159,7 +163,7 @@ func parseEmployeeRow(rowNum int, row []string, headerMap map[string]int) (*Stag
 		e.ID, e.Name, e.Department, e.MobileNumber, e.Level, e.Branch, e.Designation, e.Zone, e.ManagerID,
 		e.DOJ, e.Birthday, e.YearsExperience,
 		e.Basic, e.DA, e.RevisedBasicDA, e.HRA, e.Travel, e.Hostel, e.Children, e.TotalSalary,
-		e.Mobile, e.Conveyance, e.PerformanceAllowance, e.BranchAllowance, e.SpecialAllowance,
+		e.Mobile, e.Conveyance, e.PerformanceAllowance, e.BranchAllowance, e.WashAllowance, e.FixedIncentive, e.SpecialAllowance,
 		e.Training, e.TotalAllowances, e.TotalSalaryWithAllowances,
 		e.BankName, e.AccountNumber, e.BankBranch, e.IFSCCode,
 	)
@@ -235,6 +239,8 @@ type StagingPayroll struct {
 	Mobile                       float64
 	Conveyance                   float64
 	BranchAllowance              float64
+	WashAllowance                float64
+	FixedIncentive               float64
 	PerformanceAllowance         float64
 	SpecialAllowance             float64
 	Training                     float64
@@ -297,6 +303,8 @@ func parsePayrollRow(rowNum int, row []string, month, year int, headerMap map[st
 		Mobile:                       parseFloat(getValue(row, headerMap, "mobile", "mobileallowance")),
 		Conveyance:                   parseFloat(getValue(row, headerMap, "conveyance")),
 		BranchAllowance:              parseFloat(getValue(row, headerMap, "branchallowance")),
+		WashAllowance:                parseFloat(getValue(row, headerMap, "washingallowances", "washingallowance", "washallowance")),
+		FixedIncentive:               parseFloat(getValue(row, headerMap, "fixedincentive", "fixedincentives")),
 		PerformanceAllowance:         parseFloat(getValue(row, headerMap, "performanceallowance")),
 		SpecialAllowance:             parseFloat(getValue(row, headerMap, "specialallowance")),
 		Training:                     parseFloat(getValue(row, headerMap, "training")),
@@ -331,7 +339,7 @@ func parsePayrollRow(rowNum int, row []string, month, year int, headerMap map[st
 		r.EmployeeID, r.Month, r.Year, r.EmpNameSnapshot,
 		r.Leaves, r.LOP, r.Days, r.Absents,
 		r.Basic, r.DA, r.BasicDA, r.HRA, r.Travel, r.ChildrenHostel, r.ChildrenEducation,
-		r.Mobile, r.Conveyance, r.BranchAllowance, r.PerformanceAllowance, r.SpecialAllowance,
+		r.Mobile, r.Conveyance, r.BranchAllowance, r.WashAllowance, r.FixedIncentive, r.PerformanceAllowance, r.SpecialAllowance,
 		r.Training, r.Incentive, r.TotalEarWithIncen, r.GrossSalWithoutIncentives, r.GrossForPT,
 		r.PF, r.PF367, r.PF833, r.ESI075, r.ESI325, r.TDS, r.SalAdv, r.AdditionalDeduction,
 		r.Loan, r.Advance, r.LOPDeduction, r.CompanyStatutoryContribution,
