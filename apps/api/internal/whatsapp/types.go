@@ -47,6 +47,9 @@ const (
 
 	StateAwaitBPPhoto
 	StateAwaitBPPhone
+	StateAwaitBPRegNo
+	StateAwaitBPLocation
+	StateAwaitBPDesc
 )
 
 type Session struct {
@@ -84,6 +87,9 @@ type Session struct {
 	TempMaintenanceCategory    string
 
 	TempBPMediaID string
+	TempBPRegNo string
+	TempBPLocation string
+	TempBPDesc string
 	TempMaintenanceDescription string
 	TempMaintenanceImageURL    string
 }

@@ -226,6 +226,12 @@ func (s *Service) handleWebhookLocked(ctx context.Context, from, input, msgType,
 			err = s.handleBPPhoto(ctx, sess, from, input, imageURL)
 		case StateAwaitBPPhone:
 			err = s.handleBPPhone(ctx, sess, from, input)
+		case StateAwaitBPRegNo:
+			err = s.handleBPRegNo(ctx, sess, from, input)
+		case StateAwaitBPLocation:
+			err = s.handleBPLocation(ctx, sess, from, input)
+		case StateAwaitBPDesc:
+			err = s.handleBPDesc(ctx, sess, from, input)
 	default:
 		err = s.handleIdle(ctx, sess, from, input)
 	}

@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-		"log/slog"
+	"log/slog"
 	"net/http"
 	"os"
 	"strings"
@@ -21,34 +21,93 @@ func (s *Service) beginBPReferralFlow(ctx context.Context, sess *Session, from s
 
 	sess.State = StateAwaitBPPhoto
 	sess.TempBPMediaID = ""
+	sess.TempBPRegNo = ""
+	sess.TempBPLocation = ""
+	sess.TempBPDesc = ""
 	s.sessions.Set(from, sess)
 
-	return s.sendText(ctx, from, "Please upload a clear photo of the damaged vehicle (ensure the Registration No. is visible).")
+	return s.sendText(ctx, from, "Please upload a clear photo of the damaged vehicle (ensure the Registration No. is visible), or reply 'Skip'.")
 }
 
 func (s *Service) handleBPPhoto(ctx context.Context, sess *Session, from, input, imageURL string) error {
+	trimmedInput := strings.ToLower(strings.TrimSpace(input))
+
 	if imageURL == "" {
-		// Ignore the WhatsApp text echo of the button click that fires simultaneously
-		if strings.ToLower(strings.TrimSpace(input)) == "b&p referral" || strings.ToLower(strings.TrimSpace(input)) == "bp referral" || input == payloadRequestBPReferral {
-			return nil
+		if trimmedInput == "skip" {
+			sess.TempBPMediaID = ""
+		} else {
+			// Ignore the WhatsApp text echo of the button click that fires simultaneously
+			if trimmedInput == "b&p referral" || trimmedInput == "bp referral" || input == payloadRequestBPReferral {
+				return nil
+			}
+			return s.sendText(ctx, from, "That doesn't look like an image. Please upload a clear photo of the damaged vehicle, or reply 'Skip'.")
 		}
-		return s.sendText(ctx, from, "That doesn't look like an image. Please upload a clear photo of the damaged vehicle.")
+	} else {
+		sess.TempBPMediaID = imageURL
 	}
 
-	// DoubleTick payload currently passes the Media URL or we can extract the ID.
-	// We'll store whatever imageURL is provided.
-	sess.TempBPMediaID = imageURL
+	sess.State = StateAwaitBPRegNo
+	s.sessions.Set(from, sess)
+
+	return s.sendText(ctx, from, "Please enter the vehicle's Registration Number, or reply 'Skip'.")
+}
+
+func (s *Service) handleBPRegNo(ctx context.Context, sess *Session, from, input string) error {
+	trimmedInput := strings.TrimSpace(input)
+	
+	if strings.ToLower(trimmedInput) == "skip" || trimmedInput == "" {
+		sess.TempBPRegNo = ""
+	} else {
+		sess.TempBPRegNo = trimmedInput
+	}
+
+	// Validation Failsafe: Both Photo and RegNo cannot be skipped
+	if sess.TempBPMediaID == "" && sess.TempBPRegNo == "" {
+		sess.resetFlow()
+		s.sessions.Set(from, sess)
+		return s.sendText(ctx, from, "To proceed with a B&P Referral, we require either a photo of the damage or the vehicle's registration number. We cannot go forward with the referral. Please reply 'Hi' to return to the main menu and try again.")
+	}
+
+	sess.State = StateAwaitBPLocation
+	s.sessions.Set(from, sess)
+
+	return s.sendText(ctx, from, "Please enter the Location of the vehicle (Mandatory).")
+}
+
+func (s *Service) handleBPLocation(ctx context.Context, sess *Session, from, input string) error {
+	trimmedInput := strings.TrimSpace(input)
+	
+	if trimmedInput == "" || strings.ToLower(trimmedInput) == "skip" {
+		return s.sendText(ctx, from, "Location is mandatory. Please type the location of the vehicle.")
+	}
+
+	sess.TempBPLocation = trimmedInput
+	sess.State = StateAwaitBPDesc
+	s.sessions.Set(from, sess)
+
+	return s.sendText(ctx, from, "Please enter a brief description of the damage, or reply 'Skip'.")
+}
+
+func (s *Service) handleBPDesc(ctx context.Context, sess *Session, from, input string) error {
+	trimmedInput := strings.TrimSpace(input)
+	
+	if strings.ToLower(trimmedInput) == "skip" || trimmedInput == "" {
+		sess.TempBPDesc = ""
+	} else {
+		sess.TempBPDesc = trimmedInput
+	}
+
 	sess.State = StateAwaitBPPhone
 	s.sessions.Set(from, sess)
 
-	return s.sendText(ctx, from, "Photo received! Please type the customer's phone number, or reply 'Skip' if you don't have it.")
+	return s.sendText(ctx, from, "Almost done! Please type the customer's 10-digit phone number, or reply 'Skip' if you don't have it.")
 }
 
 func (s *Service) handleBPPhone(ctx context.Context, sess *Session, from, input string) error {
 	input = strings.TrimSpace(input)
 	
 	if input == "" {
-		return s.sendText(ctx, from, "Please type a valid phone number or reply 'Skip'.")
+		return s.sendText(ctx, from, "Please type a valid 10-digit phone number or reply 'Skip'.")
 	}
 
 	customerPhone := input
@@ -81,14 +140,16 @@ func (s *Service) handleBPPhone(ctx context.Context, sess *Session, from, input 
 		empBranch = emp.Branch
 	}
 
-	// Build the Webhook payload
 	payload := map[string]interface{}{
-		"referring_employee_id":   sess.EmployeeID,
-		"referring_employee_name": empName,
+		"referring_employee_id":     sess.EmployeeID,
+		"referring_employee_name":   empName,
 		"referring_employee_branch": empBranch,
-		"vehicle_image_url":       sess.TempBPMediaID,
-		"customer_phone":          customerPhone,
-		"submitted_at":            time.Now().Format(time.RFC3339),
+		"vehicle_image_url":         sess.TempBPMediaID,
+		"vehicle_reg_no":            sess.TempBPRegNo,
+		"location":                  sess.TempBPLocation,
+		"description":               sess.TempBPDesc,
+		"customer_phone":            customerPhone,
+		"submitted_at":              time.Now().Format(time.RFC3339),
 	}
 
 	webhookURL := os.Getenv("BP_WEBHOOK_URL")
@@ -112,7 +173,6 @@ func (s *Service) handleBPPhone(ctx context.Context, sess *Session, from, input 
 			}
 		}
 	} else {
-		// Log the payload if no webhook is configured (development / safe mode)
 		slog.Info("BP Webhook missing URL, simulated success", "payload", payload)
 	}
 
