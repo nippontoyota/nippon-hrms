@@ -28,6 +28,10 @@ func (s *Service) beginBPReferralFlow(ctx context.Context, sess *Session, from s
 
 func (s *Service) handleBPPhoto(ctx context.Context, sess *Session, from, input, imageURL string) error {
 	if imageURL == "" {
+		// Ignore the WhatsApp text echo of the button click that fires simultaneously
+		if strings.ToLower(strings.TrimSpace(input)) == "b&p referral" || strings.ToLower(strings.TrimSpace(input)) == "bp referral" || input == payloadRequestBPReferral {
+			return nil
+		}
 		return s.sendText(ctx, from, "That doesn't look like an image. Please upload a clear photo of the damaged vehicle.")
 	}
 
