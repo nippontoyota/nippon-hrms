@@ -221,7 +221,11 @@ func (s *Service) handleWebhookLocked(ctx context.Context, from, input, msgType,
 	case StateMaintenanceAwaitDescription:
 		err = s.handleMaintenanceAwaitDescription(ctx, sess, from, input, messageID, timestamp)
 	case StateMaintenanceAwaitImage:
-		err = s.handleMaintenanceAwaitImage(ctx, sess, from, input, imageURL, imageCaption, messageID, timestamp)
+			err = s.handleMaintenanceAwaitImage(ctx, sess, from, input, imageURL, imageCaption, messageID, timestamp)
+		case StateAwaitBPPhoto:
+			err = s.handleBPPhoto(ctx, sess, from, input, imageURL)
+		case StateAwaitBPPhone:
+			err = s.handleBPPhone(ctx, sess, from, input)
 	default:
 		err = s.handleIdle(ctx, sess, from, input)
 	}
@@ -395,7 +399,9 @@ func (s *Service) handleIdle(ctx context.Context, sess *Session, from, input str
 	case payloadRequestHealthCard:
 		return s.handleHealthCardRequest(ctx, sess, from)
 	case payloadRequestMaintenance:
-		return s.beginMaintenanceFlow(ctx, sess, from)
+			return s.beginMaintenanceFlow(ctx, sess, from)
+		case payloadRequestBPReferral:
+			return s.beginBPReferralFlow(ctx, sess, from)
 	case payloadRequestBonus:
 		return s.handleEmployeeBenefitRequest(ctx, sess, from, employee.BenefitApprovedBonus, "2026")
 	case payloadRequestEncashment:
@@ -411,7 +417,9 @@ func (s *Service) handleIdle(ctx context.Context, sess *Session, from, input str
 	case "2", "leave":
 		return s.beginLeaveFlow(ctx, sess, from)
 	case "referral", "referral link":
-		return s.handleReferralLinkRequest(ctx, sess, from)
+			return s.handleReferralLinkRequest(ctx, sess, from)
+		case "bp referral", "b&p referral", "b & p referral":
+			return s.beginBPReferralFlow(ctx, sess, from)
 	case "approved bonus 2026", "bonus 2026":
 		return s.handleEmployeeBenefitRequest(ctx, sess, from, employee.BenefitApprovedBonus, "2026")
 	case "leave encashment 2026", "leave encashment 2025-26":
