@@ -54,6 +54,23 @@ func (s *Service) handleBPPhone(ctx context.Context, sess *Session, from, input 
 	customerPhone := input
 	if strings.ToLower(input) == "skip" {
 		customerPhone = ""
+	} else {
+		var digits []rune
+		for _, r := range input {
+			if r >= '0' && r <= '9' {
+				digits = append(digits, r)
+			}
+		}
+		
+		cleanPhone := string(digits)
+		if len(cleanPhone) == 12 && strings.HasPrefix(cleanPhone, "91") {
+			cleanPhone = cleanPhone[2:]
+		}
+		
+		if len(cleanPhone) != 10 {
+			return s.sendText(ctx, from, "That doesn't look like a valid phone number. Please type a 10-digit mobile number, or reply 'Skip'.")
+		}
+		customerPhone = cleanPhone
 	}
 
 	emp, _ := s.empRepo.GetByID(ctx, sess.EmployeeID)
