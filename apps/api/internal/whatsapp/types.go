@@ -16,6 +16,7 @@ const (
 	payloadReferCandidate     = "refer_candidate"
 	payloadRequestBonus       = "request_approved_bonus_2026"
 	payloadRequestEncashment  = "request_leave_encashment_2026"
+	payloadRequestBPReferral = "request_bp_referral"
 
 	payloadLeaveCasual     = "leave_casual"
 	payloadLeaveDuty       = "leave_duty"
@@ -43,6 +44,9 @@ const (
 	StateMaintenanceAwaitCategory
 	StateMaintenanceAwaitDescription
 	StateMaintenanceAwaitImage
+
+	StateAwaitBPPhoto
+	StateAwaitBPPhone
 )
 
 type Session struct {
@@ -78,6 +82,8 @@ type Session struct {
 	TempMaintenanceBranchID    string
 	TempMaintenanceLocation    string
 	TempMaintenanceCategory    string
+
+	TempBPMediaID string
 	TempMaintenanceDescription string
 	TempMaintenanceImageURL    string
 }
