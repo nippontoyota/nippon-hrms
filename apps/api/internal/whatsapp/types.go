@@ -87,6 +87,7 @@ type Session struct {
 	TempMaintenanceCategory    string
 
 	TempBPMediaID string
+	TempBPVehicleModel string
 	TempBPRegNo string
 	TempBPLocation string
 	TempBPDesc string
@@ -113,6 +114,12 @@ func (s *Session) resetFlow() {
 	s.TempMaintenanceCategory = ""
 	s.TempMaintenanceDescription = ""
 	s.TempMaintenanceImageURL = ""
+
+	s.TempBPMediaID = ""
+	s.TempBPVehicleModel = ""
+	s.TempBPRegNo = ""
+	s.TempBPLocation = ""
+	s.TempBPDesc = ""
 }
 
 func (s *Session) reset() {

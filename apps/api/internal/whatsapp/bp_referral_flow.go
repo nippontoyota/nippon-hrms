@@ -21,29 +21,39 @@ func (s *Service) beginBPReferralFlow(ctx context.Context, sess *Session, from s
 
 	sess.State = StateAwaitBPPhoto
 	sess.TempBPMediaID = ""
+	sess.TempBPVehicleModel = ""
 	sess.TempBPRegNo = ""
 	sess.TempBPLocation = ""
 	sess.TempBPDesc = ""
 	s.sessions.Set(from, sess)
 
-	return s.sendText(ctx, from, "Please upload a clear photo of the damaged vehicle (ensure the Registration No. is visible), or reply 'Skip'.")
+	return s.sendText(ctx, from, "Please upload a clear photo of the damaged vehicle or type the vehicle model, or reply 'Skip'.")
 }
 
 func (s *Service) handleBPPhoto(ctx context.Context, sess *Session, from, input, imageURL string) error {
-	trimmedInput := strings.ToLower(strings.TrimSpace(input))
+	trimmedInput := strings.TrimSpace(input)
+	lowerInput := strings.ToLower(trimmedInput)
 
-	if imageURL == "" {
-		if trimmedInput == "skip" {
-			sess.TempBPMediaID = ""
+	if imageURL != "" {
+		sess.TempBPMediaID = imageURL
+		if lowerInput != "skip" && lowerInput != "b&p referral" && lowerInput != "bp referral" && input != payloadRequestBPReferral {
+			sess.TempBPVehicleModel = trimmedInput
 		} else {
-			// Ignore the WhatsApp text echo of the button click that fires simultaneously
-			if trimmedInput == "b&p referral" || trimmedInput == "bp referral" || input == payloadRequestBPReferral {
-				return nil
-			}
-			return s.sendText(ctx, from, "That doesn't look like an image. Please upload a clear photo of the damaged vehicle, or reply 'Skip'.")
+			sess.TempBPVehicleModel = ""
 		}
 	} else {
-		sess.TempBPMediaID = imageURL
+		// Ignore the WhatsApp text echo of the button click that fires simultaneously
+		if lowerInput == "b&p referral" || lowerInput == "bp referral" || input == payloadRequestBPReferral {
+			return nil
+		}
+
+		if lowerInput == "skip" || trimmedInput == "" {
+			sess.TempBPMediaID = ""
+			sess.TempBPVehicleModel = ""
+		} else {
+			sess.TempBPMediaID = ""
+			sess.TempBPVehicleModel = trimmedInput
+		}
 	}
 
 	sess.State = StateAwaitBPRegNo
@@ -61,11 +71,11 @@ func (s *Service) handleBPRegNo(ctx context.Context, sess *Session, from, input 
 		sess.TempBPRegNo = trimmedInput
 	}
 
-	// Validation Failsafe: Both Photo and RegNo cannot be skipped
-	if sess.TempBPMediaID == "" && sess.TempBPRegNo == "" {
+	// Validation Failsafe: Photo/Vehicle Model and RegNo cannot all be skipped
+	if sess.TempBPMediaID == "" && sess.TempBPVehicleModel == "" && sess.TempBPRegNo == "" {
 		sess.resetFlow()
 		s.sessions.Set(from, sess)
-		return s.sendText(ctx, from, "To proceed with a B&P Referral, we require either a photo of the damage or the vehicle's registration number. We cannot go forward with the referral. Please reply 'Hi' to return to the main menu and try again.")
+		return s.sendText(ctx, from, "To proceed with a B&P Referral, we require either a photo/vehicle model or the vehicle's registration number. We cannot go forward with the referral. Please reply 'Hi' to return to the main menu and try again.")
 	}
 
 	sess.State = StateAwaitBPLocation
@@ -140,14 +150,24 @@ func (s *Service) handleBPPhone(ctx context.Context, sess *Session, from, input 
 		empBranch = emp.Branch
 	}
 
+	finalDesc := sess.TempBPDesc
+	if sess.TempBPVehicleModel != "" {
+		if finalDesc != "" {
+			finalDesc = "[Vehicle Model: " + sess.TempBPVehicleModel + "] " + finalDesc
+		} else {
+			finalDesc = "[Vehicle Model: " + sess.TempBPVehicleModel + "]"
+		}
+	}
+
 	payload := map[string]interface{}{
 		"referring_employee_id":     sess.EmployeeID,
 		"referring_employee_name":   empName,
 		"referring_employee_branch": empBranch,
 		"vehicle_image_url":         sess.TempBPMediaID,
+		"vehicle_model":             sess.TempBPVehicleModel,
 		"vehicle_reg_no":            sess.TempBPRegNo,
 		"location":                  sess.TempBPLocation,
-		"description":               sess.TempBPDesc,
+		"description":               finalDesc,
 		"customer_phone":            customerPhone,
 		"submitted_at":              time.Now().Format(time.RFC3339),
 	}
