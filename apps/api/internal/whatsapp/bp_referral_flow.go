@@ -150,15 +150,6 @@ func (s *Service) handleBPPhone(ctx context.Context, sess *Session, from, input 
 		empBranch = emp.Branch
 	}
 
-	finalDesc := sess.TempBPDesc
-	if sess.TempBPVehicleModel != "" {
-		if finalDesc != "" {
-			finalDesc = "[Vehicle Model: " + sess.TempBPVehicleModel + "] " + finalDesc
-		} else {
-			finalDesc = "[Vehicle Model: " + sess.TempBPVehicleModel + "]"
-		}
-	}
-
 	payload := map[string]interface{}{
 		"referring_employee_id":     sess.EmployeeID,
 		"referring_employee_name":   empName,
@@ -167,7 +158,7 @@ func (s *Service) handleBPPhone(ctx context.Context, sess *Session, from, input 
 		"vehicle_model":             sess.TempBPVehicleModel,
 		"vehicle_reg_no":            sess.TempBPRegNo,
 		"location":                  sess.TempBPLocation,
-		"description":               finalDesc,
+		"description":               sess.TempBPDesc,
 		"customer_phone":            customerPhone,
 		"submitted_at":              time.Now().Format(time.RFC3339),
 	}
