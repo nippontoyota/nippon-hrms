@@ -37,6 +37,12 @@ type sessionSnapshot struct {
 	TempLeaveReason    string          `json:"tempLeaveReason,omitempty"`
 	PendingRejectionLeaveID string   `json:"pendingRejectionLeaveId,omitempty"`
 	LastRejectionPromptAt   time.Time `json:"lastRejectionPromptAt,omitempty"`
+
+	TempBPMediaID      string `json:"tempBPMediaId,omitempty"`
+	TempBPVehicleModel string `json:"tempBPVehicleModel,omitempty"`
+	TempBPRegNo        string `json:"tempBPRegNo,omitempty"`
+	TempBPLocation     string `json:"tempBPLocation,omitempty"`
+	TempBPDesc         string `json:"tempBPDesc,omitempty"`
 }
 
 func snapshotFromSession(sess *Session) sessionSnapshot {
@@ -65,6 +71,11 @@ func snapshotFromSession(sess *Session) sessionSnapshot {
 		TempLeaveReason:    sess.TempLeaveReason,
 		PendingRejectionLeaveID: sess.PendingRejectionLeaveID,
 		LastRejectionPromptAt:   sess.LastRejectionPromptAt,
+		TempBPMediaID:           sess.TempBPMediaID,
+		TempBPVehicleModel:      sess.TempBPVehicleModel,
+		TempBPRegNo:             sess.TempBPRegNo,
+		TempBPLocation:          sess.TempBPLocation,
+		TempBPDesc:              sess.TempBPDesc,
 	}
 }
 
@@ -95,6 +106,11 @@ func sessionFromSnapshot(phone string, snap sessionSnapshot) *Session {
 		TempLeaveReason:    snap.TempLeaveReason,
 		PendingRejectionLeaveID: snap.PendingRejectionLeaveID,
 		LastRejectionPromptAt:   snap.LastRejectionPromptAt,
+		TempBPMediaID:           snap.TempBPMediaID,
+		TempBPVehicleModel:      snap.TempBPVehicleModel,
+		TempBPRegNo:             snap.TempBPRegNo,
+		TempBPLocation:          snap.TempBPLocation,
+		TempBPDesc:              snap.TempBPDesc,
 	}
 }
 
