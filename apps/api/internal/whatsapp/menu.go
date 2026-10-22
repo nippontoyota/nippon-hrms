@@ -77,6 +77,7 @@ func moreOptionsListSections() []doubletick.InteractiveListSection {
 				{ID: payloadRequestBonus, Title: "Approved Bonus 2026", Description: "View your approved bonus"},
 				{ID: payloadRequestEncashment, Title: "Leave Encashment 2026", Description: "View your 2025-26 encashment"},
 				{ID: payloadRequestBPReferral, Title: "B&P Referral", Description: "Refer a damaged vehicle"},
+				{ID: payloadRequestInactiveReferral, Title: "Inactive Customer Referral", Description: "Refer an inactive customer vehicle"},
 			},
 		},
 	}

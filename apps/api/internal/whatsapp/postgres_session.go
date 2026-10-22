@@ -43,6 +43,11 @@ type sessionSnapshot struct {
 	TempBPRegNo        string `json:"tempBPRegNo,omitempty"`
 	TempBPLocation     string `json:"tempBPLocation,omitempty"`
 	TempBPDesc         string `json:"tempBPDesc,omitempty"`
+
+	TempInactiveRegNo    string `json:"tempInactiveRegNo,omitempty"`
+	TempInactiveModel    string `json:"tempInactiveModel,omitempty"`
+	TempInactiveCustName string `json:"tempInactiveCustName,omitempty"`
+	TempInactivePhone    string `json:"tempInactivePhone,omitempty"`
 }
 
 func snapshotFromSession(sess *Session) sessionSnapshot {
@@ -76,6 +81,10 @@ func snapshotFromSession(sess *Session) sessionSnapshot {
 		TempBPRegNo:             sess.TempBPRegNo,
 		TempBPLocation:          sess.TempBPLocation,
 		TempBPDesc:              sess.TempBPDesc,
+		TempInactiveRegNo:        sess.TempInactiveRegNo,
+		TempInactiveModel:        sess.TempInactiveModel,
+		TempInactiveCustName:     sess.TempInactiveCustName,
+		TempInactivePhone:        sess.TempInactivePhone,
 	}
 }
 
@@ -111,6 +120,10 @@ func sessionFromSnapshot(phone string, snap sessionSnapshot) *Session {
 		TempBPRegNo:             snap.TempBPRegNo,
 		TempBPLocation:          snap.TempBPLocation,
 		TempBPDesc:              snap.TempBPDesc,
+		TempInactiveRegNo:        snap.TempInactiveRegNo,
+		TempInactiveModel:        snap.TempInactiveModel,
+		TempInactiveCustName:     snap.TempInactiveCustName,
+		TempInactivePhone:        snap.TempInactivePhone,
 	}
 }
 

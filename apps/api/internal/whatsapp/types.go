@@ -17,6 +17,7 @@ const (
 	payloadRequestBonus       = "request_approved_bonus_2026"
 	payloadRequestEncashment  = "request_leave_encashment_2026"
 	payloadRequestBPReferral = "request_bp_referral"
+	payloadRequestInactiveReferral = "request_inactive_referral"
 
 	payloadLeaveCasual     = "leave_casual"
 	payloadLeaveDuty       = "leave_duty"
@@ -50,6 +51,11 @@ const (
 	StateAwaitBPRegNo
 	StateAwaitBPLocation
 	StateAwaitBPDesc
+
+	StateAwaitInactiveRegNo
+	StateAwaitInactiveModel
+	StateAwaitInactiveCustName
+	StateAwaitInactivePhone
 )
 
 type Session struct {
@@ -93,6 +99,11 @@ type Session struct {
 	TempBPDesc string
 	TempMaintenanceDescription string
 	TempMaintenanceImageURL    string
+
+	TempInactiveRegNo string
+	TempInactiveModel string
+	TempInactiveCustName string
+	TempInactivePhone string
 }
 
 func (s *Session) resetFlow() {
@@ -120,6 +131,11 @@ func (s *Session) resetFlow() {
 	s.TempBPRegNo = ""
 	s.TempBPLocation = ""
 	s.TempBPDesc = ""
+
+	s.TempInactiveRegNo = ""
+	s.TempInactiveModel = ""
+	s.TempInactiveCustName = ""
+	s.TempInactivePhone = ""
 }
 
 func (s *Session) reset() {

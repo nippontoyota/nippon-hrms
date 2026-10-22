@@ -232,6 +232,14 @@ func (s *Service) handleWebhookLocked(ctx context.Context, from, input, msgType,
 			err = s.handleBPLocation(ctx, sess, from, input)
 		case StateAwaitBPDesc:
 			err = s.handleBPDesc(ctx, sess, from, input)
+		case StateAwaitInactiveRegNo:
+			err = s.handleInactiveRegNo(ctx, sess, from, input)
+		case StateAwaitInactiveModel:
+			err = s.handleInactiveModel(ctx, sess, from, input)
+		case StateAwaitInactiveCustName:
+			err = s.handleInactiveCustName(ctx, sess, from, input)
+		case StateAwaitInactivePhone:
+			err = s.handleInactivePhone(ctx, sess, from, input)
 	default:
 		err = s.handleIdle(ctx, sess, from, input)
 	}
@@ -408,6 +416,8 @@ func (s *Service) handleIdle(ctx context.Context, sess *Session, from, input str
 			return s.beginMaintenanceFlow(ctx, sess, from)
 		case payloadRequestBPReferral:
 			return s.beginBPReferralFlow(ctx, sess, from)
+		case payloadRequestInactiveReferral:
+			return s.beginInactiveReferralFlow(ctx, sess, from)
 	case payloadRequestBonus:
 		return s.handleEmployeeBenefitRequest(ctx, sess, from, employee.BenefitApprovedBonus, "2026")
 	case payloadRequestEncashment:
@@ -426,6 +436,8 @@ func (s *Service) handleIdle(ctx context.Context, sess *Session, from, input str
 			return s.handleReferralLinkRequest(ctx, sess, from)
 		case "bp referral", "b&p referral", "b & p referral":
 			return s.beginBPReferralFlow(ctx, sess, from)
+		case "inactive referral", "inactive customer referral":
+			return s.beginInactiveReferralFlow(ctx, sess, from)
 	case "approved bonus 2026", "bonus 2026":
 		return s.handleEmployeeBenefitRequest(ctx, sess, from, employee.BenefitApprovedBonus, "2026")
 	case "leave encashment 2026", "leave encashment 2025-26":
