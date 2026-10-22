@@ -69,7 +69,7 @@ func (s *Service) handleInactiveRegNo(ctx context.Context, sess *Session, from, 
 	lower := strings.ToLower(trimmed)
 
 	// Ignore WhatsApp button text echo
-	if lower == "inactive customer referral" || lower == "inactive referral" || trimmed == payloadRequestInactiveReferral {
+	if strings.HasPrefix(lower, "inactive") || strings.Contains(lower, "referr") || trimmed == payloadRequestInactiveReferral {
 		return nil
 	}
 

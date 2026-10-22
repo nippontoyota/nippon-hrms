@@ -171,6 +171,12 @@ func isInteractiveMenuEcho(input string) bool {
 	if strings.Contains(lower, "unpaid leave") && strings.Contains(lower, "leave application") {
 		return true
 	}
+	if strings.Contains(lower, "additional options") || strings.Contains(lower, "inactive referral") || strings.Contains(lower, "inactive customer") || lower == "inactive referral" || input == payloadRequestInactiveReferral {
+		return true
+	}
+	if strings.Contains(lower, "b&p referral") || strings.Contains(lower, "bp referral") || lower == "b&p referral" || lower == "bp referral" || input == payloadRequestBPReferral {
+		return true
+	}
 	return false
 }
 

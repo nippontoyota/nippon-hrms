@@ -436,7 +436,7 @@ func (s *Service) handleIdle(ctx context.Context, sess *Session, from, input str
 			return s.handleReferralLinkRequest(ctx, sess, from)
 		case "bp referral", "b&p referral", "b & p referral":
 			return s.beginBPReferralFlow(ctx, sess, from)
-		case "inactive referral", "inactive customer referral":
+		case "inactive referral", "inactive customer referral", "inactive customer referr", "inactive":
 			return s.beginInactiveReferralFlow(ctx, sess, from)
 	case "approved bonus 2026", "bonus 2026":
 		return s.handleEmployeeBenefitRequest(ctx, sess, from, employee.BenefitApprovedBonus, "2026")

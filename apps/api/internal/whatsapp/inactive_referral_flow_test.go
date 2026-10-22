@@ -33,3 +33,18 @@ func TestMapBranchToDealerCode(t *testing.T) {
 		}
 	}
 }
+
+func TestInteractiveMenuEcho_InactiveReferral(t *testing.T) {
+	echoes := []string{
+		"Inactive Referral",
+		"Inactive Customer Referr",
+		"Or select from these additional options:\n\nInactive Customer Referr\nRefer an inactive customer vehicle",
+		"Or select from these additional options:\n\nInactive Referral\nRefer an inactive customer vehicle",
+	}
+
+	for _, echo := range echoes {
+		if !isInteractiveMenuEcho(echo) {
+			t.Errorf("isInteractiveMenuEcho(%q) = false; want true", echo)
+		}
+	}
+}
