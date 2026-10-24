@@ -73,11 +73,11 @@ func (s *Service) handleInactiveRegNo(ctx context.Context, sess *Session, from, 
 		return nil
 	}
 
-	if trimmed == "" {
-		return s.sendText(ctx, from, "Vehicle Registration Number is required. Please enter the registration number (e.g., KL 07 CD 1234):")
+	if !isValidVehicleRegNo(trimmed) {
+		return s.sendText(ctx, from, "That doesn't look like a valid registration number (e.g. KL 07 CD 1234). Please enter a valid registration number:")
 	}
 
-	sess.TempInactiveRegNo = trimmed
+	sess.TempInactiveRegNo = strings.ToUpper(trimmed)
 	sess.State = StateAwaitInactiveModel
 	s.sessions.Set(from, sess)
 

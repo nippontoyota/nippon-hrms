@@ -34,6 +34,10 @@ func (s *Service) handleBPPhoto(ctx context.Context, sess *Session, from, input,
 	trimmedInput := strings.TrimSpace(input)
 	lowerInput := strings.ToLower(trimmedInput)
 
+	if isUnsupportedMessageType(trimmedInput) {
+		return s.sendText(ctx, from, "Voice notes and documents are not supported. Please type the vehicle model name (e.g., Innova Crysta), upload a photo of the vehicle, or reply 'Skip'.")
+	}
+
 	if imageURL != "" {
 		sess.TempBPMediaID = imageURL
 		if lowerInput != "skip" && lowerInput != "b&p referral" && lowerInput != "bp referral" && input != payloadRequestBPReferral {
@@ -64,11 +68,15 @@ func (s *Service) handleBPPhoto(ctx context.Context, sess *Session, from, input,
 
 func (s *Service) handleBPRegNo(ctx context.Context, sess *Session, from, input string) error {
 	trimmedInput := strings.TrimSpace(input)
+	lower := strings.ToLower(trimmedInput)
 	
-	if strings.ToLower(trimmedInput) == "skip" || trimmedInput == "" {
+	if lower == "skip" || trimmedInput == "" {
 		sess.TempBPRegNo = ""
 	} else {
-		sess.TempBPRegNo = trimmedInput
+		if !isValidVehicleRegNo(trimmedInput) {
+			return s.sendText(ctx, from, "That doesn't look like a valid registration number (e.g. KL 07 CD 1234). Please enter a valid registration number, or reply 'Skip':")
+		}
+		sess.TempBPRegNo = strings.ToUpper(trimmedInput)
 	}
 
 	// Validation Failsafe: Photo/Vehicle Model and RegNo cannot all be skipped
@@ -87,8 +95,9 @@ func (s *Service) handleBPRegNo(ctx context.Context, sess *Session, from, input 
 func (s *Service) handleBPLocation(ctx context.Context, sess *Session, from, input string) error {
 	trimmedInput := strings.TrimSpace(input)
 	
-	if trimmedInput == "" || strings.ToLower(trimmedInput) == "skip" {
-		return s.sendText(ctx, from, "Location is mandatory. Please type the location of the vehicle.")
+	valid, errMsg := isValidLocation(trimmedInput)
+	if !valid {
+		return s.sendText(ctx, from, errMsg)
 	}
 
 	sess.TempBPLocation = trimmedInput
