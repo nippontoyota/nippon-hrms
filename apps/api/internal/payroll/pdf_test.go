@@ -1,6 +1,8 @@
 package payroll
 
 import (
+	"os"
+	"regexp"
 	"testing"
 
 	"github.com/nippon-toyota/hrms/internal/employee"
@@ -66,4 +68,86 @@ func TestGeneratePayslipPDF_longVariableFields(t *testing.T) {
 	if len(pdf) < 1000 {
 		t.Fatalf("expected non-trivial PDF output, got %d bytes", len(pdf))
 	}
+}
+
+func TestNewPayslipView_fixedIncentiveZeroSuppression(t *testing.T) {
+	// Historical or regular record with FixedIncentive == 0
+	recZero := &Record{
+		EmployeeID:      "1001",
+		Month:           9,
+		Year:            2026,
+		EmpNameSnapshot: "Historical Employee",
+		BasicDA:         30000,
+		FixedIncentive:  0,
+	}
+
+	viewZero := newPayslipView(nil, recZero, nil)
+	for _, e := range viewZero.Earnings {
+		if e.Label == "Fixed Incentive" {
+			t.Fatalf("expected 'Fixed Incentive' to be suppressed when 0, but found in Earnings with amount %q", e.Amount)
+		}
+	}
+
+	// River or eligible record with FixedIncentive > 0
+	recActive := &Record{
+		EmployeeID:        "IMR001",
+		Month:             10,
+		Year:              2026,
+		EmpNameSnapshot:   "River Employee",
+		BasicDA:           30000,
+		FixedIncentive:    5000,
+		TotalEarWithIncen: 35000,
+		ActualFinalAmount: 35000,
+	}
+
+	viewActive := newPayslipView(nil, recActive, nil)
+	var foundActive *lineItem
+	for _, e := range viewActive.Earnings {
+		if e.Label == "Fixed Incentive" {
+			val := e
+			foundActive = &val
+			break
+		}
+	}
+	if foundActive == nil {
+		t.Fatalf("expected 'Fixed Incentive' to be present when > 0, but not found")
+	}
+	if foundActive.Amount != "5000" {
+		t.Fatalf("expected 'Fixed Incentive' amount to be '5000', got %q", foundActive.Amount)
+	}
+
+	// Verify both PDFs generate cleanly and fit on exactly 1 page
+	empRiver := &employee.Employee{
+		EmployeeID:    "IMR001",
+		Name:          "Akhil Mohan",
+		Designation:   "Technician",
+		Department:    "Service",
+		AccountNumber: "1234567890",
+		BankName:      "State Bank of India",
+		IFSCCode:      "SBIN0001234",
+		Branch:        "Nedumbassery",
+	}
+
+	pageRegex := regexp.MustCompile(`/Type\s*/Page\b[^s]`)
+
+	pdfZero, err := GeneratePayslipPDF(nil, recZero, nil)
+	if err != nil {
+		t.Fatalf("GeneratePayslipPDF for zero fixed incentive: %v", err)
+	}
+	pagesZero := len(pageRegex.FindAll(pdfZero, -1))
+	if pagesZero != 1 {
+		t.Fatalf("expected 1 page for zero fixed incentive payslip, got %d", pagesZero)
+	}
+
+	pdfActive, err := GeneratePayslipPDF(empRiver, recActive, nil)
+	if err != nil {
+		t.Fatalf("GeneratePayslipPDF for active fixed incentive: %v", err)
+	}
+	pagesActive := len(pageRegex.FindAll(pdfActive, -1))
+	if pagesActive != 1 {
+		t.Fatalf("expected 1 page for active fixed incentive payslip, got %d", pagesActive)
+	}
+
+	_ = os.WriteFile("/tmp/sample_zero.pdf", pdfZero, 0644)
+	_ = os.WriteFile("/tmp/sample_river.pdf", pdfActive, 0644)
 }

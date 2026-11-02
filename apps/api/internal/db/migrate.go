@@ -129,6 +129,18 @@ func EnsureSchema(ctx context.Context, pool *pgxpool.Pool) error {
 		);
 		CREATE INDEX IF NOT EXISTS idx_employee_benefits_lookup
 			ON employee_benefits (employee_id, benefit_type, period);
+
+		ALTER TABLE payroll_records ADD COLUMN IF NOT EXISTS washing_allowance FLOAT DEFAULT 0;
+		ALTER TABLE payroll_records ADD COLUMN IF NOT EXISTS fixed_incentive FLOAT DEFAULT 0;
+
+		ALTER TABLE employees ADD COLUMN IF NOT EXISTS washing_allowance FLOAT DEFAULT 0;
+		ALTER TABLE employees ADD COLUMN IF NOT EXISTS fixed_incentive FLOAT DEFAULT 0;
+
+		ALTER TABLE import_staging_employees ADD COLUMN IF NOT EXISTS washing_allowance FLOAT DEFAULT 0;
+		ALTER TABLE import_staging_employees ADD COLUMN IF NOT EXISTS fixed_incentive FLOAT DEFAULT 0;
+
+		ALTER TABLE import_staging_payroll ADD COLUMN IF NOT EXISTS washing_allowance FLOAT DEFAULT 0;
+		ALTER TABLE import_staging_payroll ADD COLUMN IF NOT EXISTS fixed_incentive FLOAT DEFAULT 0;
 	`)
 	if err != nil {
 		return err
