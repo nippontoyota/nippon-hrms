@@ -11,7 +11,7 @@ import (
 var ExportHeaders = []string{
 	"employeeId", "empNameSnapshot", "paidDays", "basicDa",
 	"hra", "travel", "childrenHostel", "childrenEducation", "mobile", "conveyance",
-	"branchAllowance", "performanceAllowance", "specialAllowance", "training", "incentive",
+	"branchAllowance", "performanceAllowance", "fixedIncentive", "specialAllowance", "training", "incentive",
 	"totalEarWithIncen", "pf", "esi075", "tds",
 	"salAdv", "additionalDeduction", "loan", "totalDeductions", "actualFinalAmount",
 }
@@ -31,6 +31,7 @@ func RecordToExportValues(rec Record) []any {
 		rec.Conveyance,
 		rec.BranchAllowance,
 		rec.PerformanceAllowance,
+		rec.FixedIncentive,
 		rec.SpecialAllowance,
 		rec.Training,
 		rec.Incentive,

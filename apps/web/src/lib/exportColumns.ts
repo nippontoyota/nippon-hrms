@@ -62,6 +62,7 @@ export const SALARY_DIRECTORY_HEADERS = [
   'conveyance',
   'branchAllowance',
   'performanceAllowance',
+  'fixedIncentive',
   'specialAllowance',
   'training',
   'incentive',

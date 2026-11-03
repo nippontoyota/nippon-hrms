@@ -139,6 +139,7 @@ export interface PayrollRecord {
   conveyance: number;
   branchAllowance: number;
   performanceAllowance: number;
+  fixedIncentive?: number;
   specialAllowance: number;
   training: number;
   incentive: number;
