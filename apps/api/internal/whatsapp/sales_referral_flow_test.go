@@ -159,3 +159,85 @@ func TestSalesReferralFlow_InteractiveEchoIgnored(t *testing.T) {
 	}
 	_ = handled
 }
+
+func TestSalesReferralFlow_EscapeGreeting(t *testing.T) {
+	svc, _, store, phone := newFlowTestService(t)
+	ctx := context.Background()
+	now := time.Now().Unix()
+
+	// Tap button -> Await Cust Name
+	_, _ = svc.handleWebhookLocked(ctx, phone, payloadRequestSalesReferral, "interactive", "msg-1", now, "", "", "")
+	sess, _ := store.Get(phone)
+	if sess.State != StateAwaitSalesCustName {
+		t.Fatalf("expected StateAwaitSalesCustName, got %v", sess.State)
+	}
+
+	time.Sleep(1100 * time.Millisecond)
+
+	// Entering "hi" should reset to StateIdle and display welcome menu
+	_, _ = svc.handleWebhookLocked(ctx, phone, "hi", "text", "msg-2", now+1, "", "", "")
+	sess, _ = store.Get(phone)
+	if sess.State != StateIdle {
+		t.Fatalf("expected state to reset to StateIdle on 'hi', got %v", sess.State)
+	}
+}
+
+func TestSalesReferralFlow_EscapeMenuSelection(t *testing.T) {
+	svc, rec, store, phone := newFlowTestService(t)
+	ctx := context.Background()
+	now := time.Now().Unix()
+
+	// Start flow and advance to AwaitSalesModel
+	_, _ = svc.handleWebhookLocked(ctx, phone, payloadRequestSalesReferral, "interactive", "msg-1", now, "", "", "")
+	time.Sleep(1100 * time.Millisecond)
+	_, _ = svc.handleWebhookLocked(ctx, phone, "Test Customer", "text", "msg-2", now+1, "", "", "")
+	_, _ = svc.handleWebhookLocked(ctx, phone, "9876543210", "text", "msg-3", now+2, "", "", "")
+	sess, _ := store.Get(phone)
+	if sess.State != StateAwaitSalesModel {
+		t.Fatalf("expected StateAwaitSalesModel, got %v", sess.State)
+	}
+
+	time.Sleep(1100 * time.Millisecond)
+
+	// Tapping "Salary Slip" while awaiting model should reset flow and prompt for period
+	_, _ = svc.handleWebhookLocked(ctx, phone, payloadRequestSalary, "interactive", "msg-4", now+3, "", "", "")
+	sess, _ = store.Get(phone)
+	if sess.State != StateAwaitPeriod {
+		t.Fatalf("expected StateAwaitPeriod after clicking Salary Slip, got %v", sess.State)
+	}
+	_ = rec
+}
+
+func TestSalesReferralFlow_WebhookErrorResetsState(t *testing.T) {
+	svc, rec, store, phone := newFlowTestService(t)
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer mockServer.Close()
+	t.Setenv("SALES_REFERRAL_WEBHOOK_URL", mockServer.URL)
+
+	ctx := context.Background()
+	now := time.Now().Unix()
+
+	// Fill flow up to model
+	_, _ = svc.handleWebhookLocked(ctx, phone, payloadRequestSalesReferral, "interactive", "msg-1", now, "", "", "")
+	time.Sleep(1100 * time.Millisecond)
+	_, _ = svc.handleWebhookLocked(ctx, phone, "Test Customer", "text", "msg-2", now+1, "", "", "")
+	_, _ = svc.handleWebhookLocked(ctx, phone, "9876543210", "text", "msg-3", now+2, "", "", "")
+	
+	// Submit model -> webhook fails with 500
+	_, _ = svc.handleWebhookLocked(ctx, phone, "Glanza", "text", "msg-4", now+3, "", "", "")
+	sess, _ := store.Get(phone)
+	if sess.State != StateIdle {
+		t.Fatalf("expected session to be reset to StateIdle after webhook error, got %v", sess.State)
+	}
+	if rec.lastText() != "Sorry, the referral system encountered an error. Please try again later." {
+		t.Fatalf("unexpected error response: %q", rec.lastText())
+	}
+
+	// Subsequent message like "hi" should NOT trigger another referral webhook error
+	_, _ = svc.handleWebhookLocked(ctx, phone, "hi", "text", "msg-5", now+4, "", "", "")
+	if rec.lastText() == "Sorry, the referral system encountered an error. Please try again later." {
+		t.Fatalf("bot is still returning referral error after session reset!")
+	}
+}

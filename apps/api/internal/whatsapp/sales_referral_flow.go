@@ -29,6 +29,20 @@ func (s *Service) beginSalesReferralFlow(ctx context.Context, sess *Session, fro
 	return s.sendText(ctx, from, "Please enter the Customer's Full Name:")
 }
 
+func isReferralEscape(input string) bool {
+	trimmed := strings.TrimSpace(input)
+	lower := strings.ToLower(trimmed)
+	if isGreeting(input) || isAcknowledgment(input) || lower == "cancel" || lower == "0" || lower == "menu" || lower == "exit" || lower == "back" {
+		return true
+	}
+	sel := normalizeMenuSelection(input)
+	switch sel {
+	case payloadRequestSalary, payloadGeneratePay, payloadRequestLeave, payloadRequestHealthCard, payloadRequestHolidays, payloadRequestMaintenance:
+		return true
+	}
+	return false
+}
+
 func (s *Service) handleSalesCustName(ctx context.Context, sess *Session, from, input string) error {
 	trimmed := strings.TrimSpace(input)
 	lower := strings.ToLower(trimmed)
@@ -36,6 +50,12 @@ func (s *Service) handleSalesCustName(ctx context.Context, sess *Session, from, 
 	// Ignore WhatsApp interactive menu button text echo
 	if strings.HasPrefix(lower, "nice") || strings.Contains(lower, "sales referr") || trimmed == payloadRequestSalesReferral {
 		return nil
+	}
+
+	if isReferralEscape(input) {
+		sess.resetFlow()
+		s.sessions.Set(from, sess)
+		return s.handleIdle(ctx, sess, from, input)
 	}
 
 	if trimmed == "" || len(trimmed) < 2 {
@@ -50,6 +70,12 @@ func (s *Service) handleSalesCustName(ctx context.Context, sess *Session, from, 
 }
 
 func (s *Service) handleSalesPhone(ctx context.Context, sess *Session, from, input string) error {
+	if isReferralEscape(input) {
+		sess.resetFlow()
+		s.sessions.Set(from, sess)
+		return s.handleIdle(ctx, sess, from, input)
+	}
+
 	input = strings.TrimSpace(input)
 	if input == "" {
 		return s.sendText(ctx, from, "Please enter a valid 10-digit mobile number:")
@@ -79,6 +105,12 @@ func (s *Service) handleSalesPhone(ctx context.Context, sess *Session, from, inp
 }
 
 func (s *Service) handleSalesModel(ctx context.Context, sess *Session, from, input string) error {
+	if isReferralEscape(input) {
+		sess.resetFlow()
+		s.sessions.Set(from, sess)
+		return s.handleIdle(ctx, sess, from, input)
+	}
+
 	trimmed := strings.TrimSpace(input)
 	if trimmed == "" {
 		return s.sendText(ctx, from, "Vehicle model is required. Which vehicle model is the customer interested in? (e.g. Glanza, Hyryder):")
@@ -131,11 +163,15 @@ func (s *Service) handleSalesModel(ctx context.Context, sess *Session, from, inp
 				resp, err := client.Do(req)
 				if err != nil {
 					slog.Error("sales referral webhook failed", "err", err)
+					sess.resetFlow()
+					s.sessions.Set(from, sess)
 					return s.sendText(ctx, from, "Sorry, the referral system is currently unreachable. Please try again later.")
 				}
 				resp.Body.Close()
 				if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 					slog.Error("sales referral webhook returned non-2xx", "status", resp.StatusCode)
+					sess.resetFlow()
+					s.sessions.Set(from, sess)
 					return s.sendText(ctx, from, "Sorry, the referral system encountered an error. Please try again later.")
 				}
 			}
