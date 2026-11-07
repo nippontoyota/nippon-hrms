@@ -15,14 +15,25 @@ func (r *flowBenefitRepo) GetBenefit(_ context.Context, employeeID string, benef
 	return r.benefits[employeeID+":"+string(benefitType)+":"+period], nil
 }
 
-func TestBenefitsMenuContainsBothOptions(t *testing.T) {
+func TestReferralsMenuOrder(t *testing.T) {
 	rows := moreOptionsListSections()[0].Rows
-	seen := map[string]bool{}
+	var ids []string
 	for _, row := range rows {
-		seen[row.ID] = true
+		ids = append(ids, row.ID)
 	}
-	if !seen[payloadRequestBonus] || !seen[payloadRequestEncashment] {
-		t.Fatalf("benefits options missing from More Options: %+v", rows)
+	expectedOrder := []string{
+		payloadRequestMaintenance,
+		payloadRequestSalesReferral,
+		payloadRequestBPReferral,
+		payloadRequestInactiveReferral,
+	}
+	if len(ids) != len(expectedOrder) {
+		t.Fatalf("expected %d menu rows, got %d: %+v", len(expectedOrder), len(ids), ids)
+	}
+	for i, exp := range expectedOrder {
+		if ids[i] != exp {
+			t.Fatalf("at index %d: expected %s, got %s", i, exp, ids[i])
+		}
 	}
 }
 

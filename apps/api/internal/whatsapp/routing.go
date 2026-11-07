@@ -68,6 +68,9 @@ func acceptsInboundAtState(state State, input string) bool {
 	case StateMaintenanceAwaitBranch, StateMaintenanceAwaitLocation, StateMaintenanceAwaitCategory, StateMaintenanceAwaitDescription:
 		return true
 
+	case StateAwaitSalesCustName, StateAwaitSalesPhone, StateAwaitSalesModel:
+		return true
+
 	default:
 		return false
 	}
@@ -91,7 +94,7 @@ func isActiveMenuSelection(state State, input string) bool {
 	sel := normalizeMenuSelection(input)
 	switch state {
 	case StateIdle:
-		return sel == payloadRequestSalary || sel == payloadRequestLeave || sel == payloadRequestHolidays || sel == payloadRequestReferral || sel == payloadReferCandidate || sel == payloadRequestHealthCard || sel == payloadRequestMaintenance || sel == payloadRequestBonus || sel == payloadRequestEncashment
+		return sel == payloadRequestSalary || sel == payloadRequestLeave || sel == payloadRequestHolidays || sel == payloadRequestReferral || sel == payloadReferCandidate || sel == payloadRequestHealthCard || sel == payloadRequestMaintenance || sel == payloadRequestBonus || sel == payloadRequestEncashment || sel == payloadRequestSalesReferral || sel == payloadRequestBPReferral || sel == payloadRequestInactiveReferral
 	case StateAwaitPeriod:
 		return sel == payloadGeneratePay || sel == payloadRequestSalary
 	default:

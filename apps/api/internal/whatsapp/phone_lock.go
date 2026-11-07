@@ -177,6 +177,9 @@ func isInteractiveMenuEcho(input string) bool {
 	if strings.Contains(lower, "b&p referral") || strings.Contains(lower, "bp referral") || lower == "b&p referral" || lower == "bp referral" || input == payloadRequestBPReferral {
 		return true
 	}
+	if strings.Contains(lower, "nice sales referral") || strings.Contains(lower, "sales referral") || lower == "nice" || lower == "sales referral" || input == payloadRequestSalesReferral {
+		return true
+	}
 	return false
 }
 

@@ -240,6 +240,12 @@ func (s *Service) handleWebhookLocked(ctx context.Context, from, input, msgType,
 			err = s.handleInactiveCustName(ctx, sess, from, input)
 		case StateAwaitInactivePhone:
 			err = s.handleInactivePhone(ctx, sess, from, input)
+		case StateAwaitSalesCustName:
+			err = s.handleSalesCustName(ctx, sess, from, input)
+		case StateAwaitSalesPhone:
+			err = s.handleSalesPhone(ctx, sess, from, input)
+		case StateAwaitSalesModel:
+			err = s.handleSalesModel(ctx, sess, from, input)
 	default:
 		err = s.handleIdle(ctx, sess, from, input)
 	}
@@ -414,6 +420,8 @@ func (s *Service) handleIdle(ctx context.Context, sess *Session, from, input str
 		return s.handleHealthCardRequest(ctx, sess, from)
 	case payloadRequestMaintenance:
 			return s.beginMaintenanceFlow(ctx, sess, from)
+		case payloadRequestSalesReferral:
+			return s.beginSalesReferralFlow(ctx, sess, from)
 		case payloadRequestBPReferral:
 			return s.beginBPReferralFlow(ctx, sess, from)
 		case payloadRequestInactiveReferral:
@@ -434,6 +442,8 @@ func (s *Service) handleIdle(ctx context.Context, sess *Session, from, input str
 		return s.beginLeaveFlow(ctx, sess, from)
 	case "referral", "referral link":
 			return s.handleReferralLinkRequest(ctx, sess, from)
+		case "nice sales referral", "sales referral", "nice referral", "nice":
+			return s.beginSalesReferralFlow(ctx, sess, from)
 		case "bp referral", "b&p referral", "b & p referral":
 			return s.beginBPReferralFlow(ctx, sess, from)
 		case "inactive referral", "inactive customer referral", "inactive customer referr", "inactive":
@@ -567,6 +577,8 @@ func (s *Service) handleReferralLinkRequest(ctx context.Context, sess *Session, 
 	s.sessions.Set(from, sess)
 	return nil
 }
+
+
 
 func (s *Service) beginLeaveFlow(ctx context.Context, sess *Session, from string) error {
 	s.ensureEmployee(ctx, sess, from)

@@ -18,6 +18,7 @@ const (
 	payloadRequestEncashment  = "request_leave_encashment_2026"
 	payloadRequestBPReferral = "request_bp_referral"
 	payloadRequestInactiveReferral = "request_inactive_referral"
+	payloadRequestSalesReferral    = "request_sales_referral"
 
 	payloadLeaveCasual     = "leave_casual"
 	payloadLeaveDuty       = "leave_duty"
@@ -56,6 +57,10 @@ const (
 	StateAwaitInactiveModel
 	StateAwaitInactiveCustName
 	StateAwaitInactivePhone
+
+	StateAwaitSalesCustName
+	StateAwaitSalesPhone
+	StateAwaitSalesModel
 )
 
 type Session struct {
@@ -104,6 +109,10 @@ type Session struct {
 	TempInactiveModel string
 	TempInactiveCustName string
 	TempInactivePhone string
+
+	TempSalesCustName string
+	TempSalesPhone    string
+	TempSalesModel    string
 }
 
 func (s *Session) resetFlow() {
@@ -136,6 +145,10 @@ func (s *Session) resetFlow() {
 	s.TempInactiveModel = ""
 	s.TempInactiveCustName = ""
 	s.TempInactivePhone = ""
+
+	s.TempSalesCustName = ""
+	s.TempSalesPhone = ""
+	s.TempSalesModel = ""
 }
 
 func (s *Session) reset() {
