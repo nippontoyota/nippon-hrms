@@ -154,14 +154,17 @@ func (s *Service) handleBPPhone(ctx context.Context, sess *Session, from, input 
 	emp, _ := s.empRepo.GetByID(ctx, sess.EmployeeID)
 	empName := sess.EmployeeID
 	empBranch := ""
+	empDept := ""
 	if emp != nil {
 		empName = emp.Name
 		empBranch = emp.Branch
+		empDept = emp.Department
 	}
 
 	payload := map[string]interface{}{
 		"referring_employee_id":     sess.EmployeeID,
 		"referring_employee_name":   empName,
+		"referring_employee_dept":   empDept,
 		"referring_employee_branch": empBranch,
 		"vehicle_image_url":         sess.TempBPMediaID,
 		"vehicle_model":             sess.TempBPVehicleModel,
