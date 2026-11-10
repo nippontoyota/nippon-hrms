@@ -150,7 +150,7 @@ func (s *Service) handleSalesModel(ctx context.Context, sess *Session, from, inp
 		webhookURL = os.Getenv("NICE_SALES_REFERRAL_WEBHOOK_URL")
 	}
 	if webhookURL == "" {
-		webhookURL = "https://stockpro-backend.onrender.com/webhooks/sales-referral"
+		webhookURL = "https://stockpro-backend-mkqb.onrender.com/webhooks/sales-referral"
 	}
 
 	if webhookURL != "" {
