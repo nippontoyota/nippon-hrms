@@ -71,7 +71,9 @@ export async function authenticateMaintenance(identifier: string, secret: string
   } else {
     const def = branchDefinitionForCode(branchCode)
     if (def) {
-      const branch = await prisma.maintenanceBranch.findFirst({ where: { name: def.name } })
+      const branch = await prisma.maintenanceBranch.findFirst({
+        where: { name: { in: [def.name, ...def.aliases] } }
+      })
       if (branch) {
         account = await prisma.maintenanceAccount.findFirst({ where: { branch_id: branch.id, role: 'BRANCH', is_active: true }, select: { id: true, role: true, branch_id: true, secret_hash: true } })
       }

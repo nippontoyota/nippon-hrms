@@ -102,7 +102,8 @@ func EnsureSchema(ctx context.Context, pool *pgxpool.Pool) error {
 						{"code":"TR01A","name":"Kazhakoottam","location":"Kazhakoottam"},
 						{"code":"KY01A","name":"Kayamkulam","location":"Kayamkulam"},
 						{"code":"CO01A","name":"Nettor","location":"Nettoor"},
-						{"code":"CO01B","name":"Kalamaserry","location":"Kalamaserry"}
+						{"code":"CO01B","name":"Kalamaserry","location":"Kalamaserry"},
+						{"code":"CO01E","name":"B&P Kalamassery","location":"B&P Kalamassery"}
 					]'::jsonb) AS branches(code TEXT, name TEXT, location TEXT)
 				LOOP
 					INSERT INTO "Location" (id, name, is_active, updated_at)

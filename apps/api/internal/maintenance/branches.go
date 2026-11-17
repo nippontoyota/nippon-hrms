@@ -3,11 +3,15 @@ package maintenance
 import "strings"
 
 var canonicalBranchNames = []string{
-	"Irinjalakuda", "Kalamaserry", "Kayamkulam", "Kazhakoottam", "Kollam", "Kottayam",
+	"B&P Kalamassery", "Irinjalakuda", "Kalamaserry", "Kayamkulam", "Kazhakoottam", "Kollam", "Kottayam",
 	"Muvattupuzha", "Nettor", "Pathanamthitta", "Thiruvalla", "Thrissur",
 }
 
 var branchNameAliases = map[string]string{
+	"b&p kalamassery": "B&P Kalamassery", "bp kalamassery": "B&P Kalamassery",
+	"b&p kalamaserry": "B&P Kalamassery", "bp kalamaserry": "B&P Kalamassery",
+	"kalamassery b&p": "B&P Kalamassery", "kalamaserry b&p": "B&P Kalamassery",
+	"co01e": "B&P Kalamassery",
 	"irinjalakuda": "Irinjalakuda",
 	"kalamaserry": "Kalamaserry", "kalamaserry_sm": "Kalamaserry", "kalamassery": "Kalamaserry",
 	"kayamkulam": "Kayamkulam", "kayamkulam_sm": "Kayamkulam",

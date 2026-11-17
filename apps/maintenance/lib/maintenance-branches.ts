@@ -5,6 +5,7 @@ export type MaintenanceBranchDefinition = {
 }
 
 export const MAINTENANCE_BRANCHES: readonly MaintenanceBranchDefinition[] = [
+  { name: 'B&P Kalamassery', code: 'CO01E', aliases: ['B&P Kalamassery', 'BP Kalamassery', 'B&P Kalamaserry', 'BP Kalamaserry', 'Kalamassery B&P', 'Kalamaserry B&P', 'CO01E'] },
   { name: 'Irinjalakuda', code: 'IR01A', aliases: ['Irinjalakuda'] },
   { name: 'Kalamaserry', code: 'CO01B', aliases: ['Kalamaserry', 'Kalamaserry_SM'] },
   { name: 'Kayamkulam', code: 'KY01A', aliases: ['Kayamkulam', 'Kayamkulam_SM'] },
@@ -35,6 +36,6 @@ export function branchDefinitionForCode(code: string) {
   return MAINTENANCE_BRANCHES.find((branch) => branch.code === normalized)
 }
 
-if (new Set(MAINTENANCE_BRANCHES.map((branch) => branch.name)).size !== 11 || new Set(MAINTENANCE_BRANCHES.map((branch) => branch.code)).size !== 11) {
-  throw new Error('Maintenance branch catalog must contain exactly 11 unique branches and codes')
+if (new Set(MAINTENANCE_BRANCHES.map((branch) => branch.name)).size !== 12 || new Set(MAINTENANCE_BRANCHES.map((branch) => branch.code)).size !== 12) {
+  throw new Error('Maintenance branch catalog must contain exactly 12 unique branches and codes')
 }
