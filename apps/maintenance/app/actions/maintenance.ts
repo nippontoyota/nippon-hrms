@@ -25,6 +25,11 @@ const costInput = z.object({
   amount: z.preprocess((value) => typeof value === 'string' ? Number(value) : value, costAmount),
 })
 const closeInput = z.object({ ticketId })
+const progressInput = z.object({
+  ticketId,
+  status: z.nativeEnum(TicketStatus),
+  notes: z.string().trim().max(1000).optional(),
+})
 const transferInput = z.object({ ticketId, destinationBranchId: z.string().trim().min(1), reason: z.string().trim().min(5).max(500) })
 const transferDecisionInput = z.object({ transferId: z.string().trim().min(1), reason: z.string().trim().max(500).optional() })
 const branchAccountInput = z.object({ branchId: z.string().trim().min(1), code: z.string().trim().regex(/^[A-Za-z0-9]{5,12}$/).optional() })
@@ -193,6 +198,53 @@ export async function reopenTicket(input: unknown) {
   } catch (error) {
     console.error('Failed to reopen maintenance ticket', { actor, error })
     return { success: false as const, error: error instanceof Error ? error.message : 'Unable to reopen the ticket.' }
+  }
+}
+
+export async function updateTicketProgress(input: unknown) {
+  const session = await requireMaintenanceSession()
+  const actor = session.accountId
+  let parsed: z.infer<typeof progressInput>
+  try {
+    parsed = progressInput.parse(input)
+  } catch (error) {
+    return { success: false as const, error: inputError(error) }
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      const ticket = await tx.ticket.findFirst({
+        where: { id: parsed.ticketId, ...(session.role === 'BRANCH' ? { branch_id: session.branchId } : {}) },
+        select: { id: true, status: true },
+      })
+      if (!ticket) throw new Error('Ticket not found')
+      if (ticket.status === TicketStatus.CLOSED) throw new Error('Closed tickets cannot be updated')
+
+      const actorDisplay = session.branchName || (session.role === 'ADMIN' ? 'Admin' : 'Maintenance Team')
+      const trimmedNotes = parsed.notes && parsed.notes.length > 0 ? parsed.notes : null
+
+      await tx.ticket.update({
+        where: { id: parsed.ticketId },
+        data: {
+          status: parsed.status,
+          updated_at: new Date(),
+        },
+      })
+
+      await tx.ticketStatusHistory.create({
+        data: {
+          ticket_id: parsed.ticketId,
+          status: parsed.status,
+          notes: trimmedNotes ? `[${actorDisplay}] ${trimmedNotes}` : `[${actorDisplay}]`,
+        },
+      })
+    })
+
+    revalidateTicket(parsed.ticketId)
+    return { success: true as const }
+  } catch (error) {
+    console.error('Failed to update maintenance ticket progress', { actor, error })
+    return { success: false as const, error: error instanceof Error ? error.message : 'Unable to update ticket progress.' }
   }
 }
 
