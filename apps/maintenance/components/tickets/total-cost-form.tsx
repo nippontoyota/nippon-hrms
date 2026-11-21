@@ -151,10 +151,10 @@ export function TotalCostForm({ ticketId, initialAmount, disabled = false }: { t
             type="button"
             onClick={handleSave}
             disabled={disabled || isPending}
-            className="inline-flex h-9 items-center justify-center gap-1.5 bg-red-600 px-4 text-xs font-bold uppercase tracking-wider text-white shadow-sm transition hover:bg-red-700 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-9 items-center justify-center gap-1.5 bg-emerald-600 px-4 text-xs font-bold uppercase tracking-wider text-white shadow-sm transition hover:bg-emerald-700 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Save className="h-3.5 w-3.5" />
-            {isPending ? 'Saving…' : 'Save Cost'}
+            {isPending ? 'Saving…' : 'Save'}
           </button>
         </div>
       )}
